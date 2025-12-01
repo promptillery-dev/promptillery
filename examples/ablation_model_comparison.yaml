@@ -1,0 +1,104 @@
+# =============================================================================
+# Model Comparison Ablation Study
+# =============================================================================
+# Compares different student models (transformers vs FastText) to identify
+# the best architecture for a given task.
+#
+# To run: python -m promptillery.cli ablation examples/ablation_model_comparison.yaml
+# =============================================================================
+
+name: "model_comparison_ag_news"
+teacher: "openai/gpt-4o-mini"
+
+# -----------------------------------------------------------------------------
+# MODEL GRID
+# -----------------------------------------------------------------------------
+# Compare different student model architectures
+
+# Transformer models - using list format for ablation
+student: ["google-bert/bert-base-uncased", "distilbert/distilbert-base-uncased", "FacebookAI/roberta-base"]
+
+# Student type (transformers for all above models)
+student_type: "transformers"
+
+# Dataset: AG News (4-class news classification)
+dataset: "SetFit/ag_news"
+dataset_config:
+  name: "default"
+  num_classes: 4
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+# -----------------------------------------------------------------------------
+# FIXED HYPERPARAMETERS
+# -----------------------------------------------------------------------------
+# Keep other parameters fixed to isolate model effects
+
+cycles: 3
+learning_rate: 2e-5
+num_train_epochs: 3
+augmentation_batch_size: 32
+
+# Total: 3 configurations (one per student model)
+
+# -----------------------------------------------------------------------------
+# DATA SAMPLING
+# -----------------------------------------------------------------------------
+sampling:
+  enabled: true
+  sample_size: 2000
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 42
+
+# -----------------------------------------------------------------------------
+# EARLY STOPPING
+# -----------------------------------------------------------------------------
+early_stopping:
+  enabled: true
+  patience: 2
+  metric: "f1"
+  mode: "max"
+  min_delta: 0.005
+  restore_best: true
+
+base_output_dir: "experiments/model_comparison"
+
+# -----------------------------------------------------------------------------
+# TEACHER MODEL PROMPT TEMPLATE
+# -----------------------------------------------------------------------------
+prompt: |
+  You are a teacher model in a knowledge distillation pipeline for news classification.
+
+  # Task Description
+  Classify news articles into one of four categories:
+  0: World - International news, politics, diplomacy
+  1: Sports - Athletic events, teams, players
+  2: Business - Finance, markets, economics, companies
+  3: Sci/Tech - Science discoveries, technology, gadgets
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new news article samples focusing on:
+  1. Categories with low precision/recall scores
+  2. Confusion patterns between similar categories
+  3. Clear examples that reinforce correct category boundaries

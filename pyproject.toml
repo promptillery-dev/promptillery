@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "promptillery"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "typer[all]",
+    "pydantic>=2",
+    "datasets",
+    "transformers[torch]",
+    "evaluate",
+    "rich",
+    "tensorboard",
+    "litellm",
+    "torch",
+    "numpy",
+    "PyYAML",
+    "scikit-learn",
+    "python-dotenv",
+    "fasttext-numpy2>=0.10.4",
+    "jinja2",
+    "pandas",
+    "tabulate",
+]
+
+[project.scripts]
+promptillery = "promptillery.cli:app"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["promptillery*"]
+exclude = ["out*", "*.egg-info*"]
+[tool.uv]
+managed = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.1",
+]

@@ -1,0 +1,102 @@
+# =============================================================================
+# Text Classification with Transformers
+# =============================================================================
+# Demonstrates knowledge distillation using a transformer model (BERT) as the
+# student. Transformers provide higher accuracy but require more compute.
+#
+# To run: python -m promptillery.cli train examples/text_classification_transformers.yaml
+# =============================================================================
+
+name: "transformers_ag_news"
+teacher: "openai/gpt-4o-mini"
+student: "google-bert/bert-base-uncased"
+student_type: "transformers"
+
+# Dataset: AG News (4-class news classification)
+dataset: "SetFit/ag_news"
+dataset_config:
+  name: "default"
+  num_classes: 4
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+# -----------------------------------------------------------------------------
+# TRANSFORMER HYPERPARAMETERS
+# -----------------------------------------------------------------------------
+# Transformers use different hyperparameter ranges than FastText:
+#   - Lower learning rates (1e-5 to 5e-5)
+#   - Fewer training epochs (2-5)
+
+cycles: 5
+
+# Transformer-appropriate learning rate
+learning_rate: 2e-5
+
+# Transformers converge faster than FastText
+num_train_epochs: 3
+
+# Synthetic samples per cycle
+augmentation_batch_size: 32
+
+# -----------------------------------------------------------------------------
+# EARLY STOPPING
+# -----------------------------------------------------------------------------
+early_stopping:
+  enabled: true
+  patience: 2
+  metric: "f1"
+  mode: "max"
+  min_delta: 0.005
+  restore_best: true
+
+# -----------------------------------------------------------------------------
+# DATA SAMPLING
+# -----------------------------------------------------------------------------
+sampling:
+  enabled: true
+  sample_size: 2000
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 42
+
+base_output_dir: "experiments/transformers_classification"
+
+# -----------------------------------------------------------------------------
+# TEACHER MODEL PROMPT TEMPLATE
+# -----------------------------------------------------------------------------
+prompt: |
+  You are a teacher model in a knowledge distillation pipeline for news classification.
+
+  # Task Description
+  Classify news articles into one of four categories:
+  0: World - International news, politics, diplomacy
+  1: Sports - Athletic events, teams, players
+  2: Business - Finance, markets, economics, companies
+  3: Sci/Tech - Science discoveries, technology, gadgets
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new news article samples focusing on:
+  1. Categories with low precision/recall scores
+  2. Confusion patterns between similar categories
+  3. Clear examples that reinforce correct category boundaries
+  4. Diverse vocabulary and writing styles within each category

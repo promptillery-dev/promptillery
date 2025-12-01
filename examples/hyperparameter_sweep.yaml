@@ -1,0 +1,102 @@
+# =============================================================================
+# Hyperparameter Sweep Example
+# =============================================================================
+# Demonstrates grid search across multiple hyperparameter combinations.
+# Total configurations = |cycles| × |learning_rate| × |num_train_epochs| × |augmentation_batch_size|
+#
+# To run: python -m promptillery.cli ablation examples/hyperparameter_sweep.yaml
+# =============================================================================
+
+name: "hyperparameter_sweep_ag_news"
+teacher: "openai/gpt-4o-mini"
+student: "google-bert/bert-base-uncased"
+student_type: "transformers"
+
+# Dataset: AG News (4-class news classification)
+dataset: "SetFit/ag_news"
+dataset_config:
+  name: "default"
+  num_classes: 4
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+# -----------------------------------------------------------------------------
+# HYPERPARAMETER GRID
+# -----------------------------------------------------------------------------
+# Parameters as lists create a grid search across all combinations.
+
+# Training cycles (augmentation iterations)
+cycles: [1, 3, 5]
+
+# Transformer learning rates
+learning_rate: [1e-5, 2e-5, 3e-5, 5e-5]
+
+# Training epochs per cycle
+num_train_epochs: [2, 3, 4]
+
+# Synthetic samples per augmentation cycle
+augmentation_batch_size: [16, 32, 64]
+
+# Total: 3 × 4 × 3 × 3 = 108 configurations
+
+# -----------------------------------------------------------------------------
+# DATA SAMPLING
+# -----------------------------------------------------------------------------
+sampling:
+  enabled: true
+  sample_size: 2000
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 42
+
+# -----------------------------------------------------------------------------
+# EARLY STOPPING (per run)
+# -----------------------------------------------------------------------------
+early_stopping:
+  enabled: true
+  patience: 2
+  metric: "f1"
+  mode: "max"
+  min_delta: 0.005
+  restore_best: true
+
+base_output_dir: "experiments/hyperparameter_sweep"
+
+# -----------------------------------------------------------------------------
+# TEACHER MODEL PROMPT TEMPLATE
+# -----------------------------------------------------------------------------
+prompt: |
+  You are a teacher model in a knowledge distillation pipeline for news classification.
+
+  # Task Description
+  Classify news articles into one of four categories:
+  0: World
+  1: Sports
+  2: Business
+  3: Sci/Tech
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new news article samples focusing on:
+  1. Categories with low precision/recall
+  2. Confusion patterns between similar categories (e.g., Business vs Sci/Tech)
+  3. Clear examples reinforcing correct category boundaries

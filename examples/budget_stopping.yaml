@@ -1,0 +1,98 @@
+# =============================================================================
+# Budget Stopping Example
+# =============================================================================
+# Demonstrates automatic stopping when LLM API costs exceed a threshold.
+# Useful for controlling expenses during experimentation.
+#
+# To run: python -m promptillery.cli train examples/budget_stopping.yaml
+# =============================================================================
+
+name: "budget_controlled_sst2"
+teacher: "openai/gpt-4o-mini"
+student: "google-bert/bert-base-uncased"
+student_type: "transformers"
+
+# Dataset: SST-2 (binary sentiment classification)
+dataset: "SetFit/sst2"
+dataset_config:
+  name: "default"
+  num_classes: 2
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+# Allow many cycles - budget will stop training before completion
+cycles: 20
+learning_rate: 2e-5
+num_train_epochs: 3
+augmentation_batch_size: 64
+
+# -----------------------------------------------------------------------------
+# BUDGET CONTROL
+# -----------------------------------------------------------------------------
+# budget_warning: Cost threshold (USD) to log a warning
+budget_warning: 2.0
+
+# budget_stop: Automatically stop experiment when this budget is exceeded
+#   - When true, training halts immediately after exceeding the threshold
+#   - Accumulated costs include all LLM API calls for augmentation
+budget_stop: true
+
+# -----------------------------------------------------------------------------
+# EARLY STOPPING (as backup)
+# -----------------------------------------------------------------------------
+early_stopping:
+  enabled: true
+  patience: 3
+  metric: "f1"
+  mode: "max"
+  min_delta: 0.005
+  restore_best: true
+
+# -----------------------------------------------------------------------------
+# DATA SAMPLING
+# -----------------------------------------------------------------------------
+sampling:
+  enabled: true
+  sample_size: 1000
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 42
+
+base_output_dir: "experiments/budget_stopping"
+
+# -----------------------------------------------------------------------------
+# PROMPT TEMPLATE
+# -----------------------------------------------------------------------------
+prompt: |
+  You are a teacher model in a knowledge distillation pipeline for sentiment analysis.
+
+  # Task Description
+  Classify sentences as positive or negative sentiment:
+  0: Negative
+  1: Positive
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new sentence samples focusing on:
+  1. Sentiment patterns causing the most confusion
+  2. Nuanced expressions with subtle positive/negative indicators
+  3. Clear examples that reinforce correct sentiment boundaries

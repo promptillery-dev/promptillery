@@ -1,0 +1,97 @@
+# =============================================================================
+# Basic Augmentation Example (Without Active Learning Approach)
+# =============================================================================
+# Demonstrates simple data augmentation using only few-shot examples and
+# classification report, without targeting specific model weaknesses.
+#
+# Use case: When you want straightforward data augmentation without the
+# complexity of analyzing model uncertainty or misclassifications.
+#
+# To run: python -m promptillery.cli train --config examples/augmentation_basic.yaml
+# =============================================================================
+
+name: "basic_augmentation_tweet_eval"
+teacher: "openai/gpt-4o-mini"
+student: "distilbert-base-uncased"
+student_type: "transformers"
+
+# Dataset: TweetEval Sentiment (3-class sentiment classification)
+dataset: "tweet_eval"
+dataset_config:
+  name: "sentiment"
+  num_classes: 3
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+cycles: 5
+learning_rate: 2e-5
+num_train_epochs: 3
+augmentation_batch_size: 32
+
+# -----------------------------------------------------------------------------
+# EARLY STOPPING
+# -----------------------------------------------------------------------------
+early_stopping:
+  enabled: true
+  patience: 2
+  metric: "f1"
+  mode: "max"
+  min_delta: 0.005
+  restore_best: true
+
+# -----------------------------------------------------------------------------
+# DATA SAMPLING
+# -----------------------------------------------------------------------------
+sampling:
+  enabled: true
+  sample_size: 1500
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 42
+
+base_output_dir: "experiments/basic_augmentation"
+
+# -----------------------------------------------------------------------------
+# TEACHER MODEL PROMPT TEMPLATE 
+# -----------------------------------------------------------------------------
+# This prompt only uses:
+#   - few_shot_samples: Reference examples per class
+#   - classification_report: Current model performance metrics
+#
+# It does NOT use:
+#   - high_entropy_samples: Samples with high model uncertainty
+#   - hard_negative_samples: Confident misclassifications
+#   - margin_based_samples: Samples with close top-two predictions
+# -----------------------------------------------------------------------------
+prompt: |
+  You are a teacher model helping to generate training data for sentiment classification.
+
+  # Task Description
+  Classify tweets into one of three sentiment categories:
+  0: Negative
+  1: Neutral
+  2: Positive
+
+  # Reference Examples
+  Here are correctly labeled examples for each class:
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Current Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Task
+  Based on the classification report above, generate {{ augmentation_batch_size }} new tweet samples.
+
+  Focus on:
+  1. Classes with low precision or recall (as shown in the metrics)
+  2. Creating diverse examples that cover different expressions of each sentiment
+  3. Maintaining realistic tweet style (informal language, hashtags, mentions)
+  4. Balanced distribution across all sentiment classes
+
+  Generate varied, realistic tweets that will help improve the model's overall performance.

@@ -1,0 +1,93 @@
+# =============================================================================
+# Early Stopping Example
+# =============================================================================
+# Demonstrates early stopping to prevent overfitting and reduce training time.
+# Training halts when the monitored metric stops improving.
+#
+# To run: python -m promptillery.cli train examples/early_stopping.yaml
+# =============================================================================
+
+name: "early_stopping_imdb"
+teacher: "openai/gpt-4o-mini"
+student: "distilbert-base-uncased"
+student_type: "transformers"
+
+# Dataset: IMDB (binary sentiment classification)
+dataset: "stanfordnlp/imdb"
+dataset_config:
+  name: "plain_text"
+  num_classes: 2
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+# Fixed hyperparameters (no grid search)
+cycles: 10
+learning_rate: 2e-5
+num_train_epochs: 3
+augmentation_batch_size: 32
+
+# -----------------------------------------------------------------------------
+# EARLY STOPPING CONFIGURATION
+# -----------------------------------------------------------------------------
+early_stopping:
+  enabled: true
+  # patience: Number of cycles without improvement before stopping
+  patience: 3
+  # metric: Which metric to monitor
+  metric: "f1"
+  # mode: "max" for metrics where higher is better (accuracy, f1)
+  #       "min" for metrics where lower is better (loss)
+  mode: "max"
+  # min_delta: Minimum improvement required to reset patience counter
+  min_delta: 0.01
+  # restore_best: Load model weights from the best-performing cycle
+  restore_best: true
+
+# -----------------------------------------------------------------------------
+# DATA SAMPLING
+# -----------------------------------------------------------------------------
+sampling:
+  enabled: true
+  sample_size: 1500
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 42
+
+base_output_dir: "experiments/early_stopping"
+
+# -----------------------------------------------------------------------------
+# TEACHER MODEL PROMPT TEMPLATE
+# -----------------------------------------------------------------------------
+prompt: |
+  You are a teacher model in a knowledge distillation pipeline for sentiment analysis.
+
+  # Task Description
+  Classify movie reviews as positive or negative sentiment:
+  0: Negative
+  1: Positive
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new movie review samples focusing on:
+  1. Subtle sentiment expressions the model struggles with
+  2. Reviews with mixed opinions but clear overall sentiment
+  3. Domain-specific vocabulary patterns
