@@ -11,7 +11,12 @@ import typer
 from dotenv import load_dotenv
 
 from .ablation import AblationStudyRunner
-from .analyze import analyze_runs, write_audit_csvs, write_summary_csv
+from .analyze import (
+    analyze_runs,
+    validate_pilot_gate,
+    write_audit_csvs,
+    write_summary_csv,
+)
 from .config import ExperimentConfig
 from .engine import DistillationEngine, evaluate_model
 from .policy_controller import PolicyController, enumerate_actions
@@ -23,6 +28,11 @@ load_dotenv()
 
 # Default teacher model for baseline evaluation
 DEFAULT_BASELINE_TEACHER = "openai/gpt-4.1"
+
+
+def _csv_option_values(value: str) -> List[str]:
+    """Parse a comma-separated CLI option into stable string values."""
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 @app.command()
@@ -237,6 +247,84 @@ def analyze(
     writer = csv.DictWriter(sys.stdout, fieldnames=list(rows[0].keys()))
     writer.writeheader()
     writer.writerows(rows)
+
+
+@app.command("pilot-gate")
+def pilot_gate(
+    path: str,
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional JSON report output path",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to use for final and AUC checks",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+    policies: str = typer.Option(
+        "fixed_coverage,fixed_boundary,fixed_repair,random_feasible,cost_heuristic,frugalkd_p",
+        "--policies",
+        help="Comma-separated expected policy_name values",
+    ),
+    seeds: str = typer.Option(
+        "13,42,101",
+        "--seeds",
+        help="Comma-separated expected seed values",
+    ),
+    budgets: str = typer.Option(
+        "25000,50000,100000",
+        "--budgets",
+        help="Comma-separated expected token_budget values",
+    ),
+    require_teacher_attempts: bool = typer.Option(
+        True,
+        "--require-teacher-attempts/--no-require-teacher-attempts",
+        help="Require at least one teacher attempt row",
+    ),
+    require_frontier: bool = typer.Option(
+        True,
+        "--require-frontier/--no-require-frontier",
+        help="Require matched fixed-policy frontier rows for every run",
+    ),
+) -> None:
+    """Validate cheap-pilot artifacts against reviewer-facing gate checks."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        report = validate_pilot_gate(
+            Path(path),
+            metric=metric,
+            mode=mode,
+            expected_policies=_csv_option_values(policies),
+            expected_seeds=_csv_option_values(seeds),
+            expected_budgets=_csv_option_values(budgets),
+            require_teacher_attempts=require_teacher_attempts,
+            require_frontier=require_frontier,
+        )
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    report_json = json.dumps(report, indent=2, sort_keys=True)
+    if output:
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        Path(output).write_text(report_json + "\n", encoding="utf-8")
+        typer.echo(f"Wrote pilot gate report to {output}")
+    else:
+        typer.echo(report_json)
+
+    if not report["passed"]:
+        raise typer.Exit(code=1)
 
 
 @app.command("policy-smoke")

@@ -745,3 +745,240 @@ def write_audit_csvs(
     )
     _write_rows_csv(oracle_rows, paths["oracle_frontier"], ORACLE_FRONTIER_FIELDS)
     return paths
+
+
+def _normalize_set(values: Iterable[Any]) -> set[str]:
+    """Normalize optional CLI/config values for set comparisons."""
+    return {str(value) for value in values}
+
+
+def _gate_check(name: str, passed: bool, **details: Any) -> Dict[str, Any]:
+    """Build one machine-readable pilot gate check."""
+    return {"name": name, "passed": passed, **details}
+
+
+def validate_pilot_gate(
+    path: Path,
+    *,
+    metric: str | None = None,
+    mode: str = "auto",
+    expected_policies: List[str] | None = None,
+    expected_seeds: List[str] | None = None,
+    expected_budgets: List[str] | None = None,
+    require_teacher_attempts: bool = True,
+    require_frontier: bool = True,
+) -> Dict[str, Any]:
+    """Return a pass/fail report for the cheap policy-axis pilot."""
+    rows = analyze_runs(path, metric=metric, mode=mode)
+    run_dirs = _run_dirs(path)
+    policy_rows = [
+        row
+        for run_dir in run_dirs
+        for row in summarize_policy_behavior(run_dir)
+    ]
+    calibration_rows = [
+        row
+        for run_dir in run_dirs
+        for row in summarize_teacher_calibration(run_dir)
+    ]
+    frontier_rows = summarize_oracle_frontier(rows)
+
+    policies_found = _normalize_set(row.get("policy_name") for row in rows)
+    seeds_found = _normalize_set(row.get("seed") for row in rows)
+    budgets_found = _normalize_set(row.get("token_budget") for row in rows)
+    expected_policy_set = set(expected_policies or [])
+    expected_seed_set = set(expected_seeds or [])
+    expected_budget_set = set(expected_budgets or [])
+
+    checks = []
+    if expected_policy_set:
+        checks.append(
+            _gate_check(
+                "expected_policies_present",
+                expected_policy_set.issubset(policies_found),
+                expected=sorted(expected_policy_set),
+                found=sorted(policies_found),
+                missing=sorted(expected_policy_set - policies_found),
+            )
+        )
+    if expected_seed_set:
+        checks.append(
+            _gate_check(
+                "expected_seeds_present",
+                expected_seed_set.issubset(seeds_found),
+                expected=sorted(expected_seed_set),
+                found=sorted(seeds_found),
+                missing=sorted(expected_seed_set - seeds_found),
+            )
+        )
+    if expected_budget_set:
+        checks.append(
+            _gate_check(
+                "expected_budgets_present",
+                expected_budget_set.issubset(budgets_found),
+                expected=sorted(expected_budget_set),
+                found=sorted(budgets_found),
+                missing=sorted(expected_budget_set - budgets_found),
+            )
+        )
+
+    if expected_policy_set and expected_seed_set and expected_budget_set:
+        expected_combos = {
+            (policy, seed, budget)
+            for policy in expected_policy_set
+            for seed in expected_seed_set
+            for budget in expected_budget_set
+        }
+        found_combos = {
+            (
+                str(row.get("policy_name")),
+                str(row.get("seed")),
+                str(row.get("token_budget")),
+            )
+            for row in rows
+        }
+        checks.append(
+            _gate_check(
+                "expected_policy_seed_budget_grid",
+                expected_combos == found_combos,
+                expected_count=len(expected_combos),
+                found_count=len(found_combos),
+                missing=[list(combo) for combo in sorted(expected_combos - found_combos)],
+                unexpected=[
+                    list(combo) for combo in sorted(found_combos - expected_combos)
+                ],
+            )
+        )
+
+    overage_rows = [
+        row for row in rows if (_safe_float(row.get("token_budget_overage")) or 0) > 0
+    ]
+    checks.append(
+        _gate_check(
+            "no_token_budget_overage",
+            not overage_rows,
+            violating_run_ids=[row.get("run_id") for row in overage_rows],
+        )
+    )
+
+    missing_decision_rows = [
+        row for row in rows if (_safe_int(row.get("policy_decision_count")) or 0) <= 0
+    ]
+    checks.append(
+        _gate_check(
+            "policy_decisions_present",
+            not missing_decision_rows,
+            violating_run_ids=[row.get("run_id") for row in missing_decision_rows],
+        )
+    )
+
+    fixed_operator_failures = []
+    for policy_name, expected_operator in (
+        ("fixed_coverage", "coverage"),
+        ("fixed_boundary", "boundary"),
+        ("fixed_repair", "repair"),
+    ):
+        if expected_policy_set and policy_name not in expected_policy_set:
+            continue
+        if policy_name not in policies_found:
+            continue
+        operators = {
+            str(row.get("prompt_operator"))
+            for row in policy_rows
+            if row.get("policy_name") == policy_name and row.get("action_name") != "STOP"
+        }
+        if expected_operator not in operators:
+            fixed_operator_failures.append(
+                {
+                    "policy_name": policy_name,
+                    "expected_operator": expected_operator,
+                    "found_operators": sorted(operators),
+                }
+            )
+    checks.append(
+        _gate_check(
+            "fixed_policies_use_distinct_prompt_operators",
+            not fixed_operator_failures,
+            failures=fixed_operator_failures,
+        )
+    )
+
+    decision_ids = {
+        str(row.get("decision_id"))
+        for row in policy_rows
+        if row.get("decision_id")
+    }
+    orphan_attempts = [
+        row
+        for row in calibration_rows
+        if row.get("decision_id") and str(row.get("decision_id")) not in decision_ids
+    ]
+    missing_attempt_decisions = [
+        row for row in calibration_rows if not row.get("decision_id")
+    ]
+    checks.append(
+        _gate_check(
+            "teacher_attempts_join_policy_decisions",
+            not orphan_attempts and not missing_attempt_decisions,
+            orphan_attempt_ids=[row.get("attempt_id") for row in orphan_attempts],
+            missing_decision_attempt_ids=[
+                row.get("attempt_id") for row in missing_attempt_decisions
+            ],
+        )
+    )
+
+    if require_teacher_attempts:
+        checks.append(
+            _gate_check(
+                "teacher_attempts_present",
+                bool(calibration_rows),
+                teacher_attempt_count=len(calibration_rows),
+            )
+        )
+
+    preflight_violations = [
+        row for row in calibration_rows if row.get("over_preflight_bound") is True
+    ]
+    remaining_violations = [
+        row for row in calibration_rows if row.get("over_remaining_budget") is True
+    ]
+    checks.append(
+        _gate_check(
+            "no_preflight_or_remaining_budget_violations",
+            not preflight_violations and not remaining_violations,
+            over_preflight_attempt_ids=[
+                row.get("attempt_id") for row in preflight_violations
+            ],
+            over_remaining_attempt_ids=[
+                row.get("attempt_id") for row in remaining_violations
+            ],
+        )
+    )
+
+    if require_frontier:
+        missing_frontier = [
+            row for row in frontier_rows if row.get("frontier_available") is not True
+        ]
+        checks.append(
+            _gate_check(
+                "fixed_policy_frontier_available",
+                not missing_frontier,
+                violating_run_ids=[row.get("run_id") for row in missing_frontier],
+            )
+        )
+
+    passed = all(check["passed"] for check in checks)
+    return {
+        "passed": passed,
+        "path": str(path),
+        "metric": metric,
+        "mode": mode,
+        "run_count": len(rows),
+        "policy_decision_rows": len(policy_rows),
+        "teacher_calibration_rows": len(calibration_rows),
+        "frontier_rows": len(frontier_rows),
+        "policies_found": sorted(policies_found),
+        "seeds_found": sorted(seeds_found),
+        "budgets_found": sorted(budgets_found),
+        "checks": checks,
+    }
