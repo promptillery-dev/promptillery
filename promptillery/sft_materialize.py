@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -34,6 +35,12 @@ Answer the student prompt below. Return only the target response.
 Student prompt:
 {{ student_prompt }}
 """
+
+
+def _stable_hash(value: Any) -> str:
+    """Return a stable short hash for configs and templates."""
+    payload = json.dumps(value, sort_keys=True, default=str).encode("utf-8")
+    return sha256(payload).hexdigest()[:16]
 
 
 def load_materialization_dataset(config: ExperimentConfig) -> DatasetDict:
@@ -149,10 +156,13 @@ async def materialize_sft_records(
     teacher_tier: str = "cheap",
     overwrite: bool = False,
     allow_estimated_usage: bool = False,
+    allow_partial: bool = False,
 ) -> Dict[str, Any]:
     """Write SFT JSONL records for one dataset split."""
     if isinstance(config.teacher, list):
         raise ValueError("materialize-sft requires a single teacher value")
+    if isinstance(config.dataset, list):
+        raise ValueError("materialize-sft requires a single dataset value")
     if isinstance(config.seed, list):
         raise ValueError("materialize-sft requires a single seed value")
     if isinstance(config.token_budget, list):
@@ -163,7 +173,8 @@ async def materialize_sft_records(
         raise ValueError(
             "teacher mode requires teacher_max_output_tokens for preflight accounting"
         )
-    if output_path.exists() and not overwrite:
+    manifest_path = output_path.with_name(f"{output_path.name}.manifest.json")
+    if (output_path.exists() or manifest_path.exists()) and not overwrite:
         raise ValueError(f"Output path already exists: {output_path}")
 
     materialize_config = config.trainer_config.get("materialize_sft", {})
@@ -190,137 +201,205 @@ async def materialize_sft_records(
         source = source.select(range(min(max_samples, len(source))))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = output_path.with_name(f".{output_path.name}.tmp")
+    temp_manifest_path = output_path.with_name(f".{output_path.name}.manifest.tmp")
+    if temp_path.exists():
+        temp_path.unlink()
+    if temp_manifest_path.exists():
+        temp_manifest_path.unlink()
+
     total_tokens = 0
     written = 0
+    attempted = 0
+    usage_estimated_records = 0
+    stop_reason = "completed"
     materialized_at = datetime.now(timezone.utc).isoformat()
 
-    with output_path.open("w", encoding="utf-8") as f:
-        for index, row in enumerate(source):
-            row_values = dict(row)
-            gold_answer, resolved_gold_field = _label_text(
-                row_values, config, source, gold_answer_field
-            )
-            if not gold_answer:
-                raise ValueError(
-                    f"Gold answer is empty for row {split}/{index} "
-                    f"from field '{resolved_gold_field}'"
+    try:
+        with temp_path.open("w", encoding="utf-8") as f:
+            for index, row in enumerate(source):
+                attempted += 1
+                predicted_total = 0
+                row_values = dict(row)
+                gold_answer, resolved_gold_field = _label_text(
+                    row_values, config, source, gold_answer_field
                 )
-            row_values["gold_answer"] = gold_answer
-
-            if config.text_field in row_values:
-                row_values.setdefault("text", row_values[config.text_field])
-            if config.label_field in row_values:
-                row_values.setdefault("label", row_values[config.label_field])
-
-            student_prompt = _format_template(student_prompt_template, row_values)
-            row_values["student_prompt"] = student_prompt
-            source_id = str(row_values.get("id", f"{split}/{index}"))
-
-            usage = {
-                "teacher_input_tokens": 0,
-                "teacher_output_tokens": 0,
-                "teacher_total_tokens": 0,
-                "provider_total_tokens": 0,
-            }
-            teacher_prompt = ""
-            teacher_response = gold_answer
-            usage_estimated = False
-
-            if mode == "teacher":
-                teacher_prompt = _format_template(teacher_prompt_template, row_values)
-                messages = [{"role": "user", "content": teacher_prompt}]
-                predicted_total = _estimate_input_tokens(config.teacher, messages) + int(
-                    config.teacher_max_output_tokens or 0
-                )
-                if (
-                    config.token_budget is not None
-                    and total_tokens + predicted_total > config.token_budget
-                ):
-                    logger.info(
-                        "Stopping before row %s: predicted total %d would exceed token_budget=%d",
-                        source_id,
-                        total_tokens + predicted_total,
-                        config.token_budget,
-                    )
-                    break
-
-                response = await acompletion(
-                    model=config.teacher,
-                    messages=messages,
-                    max_tokens=config.teacher_max_output_tokens,
-                    temperature=0,
-                )
-                teacher_response = _response_text(response)
-                if not teacher_response:
-                    raise ValueError(f"Teacher returned an empty response for {source_id}")
-                usage = _usage_from_response(response)
-                if usage["teacher_total_tokens"] <= 0 and not allow_estimated_usage:
+                if not gold_answer:
                     raise ValueError(
-                        "Teacher response did not include token usage. "
-                        "Rerun with allow_estimated_usage only for non-paper dry runs."
+                        f"Gold answer is empty for row {split}/{index} "
+                        f"from field '{resolved_gold_field}'"
                     )
-                if usage["teacher_total_tokens"] <= 0:
-                    usage["teacher_input_tokens"] = _estimate_input_tokens(
+                row_values["gold_answer"] = gold_answer
+
+                if config.text_field in row_values:
+                    row_values.setdefault("text", row_values[config.text_field])
+                if config.label_field in row_values:
+                    row_values.setdefault("label", row_values[config.label_field])
+
+                student_prompt = _format_template(student_prompt_template, row_values)
+                row_values["student_prompt"] = student_prompt
+                source_id = str(row_values.get("id", f"{split}/{index}"))
+
+                usage = {
+                    "teacher_input_tokens": 0,
+                    "teacher_output_tokens": 0,
+                    "teacher_total_tokens": 0,
+                    "provider_total_tokens": 0,
+                }
+                teacher_prompt = ""
+                teacher_response = gold_answer
+                usage_estimated = False
+
+                if mode == "teacher":
+                    teacher_prompt = _format_template(teacher_prompt_template, row_values)
+                    messages = [{"role": "user", "content": teacher_prompt}]
+                    predicted_total = _estimate_input_tokens(
                         config.teacher, messages
-                    )
-                    usage["teacher_output_tokens"] = max(1, len(teacher_response) // 3)
-                    usage["teacher_total_tokens"] = (
-                        usage["teacher_input_tokens"] + usage["teacher_output_tokens"]
-                    )
-                    usage_estimated = True
+                    ) + int(config.teacher_max_output_tokens or 0)
+                    if (
+                        config.token_budget is not None
+                        and total_tokens + predicted_total > config.token_budget
+                    ):
+                        stop_reason = "predicted_budget_exhausted"
+                        message = (
+                            "Stopping before row "
+                            f"{source_id}: predicted total "
+                            f"{total_tokens + predicted_total} would exceed "
+                            f"token_budget={config.token_budget}"
+                        )
+                        if not allow_partial:
+                            raise ValueError(
+                                f"{message}. Rerun with --allow-partial to keep a "
+                                "budget-truncated dataset."
+                            )
+                        logger.info(message)
+                        break
 
-                if usage["teacher_total_tokens"] > predicted_total:
-                    raise ValueError(
-                        "Realized teacher tokens exceeded preflight estimate for "
-                        f"{source_id}: realized={usage['teacher_total_tokens']} "
-                        f"predicted={predicted_total}"
+                    response = await acompletion(
+                        model=config.teacher,
+                        messages=messages,
+                        max_tokens=config.teacher_max_output_tokens,
+                        temperature=0,
                     )
-                if (
-                    config.token_budget is not None
-                    and total_tokens + usage["teacher_total_tokens"] > config.token_budget
+                    teacher_response = _response_text(response)
+                    if not teacher_response:
+                        raise ValueError(
+                            f"Teacher returned an empty response for {source_id}"
+                        )
+                    usage = _usage_from_response(response)
+                    if usage["teacher_total_tokens"] <= 0 and not allow_estimated_usage:
+                        raise ValueError(
+                            "Teacher response did not include token usage. "
+                            "Rerun with allow_estimated_usage only for non-paper dry runs."
+                        )
+                    if usage["teacher_total_tokens"] <= 0:
+                        usage["teacher_input_tokens"] = _estimate_input_tokens(
+                            config.teacher, messages
+                        )
+                        usage["teacher_output_tokens"] = max(
+                            1, len(teacher_response) // 3
+                        )
+                        usage["teacher_total_tokens"] = (
+                            usage["teacher_input_tokens"]
+                            + usage["teacher_output_tokens"]
+                        )
+                        usage_estimated = True
+
+                    if usage["teacher_total_tokens"] > predicted_total:
+                        raise ValueError(
+                            "Realized teacher tokens exceeded preflight estimate for "
+                            f"{source_id}: realized={usage['teacher_total_tokens']} "
+                            f"predicted={predicted_total}"
+                        )
+                    if (
+                        config.token_budget is not None
+                        and total_tokens + usage["teacher_total_tokens"]
+                        > config.token_budget
+                    ):
+                        raise ValueError(
+                            "Realized teacher tokens would exceed token_budget for "
+                            f"{source_id}: realized_total="
+                            f"{total_tokens + usage['teacher_total_tokens']} "
+                            f"budget={config.token_budget}"
+                        )
+
+                total_tokens += usage["teacher_total_tokens"]
+                usage_estimated_records += int(usage_estimated)
+                record = {
+                    "id": f"{config.name}/{split}/{index}",
+                    "task": config.name,
+                    "source_example_id": source_id,
+                    "source_split": split,
+                    "source_index": index,
+                    "prompt_operator": prompt_operator,
+                    "teacher_tier": teacher_tier if mode == "teacher" else "gold",
+                    "teacher_model": config.teacher if mode == "teacher" else "gold",
+                    "student_prompt": student_prompt,
+                    "teacher_prompt": teacher_prompt,
+                    "teacher_response": teacher_response,
+                    "gold_answer": gold_answer,
+                    "gold_answer_field": resolved_gold_field,
+                    "cycle": 0,
+                    "seed": config.seed,
+                    "materialized_at": materialized_at,
+                    "materialization_mode": mode,
+                    "usage_estimated": usage_estimated,
+                    "predicted_teacher_total_tokens": predicted_total,
+                    **usage,
+                }
+                if record["teacher_total_tokens"] != (
+                    record["teacher_input_tokens"] + record["teacher_output_tokens"]
                 ):
                     raise ValueError(
-                        "Realized teacher tokens would exceed token_budget for "
-                        f"{source_id}: realized_total="
-                        f"{total_tokens + usage['teacher_total_tokens']} "
-                        f"budget={config.token_budget}"
+                        "Invalid token accounting: teacher_total_tokens must equal "
+                        "teacher_input_tokens + teacher_output_tokens"
                     )
+                f.write(json.dumps(record, sort_keys=True) + "\n")
+                written += 1
 
-            total_tokens += usage["teacher_total_tokens"]
-            record = {
-                "id": f"{config.name}/{split}/{index}",
-                "task": config.name,
-                "source_example_id": source_id,
-                "source_split": split,
-                "source_index": index,
-                "prompt_operator": prompt_operator,
-                "teacher_tier": teacher_tier if mode == "teacher" else "gold",
-                "teacher_model": config.teacher if mode == "teacher" else "gold",
-                "student_prompt": student_prompt,
-                "teacher_prompt": teacher_prompt,
-                "teacher_response": teacher_response,
-                "gold_answer": gold_answer,
-                "gold_answer_field": resolved_gold_field,
-                "cycle": 0,
-                "seed": config.seed,
-                "materialized_at": materialized_at,
-                "materialization_mode": mode,
-                "usage_estimated": usage_estimated,
-                **usage,
-            }
-            if record["teacher_total_tokens"] != (
-                record["teacher_input_tokens"] + record["teacher_output_tokens"]
-            ):
-                raise ValueError(
-                    "Invalid token accounting: teacher_total_tokens must equal "
-                    "teacher_input_tokens + teacher_output_tokens"
-                )
-            f.write(json.dumps(record, sort_keys=True) + "\n")
-            written += 1
+        if written == 0:
+            raise ValueError("No SFT records were materialized")
+
+        manifest = {
+            "output_path": str(output_path),
+            "manifest_path": str(manifest_path),
+            "config_name": config.name,
+            "config_hash": _stable_hash(config.model_dump(mode="json")),
+            "student_prompt_template_hash": _stable_hash(student_prompt_template),
+            "teacher_prompt_template_hash": _stable_hash(teacher_prompt_template),
+            "dataset": config.dataset,
+            "dataset_subset": config.dataset_subset,
+            "split": split,
+            "source_records": len(source),
+            "attempted_records": attempted,
+            "records": written,
+            "stop_reason": stop_reason,
+            "allow_partial": allow_partial,
+            "mode": mode,
+            "token_budget": config.token_budget,
+            "teacher_total_tokens": total_tokens,
+            "usage_estimated_records": usage_estimated_records,
+            "materialized_at": materialized_at,
+        }
+        with temp_manifest_path.open("w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2, sort_keys=True)
+            f.write("\n")
+
+        temp_path.replace(output_path)
+        temp_manifest_path.replace(manifest_path)
+    except Exception:
+        if temp_path.exists():
+            temp_path.unlink()
+        if temp_manifest_path.exists():
+            temp_manifest_path.unlink()
+        raise
 
     return {
         "output_path": str(output_path),
+        "manifest_path": str(manifest_path),
         "split": split,
         "records": written,
+        "attempted_records": attempted,
+        "stop_reason": stop_reason,
         "teacher_total_tokens": total_tokens,
     }

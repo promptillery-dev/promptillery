@@ -16,6 +16,12 @@ PREFERRED_METRICS = (
     "perplexity",
     "eval_loss",
 )
+LOWER_IS_BETTER = {"eval_loss", "loss", "perplexity"}
+REQUIRED_RUN_FILES = (
+    "experiment_config.yaml",
+    "metrics.json",
+    "token_usage.json",
+)
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
@@ -27,14 +33,20 @@ def _load_json(path: Path) -> Dict[str, Any]:
 
 def _run_dirs(path: Path) -> List[Path]:
     """Return run directories under path."""
-    if (path / "metrics.json").exists() or (path / "token_usage.json").exists():
+    if _has_required_run_files(path):
         return [path]
     dirs = {
         candidate.parent
         for candidate in path.rglob("*")
-        if candidate.name in {"metrics.json", "token_usage.json"}
+        if candidate.name in REQUIRED_RUN_FILES
+        and _has_required_run_files(candidate.parent)
     }
     return sorted(dirs)
+
+
+def _has_required_run_files(path: Path) -> bool:
+    """Return whether path contains the full analysis artifact set."""
+    return all((path / filename).exists() for filename in REQUIRED_RUN_FILES)
 
 
 def _cycle_metrics(metrics: Dict[str, Any]) -> List[tuple[int, Dict[str, Any]]]:
@@ -49,11 +61,20 @@ def _choose_metric(
     cycles: List[tuple[int, Dict[str, Any]]], metric: str | None
 ) -> str | None:
     if metric:
-        return metric
+        if any(metric in values for _, values in cycles):
+            return metric
+        return None
     for candidate in PREFERRED_METRICS:
         if any(candidate in values for _, values in cycles):
             return candidate
     return None
+
+
+def _resolve_mode(metric_name: str, mode: str) -> str:
+    """Resolve auto mode from the selected metric name."""
+    if mode != "auto":
+        return mode
+    return "min" if metric_name in LOWER_IS_BETTER else "max"
 
 
 def _cycle_token_totals(token_usage: Dict[str, Any]) -> Dict[int, int]:
@@ -83,8 +104,19 @@ def _cycle_auc(points: Iterable[tuple[float, float]]) -> float | None:
     return area / max_x
 
 
-def summarize_run(run_dir: Path, metric: str | None = None, mode: str = "max") -> Dict[str, Any]:
+def summarize_run(
+    run_dir: Path, metric: str | None = None, mode: str = "auto"
+) -> Dict[str, Any]:
     """Summarize one Promptillery run directory."""
+    missing = [
+        filename
+        for filename in REQUIRED_RUN_FILES
+        if not (run_dir / filename).exists()
+    ]
+    if missing:
+        missing_list = ", ".join(missing)
+        raise ValueError(f"{run_dir} is missing required artifacts: {missing_list}")
+
     metrics = _load_json(run_dir / "metrics.json")
     token_usage = _load_json(run_dir / "token_usage.json")
     config = {}
@@ -99,6 +131,16 @@ def summarize_run(run_dir: Path, metric: str | None = None, mode: str = "max") -
 
     cycles = _cycle_metrics(metrics)
     metric_name = _choose_metric(cycles, metric)
+    if not cycles:
+        raise ValueError(f"{run_dir} has no numeric cycle metrics")
+    if metric and metric_name is None:
+        raise ValueError(f"metric '{metric}' was not found in {run_dir}")
+    if metric_name is None:
+        raise ValueError(
+            f"{run_dir} has no recognized metric; rerun with an explicit --metric"
+        )
+
+    resolved_mode = _resolve_mode(metric_name, mode)
     cycle_tokens = _cycle_token_totals(token_usage)
     points = []
     values = []
@@ -113,7 +155,7 @@ def summarize_run(run_dir: Path, metric: str | None = None, mode: str = "max") -
     if values:
         best_cycle, best_value = (
             min(values, key=lambda item: item[1])
-            if mode == "min"
+            if resolved_mode == "min"
             else max(values, key=lambda item: item[1])
         )
 
@@ -127,7 +169,7 @@ def summarize_run(run_dir: Path, metric: str | None = None, mode: str = "max") -
         "run_dir": str(run_dir),
         "experiment": config.get("name", run_dir.name),
         "metric": metric_name or "",
-        "mode": mode,
+        "mode": resolved_mode,
         "best_cycle": best_cycle,
         "best_metric": best_value,
         "final_cycle": final_cycle,
@@ -147,7 +189,9 @@ def summarize_run(run_dir: Path, metric: str | None = None, mode: str = "max") -
     }
 
 
-def analyze_runs(path: Path, metric: str | None = None, mode: str = "max") -> List[Dict[str, Any]]:
+def analyze_runs(
+    path: Path, metric: str | None = None, mode: str = "auto"
+) -> List[Dict[str, Any]]:
     """Analyze all run directories under path."""
     return [summarize_run(run_dir, metric=metric, mode=mode) for run_dir in _run_dirs(path)]
 

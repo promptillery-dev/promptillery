@@ -22,7 +22,12 @@ from pydantic import BaseModel
 from .config import ExperimentConfig, SamplingConfig
 from .policy_decisions import PolicyDecision, PolicyDecisionLogger
 from .policy_features import build_policy_features
-from .token_tracker import OperationType, TokenTracker, TokenUsage
+from .token_tracker import (
+    OperationType,
+    TokenTracker,
+    TokenUsage,
+    extract_usage_from_response,
+)
 from .trainers import TrainerFactory
 from .utils import (
     create_prompt_environment,
@@ -547,6 +552,47 @@ class DistillationEngine:
             )
         )
 
+    def _record_teacher_attempt(
+        self,
+        *,
+        cycle: int,
+        status: str,
+        predicted_cost: Dict[str, Any],
+        budget_before: Dict[str, Any],
+        realized_cost: TokenUsage | None = None,
+        failure_type: str | None = None,
+        metadata: Dict[str, Any] | None = None,
+    ) -> None:
+        """Append an audited teacher-call attempt for budget debugging."""
+        row = {
+            "cycle": cycle,
+            "status": status,
+            "predicted_cost": predicted_cost,
+            "realized_cost": realized_cost.model_dump() if realized_cost else {},
+            "failure_type": failure_type,
+            "budget_before": budget_before,
+            "budget_after": self._budget_snapshot(),
+            "metadata": metadata or {},
+        }
+        attempts_path = self.out_dir / "teacher_attempts.jsonl"
+        with attempts_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, sort_keys=True) + "\n")
+
+    @staticmethod
+    def _reserved_usage_from_preflight(predicted_cost: Dict[str, Any]) -> TokenUsage:
+        """Return conservative reserved usage for a failed teacher attempt."""
+        input_tokens = int(predicted_cost.get("input_tokens") or 0)
+        output_tokens = int(predicted_cost.get("max_output_tokens") or 0)
+        total_tokens = int(predicted_cost.get("total_tokens") or 0)
+        if total_tokens <= 0:
+            total_tokens = input_tokens + output_tokens
+        return TokenUsage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            estimated_cost=None,
+        )
+
     def _estimate_teacher_call_tokens(
         self, messages: List[Dict[str, str]], budget_before: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -860,12 +906,20 @@ class DistillationEngine:
                 "Skipping augmentation because budget preflight masked the teacher call: %s",
                 predicted_cost["reason"],
             )
+            self._record_teacher_attempt(
+                cycle=cycle,
+                status="masked",
+                predicted_cost=predicted_cost,
+                budget_before=budget_before or self._budget_snapshot(),
+                failure_type=predicted_cost["reason"],
+            )
             return {
                 "action_name": "budget_masked",
                 "predicted_cost": predicted_cost,
                 "metadata": {"mask_reason": predicted_cost["reason"]},
             }
 
+        usage_recorded = False
         try:
             completion_kwargs = {
                 "model": self.cfg.teacher,
@@ -875,7 +929,37 @@ class DistillationEngine:
             if self.cfg.teacher_max_output_tokens is not None:
                 completion_kwargs["max_tokens"] = self.cfg.teacher_max_output_tokens
             result = await acompletion(**completion_kwargs)
-            self.token_tracker.record_usage(result, OperationType.AUGMENTATION)
+            usage = extract_usage_from_response(result)
+            if usage.total_tokens <= 0:
+                raise ValueError(
+                    "Teacher response did not include provider token usage; "
+                    "paper runs require auditable usage."
+                )
+            predicted_total = predicted_cost.get("total_tokens")
+            if predicted_total is not None and usage.total_tokens > predicted_total:
+                raise ValueError(
+                    "Realized teacher tokens exceeded preflight estimate: "
+                    f"realized={usage.total_tokens} predicted={predicted_total}"
+                )
+            tokens_remaining = predicted_cost.get("tokens_remaining")
+            if (
+                tokens_remaining is not None
+                and usage.total_tokens > int(tokens_remaining)
+            ):
+                raise ValueError(
+                    "Realized teacher tokens exceeded remaining token budget: "
+                    f"realized={usage.total_tokens} remaining={tokens_remaining}"
+                )
+            self.token_tracker.record_manual_usage(usage, OperationType.AUGMENTATION)
+            usage_recorded = True
+            self._record_teacher_attempt(
+                cycle=cycle,
+                status="success",
+                predicted_cost=predicted_cost,
+                budget_before=budget_before or self._budget_snapshot(),
+                realized_cost=usage,
+                metadata={"teacher": self.cfg.teacher},
+            )
             response_path = self.out_dir / f"teacher_response_cycle_{cycle}.json"
             response_path.write_text(
                 json.dumps(_response_to_jsonable(result), indent=2, default=str),
@@ -925,6 +1009,21 @@ class DistillationEngine:
 
         except Exception as e:
             logger.error(f"Batch augmentation failed: {e}")
+            if not usage_recorded:
+                reserved_usage = self._reserved_usage_from_preflight(predicted_cost)
+                if reserved_usage.total_tokens > 0:
+                    self.token_tracker.record_manual_usage(
+                        reserved_usage, OperationType.AUGMENTATION_FAILURE
+                    )
+                self._record_teacher_attempt(
+                    cycle=cycle,
+                    status="failed",
+                    predicted_cost=predicted_cost,
+                    budget_before=budget_before or self._budget_snapshot(),
+                    realized_cost=reserved_usage,
+                    failure_type=type(e).__name__,
+                    metadata={"error": str(e), "teacher": self.cfg.teacher},
+                )
             return {
                 "action_name": "augment_failed",
                 "predicted_cost": predicted_cost,

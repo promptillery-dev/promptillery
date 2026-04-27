@@ -129,6 +129,11 @@ def materialize_sft(
         "--allow-estimated-usage",
         help="Allow estimated token usage if the provider response omits usage fields",
     ),
+    allow_partial: bool = typer.Option(
+        False,
+        "--allow-partial",
+        help="Keep a budget-truncated dataset when preflight stops teacher mode",
+    ),
 ) -> None:
     """Materialize audited SFT JSONL records from a dataset split."""
     setup_logging()
@@ -148,6 +153,7 @@ def materialize_sft(
                 teacher_tier=teacher_tier,
                 overwrite=overwrite,
                 allow_estimated_usage=allow_estimated_usage,
+                allow_partial=allow_partial,
             )
         )
     except ValueError as exc:
@@ -156,7 +162,8 @@ def materialize_sft(
 
     typer.echo(
         "Wrote {records} SFT records to {output_path} "
-        "({teacher_total_tokens} teacher tokens)".format(**summary)
+        "({teacher_total_tokens} teacher tokens, stop_reason={stop_reason}; "
+        "manifest: {manifest_path})".format(**summary)
     )
 
 
@@ -176,17 +183,21 @@ def analyze(
         help="Metric to summarize; defaults to the first recognized run metric",
     ),
     mode: str = typer.Option(
-        "max",
+        "auto",
         "--mode",
-        help="Use 'max' for accuracy/F1-like metrics or 'min' for losses",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
     ),
 ) -> None:
     """Summarize quality-cost artifacts from one run directory or a parent."""
-    if mode not in {"max", "min"}:
-        typer.echo("Error: --mode must be 'max' or 'min'", err=True)
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
         raise typer.Exit(code=1)
 
-    rows = analyze_runs(Path(path), metric=metric, mode=mode)
+    try:
+        rows = analyze_runs(Path(path), metric=metric, mode=mode)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
     if not rows:
         typer.echo(f"Error: no run artifacts found under {path}", err=True)
         raise typer.Exit(code=1)

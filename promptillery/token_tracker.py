@@ -30,6 +30,7 @@ class OperationType(str, Enum):
     """Types of token-consuming operations."""
 
     AUGMENTATION = "augmentation"
+    AUGMENTATION_FAILURE = "augmentation_failure"
     PSEUDO_LABELING = "pseudo_labeling"
     SFT_DATA = "sft_data"
 
@@ -119,6 +120,11 @@ def _extract_usage_from_response(response: Any) -> TokenUsage:
     )
 
 
+def extract_usage_from_response(response: Any) -> TokenUsage:
+    """Extract provider-reported usage from a LiteLLM response."""
+    return _extract_usage_from_response(response)
+
+
 class TokenTracker:
     """Tracks token usage across cycles and operations."""
 
@@ -171,7 +177,7 @@ class TokenTracker:
         Raises:
             RuntimeError: If called without an active cycle.
         """
-        usage = _extract_usage_from_response(response)
+        usage = extract_usage_from_response(response)
 
         if self._current_cycle is None:
             raise RuntimeError(

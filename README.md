@@ -370,7 +370,14 @@ uv run promptillery analyze out/examples --output out/examples/summary.csv
 ```
 
 The summary includes the selected metric, best/final values, cumulative teacher
-tokens, token-budget overage, and a simple cycle-level quality-cost AUC.
+tokens, token-budget overage, and a simple cycle-level quality-cost AUC. Analysis
+requires `experiment_config.yaml`, `metrics.json`, and `token_usage.json` so
+partial run directories do not get summarized as paper evidence.
+
+`materialize-sft` writes a sibling `.manifest.json` file with source counts,
+stop reason, template/config hashes, and estimated-usage counts. Teacher-mode
+budget truncation is rejected by default; pass `--allow-partial` only when a
+budget-truncated dataset is the intended artifact.
 
 ## Advanced Configuration
 
@@ -397,7 +404,10 @@ token_budget: 25000        # Optional hard teacher-token budget
 budget_stop: true          # Stop experiment when budget exceeded
 ```
 
-Token usage is tracked per cycle and saved to `token_usage.json` in the experiment directory.
+Token usage is tracked per cycle and saved to `token_usage.json` in the
+experiment directory. Online augmentation also writes `teacher_attempts.jsonl`;
+failed teacher attempts are charged conservatively from the preflight reserve
+so budget accounting does not silently ignore provider or parsing failures.
 
 ### Dataset Persistence
 
@@ -432,6 +442,7 @@ Promptillery automatically organizes experiments into dedicated directories with
 ├── model/                    # Final trained model
 ├── metrics.json              # Final evaluation metrics
 ├── token_usage.json          # API token usage and cost tracking
+├── teacher_attempts.jsonl    # Online teacher-call audit trail, when used
 └── dataset_cycle_*           # Dataset snapshots for each cycle
 ```
 
