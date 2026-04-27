@@ -111,10 +111,13 @@ def materialize_sft(
         "--max-samples",
         help="Maximum number of source examples to materialize",
     ),
-    student_prompt_template: str = typer.Option(
-        "{{ text }}",
+    student_prompt_template: str | None = typer.Option(
+        None,
         "--student-prompt-template",
-        help="Jinja template for student_prompt; dataset fields are available",
+        help=(
+            "Override the config's student prompt template; dataset fields are "
+            "available"
+        ),
     ),
     teacher_prompt_template: str | None = typer.Option(
         None,
