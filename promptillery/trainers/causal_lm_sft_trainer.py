@@ -37,6 +37,7 @@ class CausalLMSFTTrainer(BaseTrainer):
         super().__init__(config, dataset, out_dir)
         self.trainer_config = self.cfg.trainer_config or {}
         self.max_seq_length = int(self.trainer_config.get("max_seq_length", 512))
+        self.explicit_text_field = "text_field" in self.trainer_config
         self.text_field = self.trainer_config.get("text_field", self.cfg.text_field)
         self.prompt_field = self.trainer_config.get("prompt_field", "student_prompt")
         self.response_field = self.trainer_config.get(
@@ -124,6 +125,20 @@ class CausalLMSFTTrainer(BaseTrainer):
 
     def _build_texts(self, examples: Dict[str, List[Any]]) -> List[str]:
         """Build SFT text strings from a batched dataset map call."""
+        has_prompt_response = (
+            self.prompt_field in examples and self.response_field in examples
+        )
+        if has_prompt_response and (
+            not self.explicit_text_field or self.text_field == self.prompt_field
+        ):
+            return [
+                self._format_prompt_response(str(prompt), str(response))
+                for prompt, response in zip(
+                    examples[self.prompt_field],
+                    examples[self.response_field],
+                )
+            ]
+
         if self.text_field in examples:
             texts = [str(value) for value in examples[self.text_field]]
             if self.add_eos_token and self.tokenizer.eos_token:
@@ -135,7 +150,7 @@ class CausalLMSFTTrainer(BaseTrainer):
                 ]
             return texts
 
-        if self.prompt_field in examples and self.response_field in examples:
+        if has_prompt_response:
             return [
                 self._format_prompt_response(str(prompt), str(response))
                 for prompt, response in zip(

@@ -64,6 +64,21 @@ class AugmentedResponse(BaseModel):
     articles: List[AugmentedArticle]
 
 
+class AugmentedSFTRecord(BaseModel):
+    """Single synthetic SFT prompt/response pair."""
+
+    student_prompt: str
+    teacher_response: str
+    gold_answer: str | None = None
+    source_example_id: str | None = None
+
+
+class AugmentedSFTResponse(BaseModel):
+    """Structured response for SFT augmentation."""
+
+    records: List[AugmentedSFTRecord]
+
+
 def ensure_class_label(dataset: DatasetDict, label_column: str) -> DatasetDict:
     """Ensure the label column is of ClassLabel type for stratified sampling.
 
@@ -898,13 +913,30 @@ class DistillationEngine:
         total_chars = sum(len(str(message.get("content", ""))) for message in messages)
         return max(1, (total_chars + 2) // 3)
 
+    def _augmentation_response_format(self):
+        """Return the structured-output schema for the active student type."""
+        if self.cfg.student_type == "causal_lm_sft":
+            return AugmentedSFTResponse
+        return AugmentedResponse
+
     def _parse_augmented_response(self, content: str) -> List[Dict[str, Any]]:
         """Parse the teacher model's structured JSON response.
 
-        With structured outputs (response_format=AugmentedResponse), the LLM
-        returns valid JSON matching our Pydantic schema directly.
+        With structured outputs, the LLM returns valid JSON matching the
+        response schema for either classifier rows or SFT prompt/response rows.
         """
         try:
+            if self.cfg.student_type == "causal_lm_sft":
+                response = AugmentedSFTResponse.model_validate_json(content)
+                return [
+                    {
+                        "student_prompt": record.student_prompt,
+                        "teacher_response": record.teacher_response,
+                        "gold_answer": record.gold_answer,
+                        "source_example_id": record.source_example_id,
+                    }
+                    for record in response.records
+                ]
             response = AugmentedResponse.model_validate_json(content)
             return [
                 {"text": article.text, "label": article.label}
@@ -914,6 +946,106 @@ class DistillationEngine:
             logger.error(f"Failed to parse structured response: {e}")
             logger.error(f"Raw content: {content[:200]}...")
             return []
+
+    @staticmethod
+    def _default_augmented_column_value(sample_val: Any) -> Any:
+        """Return a cast-friendly default for columns not set by augmentation."""
+        if isinstance(sample_val, str):
+            return ""
+        if isinstance(sample_val, bool):
+            return False
+        if isinstance(sample_val, int):
+            return 0
+        if isinstance(sample_val, float):
+            return 0.0
+        return None
+
+    def _complete_augmented_row(self, row: Dict[str, Any], ds) -> Dict[str, Any]:
+        """Fill missing dataset columns before concatenating augmented rows."""
+        for col in ds.column_names:
+            if col not in row:
+                row[col] = self._default_augmented_column_value(ds[0][col])
+        return {col: row[col] for col in ds.column_names}
+
+    def _build_augmented_sft_rows(
+        self,
+        records: List[Dict[str, Any]],
+        ds,
+        *,
+        cycle: int,
+        teacher_model: str,
+        teacher_tier: str | None,
+        prompt_operator: str | None,
+    ) -> List[Dict[str, Any]]:
+        """Build train rows for causal-LM SFT augmentation."""
+        trainer_config = self.cfg.trainer_config or {}
+        prompt_field = trainer_config.get("prompt_field", "student_prompt")
+        response_field = trainer_config.get("response_field", "teacher_response")
+        gold_answer_field = trainer_config.get("gold_answer_field", "gold_answer")
+        missing = [
+            field
+            for field in (prompt_field, response_field)
+            if field not in ds.column_names
+        ]
+        if missing:
+            raise ValueError(
+                "Online SFT augmentation requires the train dataset schema to "
+                f"include prompt/response columns; missing {missing}. "
+                "Materialize or load SFT-style rows before enabling augmentation."
+            )
+        rows = []
+        for index, record in enumerate(records):
+            student_prompt = str(record.get("student_prompt") or "").strip()
+            teacher_response = str(record.get("teacher_response") or "").strip()
+            if not student_prompt or not teacher_response:
+                continue
+            gold_answer = str(record.get("gold_answer") or teacher_response).strip()
+            row = {
+                "id": f"{self.run_id}/augmented/{cycle}/{index}",
+                prompt_field: student_prompt,
+                response_field: teacher_response,
+                gold_answer_field: gold_answer,
+                "source_example_id": str(
+                    record.get("source_example_id") or f"augmented/{cycle}/{index}"
+                ),
+                "source_split": "augmented",
+                "source_idx": -1,
+                "origin_cycle": cycle,
+                "prompt_operator": prompt_operator or "",
+                "teacher_tier": teacher_tier or "",
+                "teacher_model": teacher_model,
+                "teacher_input_tokens": 0,
+                "teacher_output_tokens": 0,
+                "teacher_total_tokens": 0,
+                "cycle": cycle,
+                "seed": self.cfg.seed,
+                "materialization_mode": "online_policy",
+                "usage_estimated": False,
+            }
+            rows.append(self._complete_augmented_row(row, ds))
+        return rows
+
+    def _build_augmented_classification_rows(
+        self,
+        records: List[Dict[str, Any]],
+        ds,
+        *,
+        cycle: int,
+    ) -> List[Dict[str, Any]]:
+        """Build train rows for classifier augmentation."""
+        text_field = self.cfg.text_field
+        label_field = self.cfg.label_field
+        rows = []
+        for record in records:
+            row = {
+                text_field: record["text"],
+                label_field: record["label"],
+                "source_split": "augmented",
+                "source_idx": -1,
+                "origin_cycle": cycle,
+            }
+            rows.append(self._complete_augmented_row(row, ds))
+        return rows
 
     def _save_dataset(self, cycle: int) -> None:
         """Persist the current dataset for a given cycle."""
@@ -1117,7 +1249,7 @@ class DistillationEngine:
             completion_kwargs = {
                 "model": teacher_model,
                 "messages": messages,
-                "response_format": AugmentedResponse,
+                "response_format": self._augmentation_response_format(),
             }
             if self.cfg.teacher_max_output_tokens is not None:
                 completion_kwargs["max_tokens"] = self.cfg.teacher_max_output_tokens
@@ -1187,12 +1319,12 @@ class DistillationEngine:
             ).hexdigest()
 
             content = result["choices"][0]["message"]["content"]
-            articles = self._parse_augmented_response(content)
-            if len(articles) > acquisition_batch_size:
-                articles = articles[:acquisition_batch_size]
+            parsed_records = self._parse_augmented_response(content)
+            if len(parsed_records) > acquisition_batch_size:
+                parsed_records = parsed_records[:acquisition_batch_size]
 
-            if not articles:
-                logger.warning("No articles parsed from teacher response")
+            if not parsed_records:
+                logger.warning("No records parsed from teacher response")
                 self._record_teacher_attempt(
                     cycle=cycle,
                     status="empty_response",
@@ -1201,7 +1333,7 @@ class DistillationEngine:
                     attempt_id=attempt_id,
                     decision_id=decision_id,
                     realized_cost=usage,
-                    failure_type="no_articles_parsed",
+                    failure_type="no_records_parsed",
                     metadata={
                         **attempt_metadata,
                         "records_parsed": 0,
@@ -1213,42 +1345,32 @@ class DistillationEngine:
                     "action_name": "augment_empty",
                     "predicted_cost": predicted_cost,
                     "metadata": {
-                        "articles_parsed": 0,
-                        "articles_added": 0,
+                        "records_parsed": 0,
+                        "records_added": 0,
                         "attempt_id": attempt_id,
                         **attempt_metadata,
                     },
                 }
 
-            logger.info(f"Received {len(articles)} augmented samples from teacher")
+            logger.info(
+                f"Received {len(parsed_records)} augmented samples from teacher"
+            )
 
-            # Get field names from config
-            text_field = self.cfg.text_field
-            label_field = self.cfg.label_field
-
-            # Create new rows from augmented articles
-            aug_rows: List[Dict[str, Any]] = []
-            for article in articles:
-                # Create a new row with required columns using configured field names
-                row = {
-                    text_field: article["text"],
-                    label_field: article["label"],
-                    "source_split": "augmented",
-                    "source_idx": -1,
-                    "origin_cycle": cycle,
-                }
-                # Add any additional columns from the original dataset with default values
-                for col in ds.column_names:
-                    if col not in row:
-                        # Use first row's value type to create appropriate default
-                        sample_val = ds[0][col]
-                        if isinstance(sample_val, str):
-                            row[col] = ""
-                        elif isinstance(sample_val, (int, float)):
-                            row[col] = 0
-                        else:
-                            row[col] = None
-                aug_rows.append(row)
+            if self.cfg.student_type == "causal_lm_sft":
+                aug_rows = self._build_augmented_sft_rows(
+                    parsed_records,
+                    ds,
+                    cycle=cycle,
+                    teacher_model=teacher_model,
+                    teacher_tier=teacher_tier,
+                    prompt_operator=prompt_operator,
+                )
+            else:
+                aug_rows = self._build_augmented_classification_rows(
+                    parsed_records,
+                    ds,
+                    cycle=cycle,
+                )
 
         except Exception as e:
             logger.error(f"Batch augmentation failed: {e}")
@@ -1284,10 +1406,31 @@ class DistillationEngine:
             }
 
         if not aug_rows:
+            self._record_teacher_attempt(
+                cycle=cycle,
+                status="empty_response",
+                predicted_cost=predicted_cost,
+                budget_before=budget_before or self._budget_snapshot(),
+                attempt_id=attempt_id,
+                decision_id=decision_id,
+                realized_cost=usage,
+                failure_type="no_records_accepted",
+                metadata={
+                    **attempt_metadata,
+                    "records_parsed": len(parsed_records),
+                    "records_accepted": 0,
+                    "response_sha256": response_sha256,
+                },
+            )
             return {
                 "action_name": "augment_empty",
                 "predicted_cost": predicted_cost,
-                "metadata": {"articles_parsed": 0, "articles_added": 0},
+                "metadata": {
+                    "records_parsed": len(parsed_records),
+                    "records_added": 0,
+                    "attempt_id": attempt_id,
+                    **attempt_metadata,
+                },
             }
 
         columns = aug_rows[0].keys()
@@ -1309,7 +1452,7 @@ class DistillationEngine:
             realized_cost=usage,
             metadata={
                 **attempt_metadata,
-                "records_parsed": len(aug_rows),
+                "records_parsed": len(parsed_records),
                 "records_accepted": len(aug_rows),
                 "response_sha256": response_sha256,
             },
@@ -1320,6 +1463,8 @@ class DistillationEngine:
             "metadata": {
                 "articles_parsed": len(aug_rows),
                 "articles_added": len(aug_rows),
+                "records_parsed": len(parsed_records),
+                "records_added": len(aug_rows),
                 "attempt_id": attempt_id,
                 **attempt_metadata,
             },
