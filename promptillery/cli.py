@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from .ablation import AblationStudyRunner
 from .config import ExperimentConfig
 from .engine import DistillationEngine, evaluate_model
+from .sft_materialize import materialize_sft_records
 from .utils import setup_logging
 
 app = typer.Typer(add_completion=False)
@@ -75,6 +76,87 @@ def ablation(
 
     runner = AblationStudyRunner(cfg, cleanup_metric=cleanup_metric)
     asyncio.run(runner.run(cleanup_after_group=cleanup))
+
+
+@app.command("materialize-sft")
+def materialize_sft(
+    config: str,
+    output: str = typer.Option(
+        "generated_sft_records.jsonl",
+        "--output",
+        "-o",
+        help="Output JSONL path for materialized SFT records",
+    ),
+    split: str = typer.Option("train", "--split", "-s", help="Dataset split to read"),
+    mode: str = typer.Option(
+        "gold",
+        "--mode",
+        help="Materialization mode: 'gold' for zero-cost dry runs or 'teacher' for LLM calls",
+    ),
+    max_samples: int | None = typer.Option(
+        None,
+        "--max-samples",
+        help="Maximum number of source examples to materialize",
+    ),
+    student_prompt_template: str = typer.Option(
+        "{{ text }}",
+        "--student-prompt-template",
+        help="Jinja template for student_prompt; dataset fields are available",
+    ),
+    teacher_prompt_template: str | None = typer.Option(
+        None,
+        "--teacher-prompt-template",
+        help="Jinja template for teacher calls; defaults to the built-in prompt",
+    ),
+    prompt_operator: str = typer.Option(
+        "coverage",
+        "--prompt-operator",
+        help="Prompt operator label to write into each record",
+    ),
+    teacher_tier: str = typer.Option(
+        "cheap",
+        "--teacher-tier",
+        help="Teacher tier label to write into each teacher-mode record",
+    ),
+    overwrite: bool = typer.Option(
+        False,
+        "--overwrite",
+        help="Replace the output JSONL if it already exists",
+    ),
+    allow_estimated_usage: bool = typer.Option(
+        False,
+        "--allow-estimated-usage",
+        help="Allow estimated token usage if the provider response omits usage fields",
+    ),
+) -> None:
+    """Materialize audited SFT JSONL records from a dataset split."""
+    setup_logging()
+    cfg = ExperimentConfig.from_yaml(config)
+    try:
+        summary = asyncio.run(
+            materialize_sft_records(
+                config=cfg,
+                output_path=Path(output),
+                split=split,
+                mode=mode,
+                max_samples=max_samples,
+                student_prompt_template=student_prompt_template,
+                teacher_prompt_template=teacher_prompt_template
+                or None,
+                prompt_operator=prompt_operator,
+                teacher_tier=teacher_tier,
+                overwrite=overwrite,
+                allow_estimated_usage=allow_estimated_usage,
+            )
+        )
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(
+        "Wrote {records} SFT records to {output_path} "
+        "({teacher_total_tokens} teacher tokens)".format(**summary)
+    )
 
 
 @app.command()

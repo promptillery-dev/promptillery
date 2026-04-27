@@ -105,6 +105,13 @@ uv run promptillery baseline examples/text_classification_transformers.yaml
 
 # Run the no-API causal-LM SFT smoke test
 uv run promptillery train examples/causal_lm_sft_tiny.yaml
+
+# Materialize a tiny zero-cost SFT JSONL fixture
+uv run promptillery materialize-sft examples/materialize_sft_tiny.yaml \
+  --mode gold \
+  --output out/examples/materialized_sft_tiny.jsonl \
+  --max-samples 2 \
+  --overwrite
 ```
 
 Experiments are automatically organized into timestamped directories based on the experiment name. For example, an experiment named `tweet_sentiment` will create a directory like `tweet_sentiment_20241205_143022/`.
@@ -130,6 +137,7 @@ The configuration schema is defined in `promptillery/config.py`. Several example
 - `text_classification_transformers.yaml` - Text classification with transformer student model (BERT)
 - `text_classification_fasttext.yaml` - Text classification with FastText student model
 - `causal_lm_sft_tiny.yaml` - No-API causal-LM SFT smoke test with audited teacher-token fields
+- `materialize_sft_tiny.yaml` - Zero-cost SFT JSONL materialization smoke test
 - `early_stopping.yaml` - Training with early stopping enabled
 - `budget_stopping.yaml` - Training with budget-based stopping
 - `augmentation_without_active_learning_selection.yaml` - Data augmentation without active learning
@@ -336,6 +344,19 @@ Each charged SFT record should include `teacher_input_tokens`,
 `teacher_output_tokens`, and `teacher_total_tokens`. See
 `examples/causal_lm_sft_tiny.yaml` for a local smoke test that requires no API
 calls or model downloads.
+
+To create SFT JSONL from a source dataset:
+
+```bash
+uv run promptillery materialize-sft examples/materialize_sft_tiny.yaml \
+  --mode gold \
+  --output out/examples/materialized_sft_tiny.jsonl \
+  --max-samples 2 \
+  --overwrite
+```
+
+Use `--mode teacher` for real teacher calls. Teacher mode requires
+`teacher_max_output_tokens` so the command can preflight token budgets.
 
 ## Advanced Configuration
 

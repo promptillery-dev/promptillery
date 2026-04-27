@@ -1,0 +1,30 @@
+name: "materialize_sft_tiny"
+teacher: "fixture/manual"
+student: "examples/fixtures/tiny_wordpiece_tokenizer"
+student_type: "causal_lm_sft"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "examples/data/materialize_sft_tiny_source.jsonl"
+dataset_config:
+  name: "default"
+  num_classes: 2
+  text_field: "text"
+  label_field: "label"
+
+cycles: 1
+seed: 13
+token_budget: 100
+budget_stop: true
+persist_datasets: false
+require_validation_split: false
+auto_modify_name: false
+
+metrics:
+  - exact_match
+
+trainer_config:
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
