@@ -416,10 +416,28 @@ class DistillationEngine:
             "tokens_remaining": tokens_remaining,
         }
 
+    def _cycle_eval_split(self) -> str:
+        """Return the split used for cycle rewards and policy context."""
+        if "validation" in self.dataset:
+            return "validation"
+        if "test" in self.dataset:
+            logger.warning(
+                "No validation split found; using test split for cycle evaluation. "
+                "Use a validation split for policy rewards and reserve test for final reporting."
+            )
+            return "test"
+
+        logger.warning(
+            "No validation or test split found; using train split for cycle evaluation. "
+            "Metrics may be inflated due to memorization."
+        )
+        return "train"
+
     def _cycle_state(
         self,
         cycle: int,
         metrics: Dict[str, Any],
+        eval_split: str,
         policy_features: Dict[str, float] | None = None,
     ) -> Dict[str, Any]:
         """Build a compact state snapshot for fixed and learned policies."""
@@ -442,6 +460,7 @@ class DistillationEngine:
         return {
             "cycle": cycle,
             "cycles": self.cfg.cycles,
+            "eval_split": eval_split,
             "metrics": metrics,
             "train_size": train_size,
             "validation_size": validation_size,
@@ -634,19 +653,9 @@ class DistillationEngine:
             label_column=label_field,
         )
 
-        # Generate classification report on validation/test set for meaningful metrics
-        # Using training data would show inflated 100% accuracy due to memorization
-        if "validation" in self.dataset:
-            eval_split = "validation"
-        elif "test" in self.dataset:
-            eval_split = "test"
-        else:
-            # Fallback to train split if no eval split exists (custom datasets)
-            eval_split = "train"
-            logger.warning(
-                "No validation or test split found, using train split for classification report. "
-                "Metrics may be inflated due to memorization."
-            )
+        # Generate classification report on the same split used for cycle rewards.
+        # Using training data would show inflated accuracy due to memorization.
+        eval_split = self._cycle_eval_split()
         eval_predictions = self.trainer.get_detailed_predictions(model, split=eval_split)
         classification_report = format_classification_report(eval_predictions)
 
@@ -840,6 +849,7 @@ class DistillationEngine:
     async def run(self) -> Dict[str, Any]:
         results = {}
         final_model = None
+        eval_split = self._cycle_eval_split()
 
         try:
             for cycle in range(self.cfg.cycles):
@@ -848,8 +858,13 @@ class DistillationEngine:
                     # if cycle > 0:
                     #     await self._pseudo_label("train")
                     model = self.trainer.train()
-                    metrics = self.trainer.evaluate(model)
-                    logger.info("Cycle %d metrics: %s", cycle, metrics)
+                    metrics = self.trainer.evaluate(model, split=eval_split)
+                    logger.info(
+                        "Cycle %d metrics on %s split: %s",
+                        cycle,
+                        eval_split,
+                        metrics,
+                    )
                     results[str(cycle)] = metrics
                     final_model = model
 
@@ -885,7 +900,10 @@ class DistillationEngine:
                         )
 
                     cycle_state = self._cycle_state(
-                        cycle, metrics, policy_features=policy_features
+                        cycle,
+                        metrics,
+                        eval_split=eval_split,
+                        policy_features=policy_features,
                     )
                     action_name = "stop"
                     predicted_cost = {}
