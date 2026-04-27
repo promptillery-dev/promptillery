@@ -20,10 +20,15 @@ dependencies = [
     "PyYAML",
     "scikit-learn",
     "python-dotenv",
-    "fasttext-numpy2>=0.10.4",
     "jinja2",
     "pandas",
     "tabulate",
+    "peft",
+]
+
+[project.optional-dependencies]
+fasttext = [
+    "fasttext-numpy2>=0.10.4",
 ]
 
 [project.scripts]

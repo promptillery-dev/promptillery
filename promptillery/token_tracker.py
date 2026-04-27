@@ -31,6 +31,7 @@ class OperationType(str, Enum):
 
     AUGMENTATION = "augmentation"
     PSEUDO_LABELING = "pseudo_labeling"
+    SFT_DATA = "sft_data"
 
 
 class TokenUsage(BaseModel):
@@ -187,6 +188,28 @@ class TokenTracker:
         # Add to cycle total
         self._current_cycle.cycle_total.add(usage)
 
+        return usage
+
+    def record_manual_usage(
+        self, usage: TokenUsage, operation: OperationType
+    ) -> TokenUsage:
+        """Record already-audited token usage.
+
+        This is used for pre-materialized SFT datasets whose teacher calls
+        happened before student training but still count against the same
+        experiment budget.
+        """
+        if self._current_cycle is None:
+            raise RuntimeError(
+                "record_manual_usage called without active cycle. "
+                "Call start_cycle() first or use the cycle() context manager."
+            )
+
+        op_key = operation.value
+        if op_key not in self._current_cycle.operations:
+            self._current_cycle.operations[op_key] = TokenUsage()
+        self._current_cycle.operations[op_key].add(usage)
+        self._current_cycle.cycle_total.add(usage)
         return usage
 
     def end_cycle(self) -> None:

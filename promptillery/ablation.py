@@ -12,7 +12,12 @@ import pandas as pd
 from datasets import DatasetDict, load_dataset
 
 from .config import TIMESTAMP_FORMAT, ExperimentConfig
-from .engine import DistillationEngine, ensure_class_label, prepare_dataset
+from .engine import (
+    DistillationEngine,
+    ensure_class_label,
+    ensure_validation_split,
+    prepare_dataset,
+)
 
 
 def _json_serializer(obj):
@@ -186,10 +191,11 @@ class AblationStudyRunner:
 
         # Load dataset
         dataset_subset = cfg.dataset_subset
+        dataset_kwargs = cfg.dataset_kwargs or {}
         if dataset_subset:
-            dataset = load_dataset(cfg.dataset, dataset_subset)
+            dataset = load_dataset(cfg.dataset, dataset_subset, **dataset_kwargs)
         else:
-            dataset = load_dataset(cfg.dataset)
+            dataset = load_dataset(cfg.dataset, **dataset_kwargs)
 
         # Ensure label column is ClassLabel type for stratified sampling
         if cfg.sampling.enabled:
@@ -197,6 +203,7 @@ class AblationStudyRunner:
 
         # Apply stratified sampling if configured
         dataset = prepare_dataset(dataset, cfg.sampling)
+        dataset = ensure_validation_split(dataset, cfg)
 
         # Add tracking columns for origin of each row
         for split, ds in dataset.items():

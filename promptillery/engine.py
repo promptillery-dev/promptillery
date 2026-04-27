@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from .config import ExperimentConfig, SamplingConfig
 from .policy_decisions import PolicyDecision, PolicyDecisionLogger
 from .policy_features import build_policy_features
-from .token_tracker import OperationType, TokenTracker
+from .token_tracker import OperationType, TokenTracker, TokenUsage
 from .trainers import TrainerFactory
 from .utils import (
     create_prompt_environment,
@@ -190,6 +190,36 @@ def prepare_dataset(
     return dataset
 
 
+def ensure_validation_split(
+    dataset: DatasetDict, config: ExperimentConfig
+) -> DatasetDict:
+    """Create a validation split from train when experiments require one."""
+    if "validation" in dataset or not config.require_validation_split:
+        return dataset
+    if "train" not in dataset:
+        raise ValueError(
+            "require_validation_split=true but dataset has no train split to split"
+        )
+    if len(dataset["train"]) < 2:
+        raise ValueError(
+            "require_validation_split=true but train split has fewer than two rows"
+        )
+
+    seed = config.seed if isinstance(config.seed, int) else config.sampling.seed
+    split_data = dataset["train"].train_test_split(
+        test_size=1 - config.sampling.train_ratio,
+        seed=seed,
+    )
+    dataset["train"] = split_data["train"]
+    dataset["validation"] = split_data["test"]
+    logger.info(
+        "Created validation split from train: %d train, %d validation samples",
+        len(dataset["train"]),
+        len(dataset["validation"]),
+    )
+    return dataset
+
+
 class EarlyStopper:
     """Handles early stopping logic based on metric monitoring."""
 
@@ -309,14 +339,18 @@ class DistillationEngine:
             self.dataset = DatasetDict(
                 {split: ds.select(range(len(ds))) for split, ds in dataset.items()}
             )
+            self.dataset = ensure_validation_split(self.dataset, self.cfg)
             logger.info("Using pre-loaded dataset")
         else:
             # Load dataset from scratch
             dataset_subset = self.cfg.dataset_subset
+            dataset_kwargs = self.cfg.dataset_kwargs or {}
             if dataset_subset:
-                self.dataset = load_dataset(self.cfg.dataset, dataset_subset)
+                self.dataset = load_dataset(
+                    self.cfg.dataset, dataset_subset, **dataset_kwargs
+                )
             else:
-                self.dataset = load_dataset(self.cfg.dataset)
+                self.dataset = load_dataset(self.cfg.dataset, **dataset_kwargs)
 
             # Ensure label column is ClassLabel type for stratified sampling
             if self.cfg.sampling.enabled:
@@ -326,6 +360,7 @@ class DistillationEngine:
 
             # Apply stratified sampling if configured
             self.dataset = prepare_dataset(self.dataset, self.cfg.sampling)
+            self.dataset = ensure_validation_split(self.dataset, self.cfg)
 
             # keep track of the origin of every row
             for split, ds in self.dataset.items():
@@ -385,6 +420,7 @@ class DistillationEngine:
         # Initialize component flags based on flat config fields
         self.augmentation_enabled = bool(self.cfg.prompt)
         self.dataset_persistence_enabled = self.cfg.persist_datasets
+        self._external_sft_usage_recorded = False
 
     def _budget_snapshot(self, include_current_cycle: bool = True) -> Dict[str, Any]:
         """Return current budget accounting state for decision logs."""
@@ -542,6 +578,7 @@ class DistillationEngine:
         reason = None
 
         if token_budget is not None and max_output_tokens is None:
+            allowed = False
             reason = "teacher_max_output_tokens_not_set"
         elif (
             preflight_enforced
@@ -564,6 +601,82 @@ class DistillationEngine:
             "estimator_error": estimator_error,
             "reason": reason,
         }
+
+    def _record_external_sft_token_usage(self) -> None:
+        """Charge pre-materialized SFT teacher-token usage to the current cycle."""
+        if self.cfg.student_type != "causal_lm_sft" or self._external_sft_usage_recorded:
+            return
+
+        trainer_config = self.cfg.trainer_config or {}
+        budget_splits = trainer_config.get("budget_splits", ["train"])
+        required = bool(trainer_config.get("require_teacher_token_fields", True))
+        fields = (
+            "teacher_input_tokens",
+            "teacher_output_tokens",
+            "teacher_total_tokens",
+        )
+
+        input_tokens = 0
+        output_tokens = 0
+        total_tokens = 0
+        charged_rows = 0
+
+        for split in budget_splits:
+            if split not in self.dataset:
+                if required:
+                    raise ValueError(
+                        f"SFT budget split '{split}' is missing from the dataset"
+                    )
+                continue
+
+            ds = self.dataset[split]
+            missing = [field for field in fields if field not in ds.column_names]
+            if missing:
+                if required:
+                    raise ValueError(
+                        "Pre-materialized SFT data must include teacher token "
+                        f"fields {fields}; missing {missing} in split '{split}'"
+                    )
+                logger.warning(
+                    "Skipping SFT token accounting for split %s because fields are missing: %s",
+                    split,
+                    missing,
+                )
+                continue
+
+            for row in ds:
+                row_input = int(row["teacher_input_tokens"] or 0)
+                row_output = int(row["teacher_output_tokens"] or 0)
+                row_total = int(row["teacher_total_tokens"] or 0)
+                if row_total != row_input + row_output:
+                    raise ValueError(
+                        "Invalid SFT token accounting: teacher_total_tokens must "
+                        "equal teacher_input_tokens + teacher_output_tokens"
+                    )
+                input_tokens += row_input
+                output_tokens += row_output
+                total_tokens += row_total
+                charged_rows += 1
+
+        if self.cfg.token_budget is not None and total_tokens > self.cfg.token_budget:
+            raise ValueError(
+                f"Pre-materialized SFT data uses {total_tokens:,} teacher tokens, "
+                f"exceeding configured token_budget={self.cfg.token_budget:,}"
+            )
+
+        usage = TokenUsage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            estimated_cost=None,
+        )
+        self.token_tracker.record_manual_usage(usage, OperationType.SFT_DATA)
+        self._external_sft_usage_recorded = True
+        logger.info(
+            "Charged %d pre-materialized SFT rows to teacher-token budget: %d tokens",
+            charged_rows,
+            total_tokens,
+        )
 
     @staticmethod
     def _estimate_tokens_from_chars(messages: List[Dict[str, str]]) -> int:
@@ -855,6 +968,8 @@ class DistillationEngine:
             for cycle in range(self.cfg.cycles):
                 # Use context manager for robust cycle lifecycle
                 with self.token_tracker.cycle(cycle):
+                    if cycle == 0:
+                        self._record_external_sft_token_usage()
                     # if cycle > 0:
                     #     await self._pseudo_label("train")
                     model = self.trainer.train()

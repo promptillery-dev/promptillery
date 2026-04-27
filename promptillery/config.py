@@ -149,6 +149,10 @@ class ExperimentConfig(BaseModel):
 
     # Dataset configuration - can be a string (dataset name) or structured config
     dataset: Union[str, List[str]] = "tweet_eval"
+    dataset_kwargs: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional keyword arguments passed to datasets.load_dataset, e.g. data_files for JSONL SFT data.",
+    )
     # New structured dataset_config: list of DatasetConfig objects
     # Old format (str/List[str]) still supported for backwards compatibility
     dataset_config: Union[DatasetConfig, List[DatasetConfig], str, List[str], None] = (
@@ -207,9 +211,17 @@ class ExperimentConfig(BaseModel):
     num_train_epochs: Union[int, List[int]] = 3
     warmup_steps: Union[int, List[int]] = 500
     weight_decay: Union[float, List[float]] = 0.01
+    trainer_config: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Trainer-specific options, e.g. max_seq_length and LoRA settings for causal_lm_sft.",
+    )
 
     # Dataset persistence
     persist_datasets: bool = True
+    require_validation_split: bool = Field(
+        default=False,
+        description="If True, create a validation split from train when missing instead of using test for cycle rewards.",
+    )
 
     # Auto-modify name based on student type
     auto_modify_name: bool = Field(
