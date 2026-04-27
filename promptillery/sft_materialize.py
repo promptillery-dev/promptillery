@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from datasets import DatasetDict, load_dataset
 from jinja2 import StrictUndefined
@@ -53,20 +53,23 @@ def load_materialization_dataset(config: ExperimentConfig) -> DatasetDict:
 
 def _label_text(
     row: Dict[str, Any], config: ExperimentConfig, dataset, field: str | None = None
-) -> str:
-    """Return a string label/gold answer for a source row."""
+) -> Tuple[str, str]:
+    """Return a string label/gold answer and the field it came from."""
     label_field = field or config.label_field
     if label_field not in row:
-        return ""
+        available = ", ".join(sorted(row.keys()))
+        raise ValueError(
+            f"Gold answer field '{label_field}' not found. Available fields: {available}"
+        )
 
     label = row[label_field]
     feature = dataset.features.get(label_field)
     if hasattr(feature, "int2str") and isinstance(label, int):
         try:
-            return str(feature.int2str(label))
+            return str(feature.int2str(label)), label_field
         except ValueError:
-            return str(label)
-    return str(label)
+            return str(label), label_field
+    return str(label), label_field
 
 
 def _format_template(template: str, values: Dict[str, Any]) -> str:
@@ -152,6 +155,8 @@ async def materialize_sft_records(
         raise ValueError("materialize-sft requires a single teacher value")
     if isinstance(config.seed, list):
         raise ValueError("materialize-sft requires a single seed value")
+    if isinstance(config.token_budget, list):
+        raise ValueError("materialize-sft requires a single token_budget value")
     if mode not in {"gold", "teacher"}:
         raise ValueError("mode must be 'gold' or 'teacher'")
     if mode == "teacher" and config.teacher_max_output_tokens is None:
@@ -192,7 +197,14 @@ async def materialize_sft_records(
     with output_path.open("w", encoding="utf-8") as f:
         for index, row in enumerate(source):
             row_values = dict(row)
-            gold_answer = _label_text(row_values, config, source, gold_answer_field)
+            gold_answer, resolved_gold_field = _label_text(
+                row_values, config, source, gold_answer_field
+            )
+            if not gold_answer:
+                raise ValueError(
+                    f"Gold answer is empty for row {split}/{index} "
+                    f"from field '{resolved_gold_field}'"
+                )
             row_values["gold_answer"] = gold_answer
 
             if config.text_field in row_values:
@@ -239,6 +251,8 @@ async def materialize_sft_records(
                     temperature=0,
                 )
                 teacher_response = _response_text(response)
+                if not teacher_response:
+                    raise ValueError(f"Teacher returned an empty response for {source_id}")
                 usage = _usage_from_response(response)
                 if usage["teacher_total_tokens"] <= 0 and not allow_estimated_usage:
                     raise ValueError(
@@ -255,6 +269,23 @@ async def materialize_sft_records(
                     )
                     usage_estimated = True
 
+                if usage["teacher_total_tokens"] > predicted_total:
+                    raise ValueError(
+                        "Realized teacher tokens exceeded preflight estimate for "
+                        f"{source_id}: realized={usage['teacher_total_tokens']} "
+                        f"predicted={predicted_total}"
+                    )
+                if (
+                    config.token_budget is not None
+                    and total_tokens + usage["teacher_total_tokens"] > config.token_budget
+                ):
+                    raise ValueError(
+                        "Realized teacher tokens would exceed token_budget for "
+                        f"{source_id}: realized_total="
+                        f"{total_tokens + usage['teacher_total_tokens']} "
+                        f"budget={config.token_budget}"
+                    )
+
             total_tokens += usage["teacher_total_tokens"]
             record = {
                 "id": f"{config.name}/{split}/{index}",
@@ -269,6 +300,7 @@ async def materialize_sft_records(
                 "teacher_prompt": teacher_prompt,
                 "teacher_response": teacher_response,
                 "gold_answer": gold_answer,
+                "gold_answer_field": resolved_gold_field,
                 "cycle": 0,
                 "seed": config.seed,
                 "materialized_at": materialized_at,

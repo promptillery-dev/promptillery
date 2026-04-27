@@ -67,7 +67,7 @@ def _cycle_token_totals(token_usage: Dict[str, Any]) -> Dict[int, int]:
     return totals
 
 
-def _auc(points: Iterable[tuple[float, float]]) -> float | None:
+def _cycle_auc(points: Iterable[tuple[float, float]]) -> float | None:
     sorted_points = sorted(points)
     if not sorted_points:
         return None
@@ -132,7 +132,13 @@ def summarize_run(run_dir: Path, metric: str | None = None, mode: str = "max") -
         "best_metric": best_value,
         "final_cycle": final_cycle,
         "final_metric": final_value,
-        "quality_cost_auc": _auc(points),
+        "cycle_quality_cost_auc": _cycle_auc(points),
+        "token_budget": config.get("token_budget"),
+        "token_budget_overage": (
+            max(0, grand_total.get("total_tokens", 0) - int(config["token_budget"]))
+            if isinstance(config.get("token_budget"), int)
+            else None
+        ),
         "teacher_input_tokens": grand_total.get("input_tokens", 0),
         "teacher_output_tokens": grand_total.get("output_tokens", 0),
         "teacher_total_tokens": grand_total.get("total_tokens", 0),
@@ -158,7 +164,9 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "best_metric",
         "final_cycle",
         "final_metric",
-        "quality_cost_auc",
+        "cycle_quality_cost_auc",
+        "token_budget",
+        "token_budget_overage",
         "teacher_input_tokens",
         "teacher_output_tokens",
         "teacher_total_tokens",

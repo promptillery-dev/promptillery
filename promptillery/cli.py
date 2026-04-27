@@ -163,13 +163,13 @@ def materialize_sft(
 @app.command()
 def analyze(
     path: str,
-    output: str = typer.Option(
+    output: str | None = typer.Option(
         None,
         "--output",
         "-o",
         help="Optional CSV output path; prints CSV to stdout when omitted",
     ),
-    metric: str = typer.Option(
+    metric: str | None = typer.Option(
         None,
         "--metric",
         "-m",
@@ -189,6 +189,9 @@ def analyze(
     rows = analyze_runs(Path(path), metric=metric, mode=mode)
     if not rows:
         typer.echo(f"Error: no run artifacts found under {path}", err=True)
+        raise typer.Exit(code=1)
+    if metric and not any(row["metric"] == metric for row in rows):
+        typer.echo(f"Error: metric '{metric}' was not found in any run", err=True)
         raise typer.Exit(code=1)
 
     if output:

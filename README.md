@@ -370,7 +370,7 @@ uv run promptillery analyze out/examples --output out/examples/summary.csv
 ```
 
 The summary includes the selected metric, best/final values, cumulative teacher
-tokens, and a simple quality-cost AUC.
+tokens, token-budget overage, and a simple cycle-level quality-cost AUC.
 
 ## Advanced Configuration
 
