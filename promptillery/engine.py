@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from .config import ExperimentConfig, SamplingConfig
 from .policy_decisions import PolicyDecision, PolicyDecisionLogger
+from .policy_features import build_policy_features
 from .token_tracker import OperationType, TokenTracker
 from .trainers import TrainerFactory
 from .utils import (
@@ -407,7 +408,12 @@ class DistillationEngine:
             "tokens_remaining": tokens_remaining,
         }
 
-    def _cycle_state(self, cycle: int, metrics: Dict[str, Any]) -> Dict[str, Any]:
+    def _cycle_state(
+        self,
+        cycle: int,
+        metrics: Dict[str, Any],
+        policy_features: Dict[str, float] | None = None,
+    ) -> Dict[str, Any]:
         """Build a compact state snapshot for fixed and learned policies."""
         train_size = len(self.dataset["train"]) if "train" in self.dataset else None
         validation_size = (
@@ -434,6 +440,7 @@ class DistillationEngine:
             "test_size": test_size,
             "synthetic_count": synthetic_count,
             "budget": self._budget_snapshot(),
+            "features": policy_features or {},
         }
 
     def _record_policy_decision(
@@ -495,7 +502,15 @@ class DistillationEngine:
         path = self.out_dir / f"dataset_cycle_{cycle}"
         self.dataset.save_to_disk(str(path))
 
-    def _prepare_sample_context(self, model) -> Dict[str, Any]:
+    def _prepare_sample_context(
+        self,
+        model,
+        *,
+        cycle: int | None = None,
+        metrics: Dict[str, Any] | None = None,
+        previous_metrics: Dict[str, Any] | None = None,
+        budget: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
         """Prepare sample collections for prompt template context.
 
         Extracts few-shot examples, high-entropy samples, hard negatives,
@@ -565,14 +580,37 @@ class DistillationEngine:
             f"{len(high_entropy)} high-entropy, {len(hard_negatives)} hard negatives"
         )
 
-        return {
+        context = {
             "few_shot_samples": few_shot,
             "high_entropy_samples": high_entropy,
             "hard_negative_samples": hard_negatives,
             "classification_report": classification_report,
         }
 
-    async def _augment(self, model, cycle: int) -> None:
+        if cycle is not None and metrics is not None:
+            synthetic_count = None
+            if "source_split" in train_ds.column_names:
+                synthetic_count = sum(
+                    1 for value in train_ds["source_split"] if value == "augmented"
+                )
+            context["policy_features"] = build_policy_features(
+                cycle=cycle,
+                cycles=self.cfg.cycles,
+                metrics=metrics,
+                previous_metrics=previous_metrics,
+                train_predictions=train_predictions,
+                eval_predictions=eval_predictions,
+                train_size=len(train_ds),
+                synthetic_count=synthetic_count,
+                budget=budget or self._budget_snapshot(),
+                num_classes=self.cfg.num_classes,
+            )
+
+        return context
+
+    async def _augment(
+        self, model, cycle: int, sample_context: Dict[str, Any] | None = None
+    ) -> None:
         """Augment training data using the teacher model in batch mode.
 
         Instead of generating samples per misclassified example, this method:
@@ -587,7 +625,7 @@ class DistillationEngine:
         ds = self.dataset["train"]
 
         # Prepare sample collections for prompt context
-        sample_context = self._prepare_sample_context(model)
+        sample_context = sample_context or self._prepare_sample_context(model)
 
         # Build template context with all sample collections and config
         env: Dict[str, Any] = {}
@@ -703,13 +741,33 @@ class DistillationEngine:
                                 f"Restored best model from cycle {self.early_stopper.best_cycle}"
                             )
 
+                    previous_metrics = results.get(str(cycle - 1), {})
                     budget_before = self._budget_snapshot()
-                    cycle_state = self._cycle_state(cycle, metrics)
+                    sample_context = None
+                    policy_features = {}
+                    if self.augmentation_enabled:
+                        sample_context = self._prepare_sample_context(
+                            model,
+                            cycle=cycle,
+                            metrics=metrics,
+                            previous_metrics=previous_metrics,
+                            budget=budget_before,
+                        )
+                        policy_features = sample_context.get("policy_features", {})
+                        feature_path = self.out_dir / f"policy_features_cycle_{cycle}.json"
+                        feature_path.write_text(
+                            json.dumps(policy_features, indent=2),
+                            encoding="utf-8",
+                        )
+
+                    cycle_state = self._cycle_state(
+                        cycle, metrics, policy_features=policy_features
+                    )
                     action_name = "stop"
 
                     if not should_stop and cycle < self.cfg.cycles - 1:
                         action_name = "augment" if self.augmentation_enabled else "skip"
-                        await self._augment(model, cycle)
+                        await self._augment(model, cycle, sample_context=sample_context)
                     elif cycle >= self.cfg.cycles - 1:
                         action_name = "final_cycle"
 
