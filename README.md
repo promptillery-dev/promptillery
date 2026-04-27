@@ -112,6 +112,9 @@ uv run promptillery materialize-sft examples/materialize_sft_tiny.yaml \
   --output out/examples/materialized_sft_tiny.jsonl \
   --max-samples 2 \
   --overwrite
+
+# Summarize quality-cost artifacts from runs
+uv run promptillery analyze out/examples --output out/examples/summary.csv
 ```
 
 Experiments are automatically organized into timestamped directories based on the experiment name. For example, an experiment named `tweet_sentiment` will create a directory like `tweet_sentiment_20241205_143022/`.
@@ -357,6 +360,17 @@ uv run promptillery materialize-sft examples/materialize_sft_tiny.yaml \
 
 Use `--mode teacher` for real teacher calls. Teacher mode requires
 `teacher_max_output_tokens` so the command can preflight token budgets.
+
+### Analysis
+
+Summarize one run directory or a parent directory containing runs:
+
+```bash
+uv run promptillery analyze out/examples --output out/examples/summary.csv
+```
+
+The summary includes the selected metric, best/final values, cumulative teacher
+tokens, and a simple quality-cost AUC.
 
 ## Advanced Configuration
 

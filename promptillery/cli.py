@@ -10,6 +10,7 @@ import typer
 from dotenv import load_dotenv
 
 from .ablation import AblationStudyRunner
+from .analyze import analyze_runs, write_summary_csv
 from .config import ExperimentConfig
 from .engine import DistillationEngine, evaluate_model
 from .sft_materialize import materialize_sft_records
@@ -157,6 +158,50 @@ def materialize_sft(
         "Wrote {records} SFT records to {output_path} "
         "({teacher_total_tokens} teacher tokens)".format(**summary)
     )
+
+
+@app.command()
+def analyze(
+    path: str,
+    output: str = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional CSV output path; prints CSV to stdout when omitted",
+    ),
+    metric: str = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to summarize; defaults to the first recognized run metric",
+    ),
+    mode: str = typer.Option(
+        "max",
+        "--mode",
+        help="Use 'max' for accuracy/F1-like metrics or 'min' for losses",
+    ),
+) -> None:
+    """Summarize quality-cost artifacts from one run directory or a parent."""
+    if mode not in {"max", "min"}:
+        typer.echo("Error: --mode must be 'max' or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    rows = analyze_runs(Path(path), metric=metric, mode=mode)
+    if not rows:
+        typer.echo(f"Error: no run artifacts found under {path}", err=True)
+        raise typer.Exit(code=1)
+
+    if output:
+        write_summary_csv(rows, Path(output))
+        typer.echo(f"Wrote analysis summary to {output}")
+        return
+
+    import csv
+    import sys
+
+    writer = csv.DictWriter(sys.stdout, fieldnames=list(rows[0].keys()))
+    writer.writeheader()
+    writer.writerows(rows)
 
 
 @app.command()
