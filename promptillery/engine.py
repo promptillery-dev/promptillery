@@ -358,6 +358,7 @@ class DistillationEngine:
             experiment_name=self.cfg.name,
             teacher_model=self.cfg.teacher,
             budget_warning=self.cfg.budget_warning,
+            token_budget=self.cfg.token_budget,
             budget_stop=self.cfg.budget_stop,
         )
         self.policy_decision_logger = PolicyDecisionLogger(
@@ -388,16 +389,22 @@ class DistillationEngine:
         if include_current_cycle:
             total_tokens += current_usage.total_tokens
 
+        tokens_remaining = None
+        if self.cfg.token_budget is not None:
+            tokens_remaining = self.cfg.token_budget - total_tokens
+
         remaining = None
         if self.cfg.budget_warning is not None and spent is not None:
             remaining = self.cfg.budget_warning - spent
 
         return {
             "budget_limit_usd": self.cfg.budget_warning,
+            "token_budget": self.cfg.token_budget,
             "spent_usd": spent,
             "remaining_usd": remaining,
             "budget_stop": self.cfg.budget_stop,
             "total_tokens": total_tokens,
+            "tokens_remaining": tokens_remaining,
         }
 
     def _cycle_state(self, cycle: int, metrics: Dict[str, Any]) -> Dict[str, Any]:
@@ -748,13 +755,18 @@ class DistillationEngine:
                     }
 
                 # Add budget stop info to results
-                if self.cfg.budget_warning is not None:
+                if (
+                    self.cfg.budget_warning is not None
+                    or self.cfg.token_budget is not None
+                ):
                     results["budget_control"] = {
                         "budget_limit": self.cfg.budget_warning,
+                        "token_budget": self.cfg.token_budget,
                         "budget_stop_enabled": self.cfg.budget_stop,
                         "budget_exceeded": self.token_tracker._budget_exceeded,
                         "stopped_for_budget": self.token_tracker.should_stop_for_budget(),
                         "total_cost": self.token_tracker.summary.grand_total.estimated_cost,
+                        "total_tokens": self.token_tracker.summary.grand_total.total_tokens,
                         "total_cycles": len([k for k in results.keys() if k.isdigit()]),
                     }
 

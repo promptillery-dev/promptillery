@@ -183,9 +183,13 @@ class ExperimentConfig(BaseModel):
         ge=0.0,
         description="Optional budget limit in USD - triggers warning when token costs exceed this amount",
     )
+    token_budget: Union[int, List[int], None] = Field(
+        default=None,
+        description="Optional teacher-token budget. Can be a list for ablations.",
+    )
     budget_stop: bool = Field(
         default=False,
-        description="If True, automatically stop experiment when budget_warning is exceeded",
+        description="If True, automatically stop experiment when a configured budget is exceeded",
     )
     price_table_path: Optional[str] = Field(
         default=None,
@@ -245,6 +249,17 @@ class ExperimentConfig(BaseModel):
                     f"Early stopping metric '{self.early_stopping.metric}' must be in metrics list: {self.metrics}"
                 )
         return self
+
+    @field_validator("token_budget")
+    @classmethod
+    def validate_token_budget(cls, v: int | List[int] | None) -> int | List[int] | None:
+        """Validate token budget values."""
+        if v is None:
+            return v
+        values = v if isinstance(v, list) else [v]
+        if any(value < 0 for value in values):
+            raise ValueError("token_budget must contain non-negative integers")
+        return v
 
     @model_validator(mode="after")
     def modify_name_based_on_student_type(self):

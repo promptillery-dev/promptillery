@@ -128,6 +128,7 @@ class TokenTracker:
         console: Optional[Console] = None,
         quiet: bool = False,
         budget_warning: Optional[float] = None,
+        token_budget: Optional[int] = None,
         budget_stop: bool = False,
     ) -> None:
         self.summary = TokenUsageSummary(
@@ -140,6 +141,7 @@ class TokenTracker:
             console if console is not None else (None if quiet else Console())
         )
         self.budget_warning = budget_warning
+        self.token_budget = token_budget
         self.budget_stop = budget_stop
         self._budget_warning_shown = False
         self._budget_exceeded = False
@@ -212,29 +214,41 @@ class TokenTracker:
 
     def _check_budget_warning(self) -> None:
         """Check if budget warning threshold has been exceeded."""
-        if (
+        cost_exceeded = (
             self.budget_warning is not None
-            and not self._budget_warning_shown
             and self.summary.grand_total.estimated_cost is not None
             and self.summary.grand_total.estimated_cost >= self.budget_warning
-        ):
+        )
+        token_exceeded = (
+            self.token_budget is not None
+            and self.summary.grand_total.total_tokens >= self.token_budget
+        )
+
+        if not self._budget_warning_shown and (cost_exceeded or token_exceeded):
             self._budget_warning_shown = True
             self._budget_exceeded = True
 
-            if not self._quiet and self.console is not None:
-                warning_msg = (
-                    f"⚠️  Budget Warning: Total cost ${self.summary.grand_total.estimated_cost:.4f} "
-                    f"has reached or exceeded budget limit of ${self.budget_warning:.4f}"
+            warning_parts = []
+            if cost_exceeded and self.summary.grand_total.estimated_cost is not None:
+                warning_parts.append(
+                    f"cost ${self.summary.grand_total.estimated_cost:.4f} "
+                    f">= ${self.budget_warning:.4f}"
                 )
+            if token_exceeded:
+                warning_parts.append(
+                    f"{self.summary.grand_total.total_tokens:,} tokens "
+                    f">= {self.token_budget:,} tokens"
+                )
+
+            if not self._quiet and self.console is not None:
+                warning_msg = "⚠️  Budget Warning: " + "; ".join(warning_parts)
                 self.console.print(f"[bold yellow]{warning_msg}[/bold yellow]")
 
                 if self.budget_stop:
                     stop_msg = "🛑 Budget Stop: Experiment will stop after this cycle"
                     self.console.print(f"[bold red]{stop_msg}[/bold red]")
 
-            logger.warning(
-                f"Budget warning triggered: ${self.summary.grand_total.estimated_cost:.4f} >= ${self.budget_warning:.4f}"
-            )
+            logger.warning("Budget warning triggered: %s", "; ".join(warning_parts))
             if self.budget_stop:
                 logger.warning(
                     "Budget stop enabled - experiment will halt after current cycle"
@@ -318,9 +332,10 @@ class TokenTracker:
                 f"Estimated Cost: ${self.summary.grand_total.estimated_cost:.4f}"
             )
 
-            # Show budget information if configured
-            if self.budget_warning is not None:
-                lines.append(f"Budget Warning Limit: ${self.budget_warning:.4f}")
+        # Show budget information if configured
+        if self.budget_warning is not None:
+            lines.append(f"Budget Warning Limit: ${self.budget_warning:.4f}")
+            if self.summary.grand_total.estimated_cost is not None:
                 remaining = (
                     self.budget_warning - self.summary.grand_total.estimated_cost
                 )
@@ -328,6 +343,16 @@ class TokenTracker:
                     lines.append(f"Budget Remaining: ${remaining:.4f}")
                 else:
                     lines.append(f"Budget Exceeded By: ${abs(remaining):.4f}")
+
+        if self.token_budget is not None:
+            lines.append(f"Token Budget: {self.token_budget:,}")
+            remaining_tokens = (
+                self.token_budget - self.summary.grand_total.total_tokens
+            )
+            if remaining_tokens >= 0:
+                lines.append(f"Tokens Remaining: {remaining_tokens:,}")
+            else:
+                lines.append(f"Token Budget Exceeded By: {abs(remaining_tokens):,}")
 
         panel = Panel(
             "\n".join(lines),
