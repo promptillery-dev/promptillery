@@ -126,6 +126,8 @@ def _tokens_remaining(state: Mapping[str, Any]) -> float | None:
 
 def _lookup_cost_value(value: Any) -> float | None:
     if isinstance(value, Mapping):
+        if value.get("allowed") is False:
+            return math.inf
         for key in (
             "total_tokens",
             "teacher_total_tokens",

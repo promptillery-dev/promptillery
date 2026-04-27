@@ -21,6 +21,7 @@ from litellm import acompletion
 from pydantic import BaseModel
 
 from .config import ExperimentConfig, SamplingConfig
+from .policy_controller import PolicyAction, PolicyController, enumerate_actions
 from .policy_decisions import PolicyDecision, PolicyDecisionLogger
 from .policy_features import build_policy_features
 from .token_tracker import (
@@ -430,6 +431,11 @@ class DistillationEngine:
         self.policy_decision_logger = PolicyDecisionLogger(
             self.out_dir / "policy_decisions.jsonl"
         )
+        self.policy_controller = self._build_policy_controller()
+        self.action_space = self._build_action_space()
+        self.action_space_id = self._action_space_id(self.action_space)
+        self._decision_counter = 0
+        self._attempt_counter = 0
 
         # Create Jinja2 environment with format_samples_for_prompt available
         self.jinja_env = create_prompt_environment()
@@ -443,6 +449,115 @@ class DistillationEngine:
         self.augmentation_enabled = bool(self.cfg.prompt)
         self.dataset_persistence_enabled = self.cfg.persist_datasets
         self._external_sft_usage_recorded = False
+
+    def _build_policy_controller(self) -> PolicyController | None:
+        """Return a controller for policy-driven acquisition when configured."""
+        if self.cfg.policy_name == "fixed_promptillery":
+            return None
+        return PolicyController(
+            self.cfg.policy_name,
+            lambda_cost=self.cfg.policy_lambda_cost,
+            exploration_bonus=self.cfg.policy_exploration_bonus,
+            seed=self.cfg.seed,
+        )
+
+    def _build_action_space(self) -> List[PolicyAction]:
+        """Build the finite action class for acquisition policies."""
+        teacher_tiers = list(self.cfg.policy_teacher_tiers.keys()) or ["cheap", "strong"]
+        return enumerate_actions(
+            prompt_operators=self.cfg.policy_prompt_operators,
+            teacher_tiers=teacher_tiers,
+            batch_sizes=self.cfg.policy_batch_sizes,
+            include_stop=True,
+        )
+
+    @staticmethod
+    def _action_space_id(actions: List[PolicyAction]) -> str:
+        """Stable hash of the action space recorded in paper manifests."""
+        payload = [action.model_dump() for action in actions]
+        return sha256(
+            json.dumps(payload, sort_keys=True).encode("utf-8")
+        ).hexdigest()[:12]
+
+    def _next_decision_id(self, cycle: int) -> str:
+        self._decision_counter += 1
+        return f"{self.run_id}:c{cycle}:d{self._decision_counter}"
+
+    def _next_attempt_id(self, cycle: int) -> str:
+        self._attempt_counter += 1
+        return f"{self.run_id}:c{cycle}:a{self._attempt_counter}"
+
+    def _teacher_for_action(self, action: PolicyAction | None = None) -> str:
+        """Resolve the provider model for a policy action."""
+        default_teacher = (
+            self.cfg.teacher[0] if isinstance(self.cfg.teacher, list) else self.cfg.teacher
+        )
+        if action and action.teacher_tier:
+            return self.cfg.policy_teacher_tiers.get(action.teacher_tier, default_teacher)
+        return default_teacher
+
+    @staticmethod
+    def _prompt_focus(prompt_operator: str | None) -> str:
+        """Human-readable focus string exposed to prompt templates."""
+        return {
+            "coverage": "broad coverage of underrepresented classes and intents",
+            "boundary": "borderline examples near likely decision boundaries",
+            "repair": "student mistakes, confusions, and high-confidence errors",
+        }.get(str(prompt_operator), "useful examples for the current student")
+
+    def _render_augmentation_prompt(
+        self,
+        sample_context: Dict[str, Any],
+        action: PolicyAction | None = None,
+    ) -> tuple[str, Dict[str, Any]]:
+        """Render the augmentation prompt with policy action overrides."""
+        batch_size = (
+            action.batch_size
+            if action and not action.is_stop and action.batch_size
+            else self.cfg.augmentation_batch_size
+        )
+        teacher_model = self._teacher_for_action(action)
+        prompt_operator = action.prompt_operator if action else None
+        teacher_tier = action.teacher_tier if action else None
+
+        env: Dict[str, Any] = {}
+        env.update(self.cfg_vars)
+        env.update(self.prompt_vars)
+        env.update(sample_context)
+        env.update(
+            {
+                "augmentation_batch_size": batch_size,
+                "policy_action": action.model_dump() if action else {},
+                "prompt_operator": prompt_operator,
+                "prompt_focus": self._prompt_focus(prompt_operator),
+                "teacher_tier": teacher_tier,
+                "teacher_model": teacher_model,
+            }
+        )
+        return self.prompt_template.render(**env), env
+
+    def _policy_predicted_costs(
+        self,
+        actions: List[PolicyAction],
+        sample_context: Dict[str, Any],
+        budget_before: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Estimate preflight costs for every action before controller choice."""
+        predicted_costs: Dict[str, Any] = {}
+        if not self.prompt_template:
+            return predicted_costs
+        for action in actions:
+            if action.is_stop:
+                predicted_costs[action.name] = {"total_tokens": 0}
+                continue
+            prompt, _ = self._render_augmentation_prompt(sample_context, action)
+            messages = [{"role": "user", "content": prompt}]
+            predicted_costs[action.name] = self._estimate_teacher_call_tokens(
+                messages,
+                budget_before,
+                teacher_model=self._teacher_for_action(action),
+            )
+        return predicted_costs
 
     def _budget_snapshot(self, include_current_cycle: bool = True) -> Dict[str, Any]:
         """Return current budget accounting state for decision logs."""
@@ -539,31 +654,44 @@ class DistillationEngine:
         action_name: str,
         state: Dict[str, Any],
         budget_before: Dict[str, Any],
+        decision_id: str,
+        policy_name: str | None = None,
+        action: Dict[str, Any] | None = None,
+        action_scores: Dict[str, float] | None = None,
         predicted_cost: Dict[str, Any] | None = None,
         decision_metadata: Dict[str, Any] | None = None,
         reward: float | None = None,
     ) -> None:
-        """Record the fixed-loop decision using the policy decision schema."""
+        """Record one acquisition decision using the policy decision schema."""
         realized_cost = self.token_tracker.current_cycle_usage().model_dump()
         metadata = {
+            "schema_version": 1,
+            "run_id": self.run_id,
+            "decision_id": decision_id,
             "seed": self.cfg.seed,
             "student": self.cfg.student,
             "student_type": self.cfg.student_type,
+            "action_space_id": self.action_space_id,
         }
         metadata.update(decision_metadata or {})
 
         self.policy_decision_logger.record(
             PolicyDecision(
+                schema_version=1,
+                run_id=self.run_id,
+                decision_id=decision_id,
                 cycle=cycle,
-                policy_name="fixed_promptillery",
+                policy_name=policy_name or self.cfg.policy_name,
                 action_name=action_name,
                 state=state,
-                action={
+                action=action
+                or {
                     "teacher": self.cfg.teacher,
                     "augmentation_batch_size": self.cfg.augmentation_batch_size,
                     "prompt_enabled": self.augmentation_enabled,
                     "teacher_max_output_tokens": self.cfg.teacher_max_output_tokens,
                 },
+                action_scores=action_scores or {},
                 predicted_cost=predicted_cost or {},
                 realized_cost=realized_cost,
                 reward=reward,
@@ -580,12 +708,18 @@ class DistillationEngine:
         status: str,
         predicted_cost: Dict[str, Any],
         budget_before: Dict[str, Any],
+        attempt_id: str,
+        decision_id: str | None = None,
         realized_cost: TokenUsage | None = None,
         failure_type: str | None = None,
         metadata: Dict[str, Any] | None = None,
     ) -> None:
         """Append an audited teacher-call attempt for budget debugging."""
         row = {
+            "schema_version": 1,
+            "run_id": self.run_id,
+            "attempt_id": attempt_id,
+            "decision_id": decision_id,
             "cycle": cycle,
             "status": status,
             "predicted_cost": predicted_cost,
@@ -615,16 +749,20 @@ class DistillationEngine:
         )
 
     def _estimate_teacher_call_tokens(
-        self, messages: List[Dict[str, str]], budget_before: Dict[str, Any]
+        self,
+        messages: List[Dict[str, str]],
+        budget_before: Dict[str, Any],
+        teacher_model: str | None = None,
     ) -> Dict[str, Any]:
         """Conservatively estimate token use for one teacher call."""
         estimator = "chars_per_3_fallback"
         estimator_error = None
+        teacher_model = teacher_model or self.cfg.teacher
 
         if _HAS_TOKEN_COUNTER and _token_counter is not None:
             try:
                 input_tokens = int(
-                    _token_counter(model=self.cfg.teacher, messages=messages)
+                    _token_counter(model=teacher_model, messages=messages)
                 )
                 estimator = "litellm.token_counter"
             except Exception as exc:
@@ -666,6 +804,7 @@ class DistillationEngine:
             "preflight_enforced": preflight_enforced,
             "estimator": estimator,
             "estimator_error": estimator_error,
+            "teacher_model": teacher_model,
             "reason": reason,
         }
 
@@ -886,6 +1025,8 @@ class DistillationEngine:
         cycle: int,
         sample_context: Dict[str, Any] | None = None,
         budget_before: Dict[str, Any] | None = None,
+        policy_action: PolicyAction | None = None,
+        decision_id: str | None = None,
     ) -> Dict[str, Any]:
         """Augment training data using the teacher model in batch mode.
 
@@ -907,15 +1048,17 @@ class DistillationEngine:
         # Prepare sample collections for prompt context
         sample_context = sample_context or self._prepare_sample_context(model)
 
-        # Build template context with all sample collections and config
-        env: Dict[str, Any] = {}
-        env.update(self.cfg_vars)
-        env.update(self.prompt_vars)
-        env.update(sample_context)
-        # augmentation_batch_size is available in cfg_vars from model_dump()
+        teacher_model = self._teacher_for_action(policy_action)
+        acquisition_batch_size = (
+            policy_action.batch_size
+            if policy_action and not policy_action.is_stop and policy_action.batch_size
+            else self.cfg.augmentation_batch_size
+        )
+        prompt_operator = policy_action.prompt_operator if policy_action else None
+        teacher_tier = policy_action.teacher_tier if policy_action else None
 
-        # Render the prompt template
-        msg = self.prompt_template.render(**env)
+        # Render the prompt template with action overrides after config values.
+        msg, _ = self._render_augmentation_prompt(sample_context, policy_action)
 
         # Save rendered prompt for debugging/inspection
         prompt_path = self.out_dir / f"prompt_cycle_{cycle}.txt"
@@ -923,13 +1066,28 @@ class DistillationEngine:
         logger.info(f"Saved rendered prompt to {prompt_path}")
 
         logger.info(
-            f"Requesting {self.cfg.augmentation_batch_size} augmented samples from teacher model"
+            "Requesting %d augmented samples from teacher model %s",
+            acquisition_batch_size,
+            teacher_model,
         )
 
         messages = [{"role": "user", "content": msg}]
         predicted_cost = self._estimate_teacher_call_tokens(
-            messages, budget_before or self._budget_snapshot()
+            messages,
+            budget_before or self._budget_snapshot(),
+            teacher_model=teacher_model,
         )
+        prompt_sha256 = sha256(msg.encode("utf-8")).hexdigest()
+        attempt_id = self._next_attempt_id(cycle)
+        attempt_metadata = {
+            "teacher": teacher_model,
+            "teacher_tier": teacher_tier,
+            "prompt_operator": prompt_operator,
+            "policy_action": policy_action.model_dump() if policy_action else {},
+            "batch_size_requested": acquisition_batch_size,
+            "records_requested": acquisition_batch_size,
+            "prompt_sha256": prompt_sha256,
+        }
         if not predicted_cost["allowed"]:
             logger.warning(
                 "Skipping augmentation because budget preflight masked the teacher call: %s",
@@ -940,18 +1098,24 @@ class DistillationEngine:
                 status="masked",
                 predicted_cost=predicted_cost,
                 budget_before=budget_before or self._budget_snapshot(),
+                attempt_id=attempt_id,
+                decision_id=decision_id,
                 failure_type=predicted_cost["reason"],
+                metadata=attempt_metadata,
             )
             return {
                 "action_name": "budget_masked",
                 "predicted_cost": predicted_cost,
-                "metadata": {"mask_reason": predicted_cost["reason"]},
+                "metadata": {
+                    "mask_reason": predicted_cost["reason"],
+                    **attempt_metadata,
+                },
             }
 
         usage_recorded = False
         try:
             completion_kwargs = {
-                "model": self.cfg.teacher,
+                "model": teacher_model,
                 "messages": messages,
                 "response_format": AugmentedResponse,
             }
@@ -975,9 +1139,11 @@ class DistillationEngine:
                     status="budget_violation",
                     predicted_cost=predicted_cost,
                     budget_before=budget_before or self._budget_snapshot(),
+                    attempt_id=attempt_id,
+                    decision_id=decision_id,
                     realized_cost=usage,
                     failure_type="realized_tokens_exceeded_preflight",
-                    metadata={"teacher": self.cfg.teacher},
+                    metadata=attempt_metadata,
                 )
                 raise ValueError(
                     "Realized teacher tokens exceeded preflight estimate: "
@@ -997,9 +1163,11 @@ class DistillationEngine:
                     status="budget_violation",
                     predicted_cost=predicted_cost,
                     budget_before=budget_before or self._budget_snapshot(),
+                    attempt_id=attempt_id,
+                    decision_id=decision_id,
                     realized_cost=usage,
                     failure_type="realized_tokens_exceeded_remaining_budget",
-                    metadata={"teacher": self.cfg.teacher},
+                    metadata=attempt_metadata,
                 )
                 raise ValueError(
                     "Realized teacher tokens exceeded remaining token budget: "
@@ -1007,29 +1175,49 @@ class DistillationEngine:
                 )
             self.token_tracker.record_manual_usage(usage, OperationType.AUGMENTATION)
             usage_recorded = True
-            self._record_teacher_attempt(
-                cycle=cycle,
-                status="success",
-                predicted_cost=predicted_cost,
-                budget_before=budget_before or self._budget_snapshot(),
-                realized_cost=usage,
-                metadata={"teacher": self.cfg.teacher},
-            )
             response_path = self.out_dir / f"teacher_response_cycle_{cycle}.json"
             response_path.write_text(
                 json.dumps(_response_to_jsonable(result), indent=2, default=str),
                 encoding="utf-8",
             )
+            response_sha256 = sha256(
+                json.dumps(
+                    _response_to_jsonable(result), sort_keys=True, default=str
+                ).encode("utf-8")
+            ).hexdigest()
 
             content = result["choices"][0]["message"]["content"]
             articles = self._parse_augmented_response(content)
+            if len(articles) > acquisition_batch_size:
+                articles = articles[:acquisition_batch_size]
 
             if not articles:
                 logger.warning("No articles parsed from teacher response")
+                self._record_teacher_attempt(
+                    cycle=cycle,
+                    status="empty_response",
+                    predicted_cost=predicted_cost,
+                    budget_before=budget_before or self._budget_snapshot(),
+                    attempt_id=attempt_id,
+                    decision_id=decision_id,
+                    realized_cost=usage,
+                    failure_type="no_articles_parsed",
+                    metadata={
+                        **attempt_metadata,
+                        "records_parsed": 0,
+                        "records_accepted": 0,
+                        "response_sha256": response_sha256,
+                    },
+                )
                 return {
                     "action_name": "augment_empty",
                     "predicted_cost": predicted_cost,
-                    "metadata": {"articles_parsed": 0, "articles_added": 0},
+                    "metadata": {
+                        "articles_parsed": 0,
+                        "articles_added": 0,
+                        "attempt_id": attempt_id,
+                        **attempt_metadata,
+                    },
                 }
 
             logger.info(f"Received {len(articles)} augmented samples from teacher")
@@ -1075,9 +1263,14 @@ class DistillationEngine:
                     status="failed",
                     predicted_cost=predicted_cost,
                     budget_before=budget_before or self._budget_snapshot(),
+                    attempt_id=attempt_id,
+                    decision_id=decision_id,
                     realized_cost=reserved_usage,
                     failure_type=type(e).__name__,
-                    metadata={"error": str(e), "teacher": self.cfg.teacher},
+                    metadata={
+                        **attempt_metadata,
+                        "error": str(e),
+                    },
                 )
             return {
                 "action_name": "augment_failed",
@@ -1085,6 +1278,8 @@ class DistillationEngine:
                 "metadata": {
                     "error_type": type(e).__name__,
                     "error": str(e),
+                    "attempt_id": attempt_id,
+                    **attempt_metadata,
                 },
             }
 
@@ -1104,12 +1299,29 @@ class DistillationEngine:
             f"Added {len(aug_rows)} augmented samples to training set "
             f"(total: {len(self.dataset['train'])})"
         )
+        self._record_teacher_attempt(
+            cycle=cycle,
+            status="success",
+            predicted_cost=predicted_cost,
+            budget_before=budget_before or self._budget_snapshot(),
+            attempt_id=attempt_id,
+            decision_id=decision_id,
+            realized_cost=usage,
+            metadata={
+                **attempt_metadata,
+                "records_parsed": len(aug_rows),
+                "records_accepted": len(aug_rows),
+                "response_sha256": response_sha256,
+            },
+        )
         return {
             "action_name": "augment",
             "predicted_cost": predicted_cost,
             "metadata": {
                 "articles_parsed": len(aug_rows),
                 "articles_added": len(aug_rows),
+                "attempt_id": attempt_id,
+                **attempt_metadata,
             },
         }
 
@@ -1186,21 +1398,73 @@ class DistillationEngine:
                         action_name = "stop"
                         predicted_cost = {}
                         decision_metadata = {}
+                        decision_id = self._next_decision_id(cycle)
+                        policy_name = self.cfg.policy_name
+                        policy_action = None
+                        action_scores = {}
+                        policy_stopped = False
 
                         if not should_stop and cycle < self.cfg.cycles - 1:
                             action_name = (
                                 "augment" if self.augmentation_enabled else "skip"
                             )
                             if self.augmentation_enabled:
-                                outcome = await self._augment(
-                                    model,
-                                    cycle,
-                                    sample_context=sample_context,
-                                    budget_before=budget_before,
-                                )
-                                action_name = outcome["action_name"]
-                                predicted_cost = outcome["predicted_cost"]
-                                decision_metadata = outcome["metadata"]
+                                if self.policy_controller:
+                                    all_predicted_costs = self._policy_predicted_costs(
+                                        self.action_space,
+                                        sample_context or {},
+                                        budget_before,
+                                    )
+                                    choice = self.policy_controller.select(
+                                        cycle_state,
+                                        actions=self.action_space,
+                                        predicted_costs=all_predicted_costs,
+                                    )
+                                    policy_name = choice.policy_name
+                                    policy_action = choice.action.model_dump()
+                                    action_scores = choice.action_scores
+                                    predicted_cost = all_predicted_costs.get(
+                                        choice.action.name, choice.predicted_cost
+                                    )
+                                    decision_metadata = {
+                                        "policy_choice": choice.model_dump(),
+                                        "feasible_actions": list(
+                                            choice.feasible_actions
+                                        ),
+                                        "all_predicted_costs": all_predicted_costs,
+                                    }
+                                    if choice.action.is_stop:
+                                        action_name = "STOP"
+                                        policy_stopped = True
+                                        decision_metadata["acquisition_outcome"] = (
+                                            "policy_stop"
+                                        )
+                                    else:
+                                        outcome = await self._augment(
+                                            model,
+                                            cycle,
+                                            sample_context=sample_context,
+                                            budget_before=budget_before,
+                                            policy_action=choice.action,
+                                            decision_id=decision_id,
+                                        )
+                                        action_name = choice.action.name
+                                        decision_metadata.update(outcome["metadata"])
+                                        decision_metadata["acquisition_outcome"] = (
+                                            outcome["action_name"]
+                                        )
+                                        predicted_cost = outcome["predicted_cost"]
+                                else:
+                                    outcome = await self._augment(
+                                        model,
+                                        cycle,
+                                        sample_context=sample_context,
+                                        budget_before=budget_before,
+                                        decision_id=decision_id,
+                                    )
+                                    action_name = outcome["action_name"]
+                                    predicted_cost = outcome["predicted_cost"]
+                                    decision_metadata = outcome["metadata"]
                         elif cycle >= self.cfg.cycles - 1:
                             action_name = "final_cycle"
 
@@ -1209,6 +1473,10 @@ class DistillationEngine:
                             action_name=action_name,
                             state=cycle_state,
                             budget_before=budget_before,
+                            decision_id=decision_id,
+                            policy_name=policy_name,
+                            action=policy_action,
+                            action_scores=action_scores,
                             predicted_cost=predicted_cost,
                             decision_metadata=decision_metadata,
                         )
@@ -1219,6 +1487,13 @@ class DistillationEngine:
                     if self.token_tracker.should_stop_for_budget():
                         logger.info(
                             f"Training stopped due to budget limit at cycle {cycle}"
+                        )
+                        break
+
+                    if policy_stopped:
+                        logger.info(
+                            "Training stopped because policy selected STOP at cycle %d",
+                            cycle,
                         )
                         break
 
@@ -1274,14 +1549,49 @@ class DistillationEngine:
 
             try:
                 run_manifest = {
-                    "schema_version": 1,
+                    "schema_version": 2,
+                    "artifact_schema_versions": {
+                        "run_manifest": 2,
+                        "policy_decisions": 1,
+                        "teacher_attempts": 1,
+                    },
                     "run_id": self.run_id,
                     "status": run_status,
                     "error": run_error,
+                    "method_name": self.cfg.policy_name,
+                    "policy_name": self.cfg.policy_name,
+                    "policy_family": (
+                        "fixed_promptillery"
+                        if self.policy_controller is None
+                        else "policy_controller"
+                    ),
                     "expected_cycles": self.cfg.cycles,
                     "cycles_completed": self.token_tracker.summary.cycles_completed,
                     "selection_split": eval_split,
                     "paper_mode": self.cfg.paper_mode,
+                    "task_name": self.cfg.name,
+                    "dataset": self.cfg.dataset,
+                    "dataset_subset": self.cfg.dataset_subset,
+                    "student_model": self.cfg.student,
+                    "student_type": self.cfg.student_type,
+                    "seed": self.cfg.seed,
+                    "token_budget": self.cfg.token_budget,
+                    "action_space": {
+                        "prompt_operators": self.cfg.policy_prompt_operators,
+                        "teacher_tiers": list(
+                            self.cfg.policy_teacher_tiers.keys()
+                        )
+                        or ["cheap", "strong"],
+                        "batch_sizes": self.cfg.policy_batch_sizes,
+                        "include_stop": True,
+                        "action_space_id": self.action_space_id,
+                    },
+                    "artifact_paths": {
+                        "metrics": "metrics.json",
+                        "token_usage": "token_usage.json",
+                        "policy_decisions": "policy_decisions.jsonl",
+                        "teacher_attempts": "teacher_attempts.jsonl",
+                    },
                     "config_hash": sha256(
                         json.dumps(
                             self.cfg.model_dump(mode="json"), sort_keys=True

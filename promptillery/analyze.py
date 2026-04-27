@@ -32,6 +32,19 @@ def _load_json(path: Path) -> Dict[str, Any]:
         return json.load(f)
 
 
+def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
+    """Load compact JSONL rows, returning an empty list when absent."""
+    if not path.exists():
+        return []
+    rows = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
+
+
 def _run_dirs(path: Path) -> List[Path]:
     """Return run directories under path."""
     if _has_required_run_files(path):
@@ -105,6 +118,41 @@ def _cycle_auc(points: Iterable[tuple[float, float]]) -> float | None:
     return area / max_x
 
 
+def _count_by_status(rows: Iterable[Dict[str, Any]]) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for row in rows:
+        status = str(row.get("status") or "unknown")
+        counts[status] = counts.get(status, 0) + 1
+    return counts
+
+
+def _teacher_attempt_summary(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    status_counts = _count_by_status(rows)
+    calibration_ratios = []
+    for row in rows:
+        predicted = row.get("predicted_cost", {})
+        realized = row.get("realized_cost", {})
+        predicted_total = predicted.get("total_tokens")
+        realized_total = realized.get("total_tokens")
+        if predicted_total and realized_total is not None:
+            calibration_ratios.append(float(realized_total) / float(predicted_total))
+
+    return {
+        "teacher_attempt_count": len(rows),
+        "teacher_success_count": status_counts.get("success", 0),
+        "teacher_failure_count": sum(
+            count
+            for status, count in status_counts.items()
+            if status not in {"success", "masked"}
+        ),
+        "teacher_masked_count": status_counts.get("masked", 0),
+        "teacher_budget_violation_count": status_counts.get("budget_violation", 0),
+        "max_realized_over_predicted": (
+            max(calibration_ratios) if calibration_ratios else None
+        ),
+    }
+
+
 def summarize_run(
     run_dir: Path, metric: str | None = None, mode: str = "auto"
 ) -> Dict[str, Any]:
@@ -126,6 +174,9 @@ def summarize_run(
             f"{run_dir} has run_manifest status={run_manifest.get('status')!r}; "
             "only completed runs are summarized"
         )
+    policy_decisions = _load_jsonl(run_dir / "policy_decisions.jsonl")
+    teacher_attempts = _load_jsonl(run_dir / "teacher_attempts.jsonl")
+    teacher_summary = _teacher_attempt_summary(teacher_attempts)
     config = {}
     if (run_dir / "experiment_config.yaml").exists():
         try:
@@ -177,6 +228,11 @@ def summarize_run(
         "run_id": run_manifest.get("run_id", ""),
         "run_status": run_manifest.get("status", ""),
         "selection_split": run_manifest.get("selection_split", ""),
+        "policy_name": run_manifest.get("policy_name", config.get("policy_name", "")),
+        "policy_family": run_manifest.get("policy_family", ""),
+        "action_space_id": run_manifest.get("action_space", {}).get(
+            "action_space_id", ""
+        ),
         "experiment": config.get("name", run_dir.name),
         "metric": metric_name or "",
         "mode": resolved_mode,
@@ -196,6 +252,11 @@ def summarize_run(
         "teacher_total_tokens": grand_total.get("total_tokens", 0),
         "estimated_cost": grand_total.get("estimated_cost"),
         "cycles_completed": token_usage.get("cycles_completed", len(cycles)),
+        "policy_decision_count": len(policy_decisions),
+        "policy_stop_count": sum(
+            1 for row in policy_decisions if row.get("action_name") == "STOP"
+        ),
+        **teacher_summary,
     }
 
 
@@ -214,6 +275,9 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "run_id",
         "run_status",
         "selection_split",
+        "policy_name",
+        "policy_family",
+        "action_space_id",
         "experiment",
         "metric",
         "mode",
@@ -229,6 +293,14 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "teacher_total_tokens",
         "estimated_cost",
         "cycles_completed",
+        "policy_decision_count",
+        "policy_stop_count",
+        "teacher_attempt_count",
+        "teacher_success_count",
+        "teacher_failure_count",
+        "teacher_masked_count",
+        "teacher_budget_violation_count",
+        "max_realized_over_predicted",
     ]
     with output_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

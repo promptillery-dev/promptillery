@@ -26,6 +26,8 @@ Promptillery is a config-driven framework and CLI for distilling knowledge from 
 - 🔄 Runs multiple distillation rounds with **automatic data augmentation**
 - 🎯 Uses **intelligent sample selection** based on high-entropy and hard negative samples
 - 💰 Includes built-in **token tracking**, **cost estimation**, and **automatic stopping**
+- 🧭 Supports opt-in **budget-aware acquisition policies** with prompt operator,
+  teacher tier, batch size, and explicit STOP actions
 - 📊 Run **ablation studies** by simply using list syntax in your config —- all combinations are tested automatically
 - ⏱️ Supports **cycle-aware early stopping** with best checkpoint restoration
 - 🔀 Handles both **text classification** and **NER** tasks

@@ -18,6 +18,9 @@ class PolicyDecision(BaseModel):
     changing the file format.
     """
 
+    schema_version: int = 1
+    run_id: str = ""
+    decision_id: str = ""
     cycle: int
     policy_name: str
     action_name: str

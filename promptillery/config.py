@@ -189,6 +189,41 @@ class ExperimentConfig(BaseModel):
         description="Optional max_tokens cap for teacher calls, used for hard token-budget preflight",
     )
 
+    # Policy settings for budget-aware teacher acquisition
+    policy_name: Union[str, List[str]] = Field(
+        default="fixed_promptillery",
+        description=(
+            "Teacher-acquisition policy. Use fixed_promptillery for the legacy "
+            "loop, or PolicyController names such as random_feasible, "
+            "cost_heuristic, frugalkd_p, fixed_coverage, cheap_only, or STOP."
+        ),
+    )
+    policy_prompt_operators: List[str] = Field(
+        default_factory=lambda: ["coverage", "boundary", "repair"],
+        description="Prompt-operator action values exposed to policy prompts.",
+    )
+    policy_teacher_tiers: Dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Mapping from policy teacher tier to provider model. If empty, "
+            "cheap and strong both use the configured teacher."
+        ),
+    )
+    policy_batch_sizes: List[int] = Field(
+        default_factory=lambda: [16, 32, 64],
+        description="Batch-size action values for policy-controlled acquisition.",
+    )
+    policy_lambda_cost: float = Field(
+        default=1e-4,
+        ge=0.0,
+        description="Cost penalty used by the linear FrugalKD-P controller.",
+    )
+    policy_exploration_bonus: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Exploration bonus used by the linear FrugalKD-P controller.",
+    )
+
     # Budget control
     budget_warning: Optional[float] = Field(
         default=None,
