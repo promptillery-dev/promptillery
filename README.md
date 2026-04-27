@@ -18,7 +18,7 @@
 
 # Promptillery
 
-Promptillery is a config-driven framework and CLI for distilling knowledge from large language models (LLMs) into compact deployment-ready models. It transforms expensive prompt-based systems into efficient encoder classifiers through an iterative LLM-in-the-loop process.
+Promptillery is a config-driven framework and CLI for distilling knowledge from large language models (LLMs) into compact deployment-ready models. It supports iterative teacher-in-the-loop classifier training and pre-materialized causal-LM SFT experiments.
 
 **Key Features:**
 
@@ -29,6 +29,7 @@ Promptillery is a config-driven framework and CLI for distilling knowledge from 
 - 📊 Run **ablation studies** by simply using list syntax in your config —- all combinations are tested automatically
 - ⏱️ Supports **cycle-aware early stopping** with best checkpoint restoration
 - 🔀 Handles both **text classification** and **NER** tasks
+- 🧪 Includes a small **causal-LM SFT** path for audited LLM-to-LLM smoke tests
 - 🧩 Built on a **modular trainer architecture** for adding new model types and research methods
 
 ## How It Works
@@ -100,7 +101,10 @@ uv run promptillery eval examples/text_classification_transformers.yaml
 uv run promptillery ablation examples/hyperparameter_sweep.yaml
 
 # Run baseline evaluation (zero-shot and few-shot with teacher model)
-uv run promptillery baseline -c examples/text_classification_transformers.yaml
+uv run promptillery baseline examples/text_classification_transformers.yaml
+
+# Run the no-API causal-LM SFT smoke test
+uv run promptillery train examples/causal_lm_sft_tiny.yaml
 ```
 
 Experiments are automatically organized into timestamped directories based on the experiment name. For example, an experiment named `tweet_sentiment` will create a directory like `tweet_sentiment_20241205_143022/`.
@@ -125,6 +129,7 @@ The configuration schema is defined in `promptillery/config.py`. Several example
 
 - `text_classification_transformers.yaml` - Text classification with transformer student model (BERT)
 - `text_classification_fasttext.yaml` - Text classification with FastText student model
+- `causal_lm_sft_tiny.yaml` - No-API causal-LM SFT smoke test with audited teacher-token fields
 - `early_stopping.yaml` - Training with early stopping enabled
 - `budget_stopping.yaml` - Training with budget-based stopping
 - `augmentation_without_active_learning_selection.yaml` - Data augmentation without active learning
@@ -307,6 +312,31 @@ student_type: "fasttext"
 
 **Note:** FastText models cannot be pushed to HuggingFace Hub and are saved as `.bin` files. Use higher learning rates (e.g., 0.5-1.0) compared to transformers.
 
+### Causal LM SFT (`student_type: "causal_lm_sft"`)
+
+For pre-materialized instruction data:
+
+```yaml
+student: "Qwen/Qwen3-0.6B"
+student_type: "causal_lm_sft"
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "generated_sft_records_train.jsonl"
+    validation: "generated_sft_records_validation.jsonl"
+trainer_config:
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
+  budget_splits: ["train"]
+  require_teacher_token_fields: true
+```
+
+Each charged SFT record should include `teacher_input_tokens`,
+`teacher_output_tokens`, and `teacher_total_tokens`. See
+`examples/causal_lm_sft_tiny.yaml` for a local smoke test that requires no API
+calls or model downloads.
+
 ## Advanced Configuration
 
 ### Sampling Configuration
@@ -327,8 +357,9 @@ sampling:
 Monitor and limit API costs during augmentation:
 
 ```yaml
-budget_warning: 10.0   # Warn when estimated cost exceeds $10
-budget_stop: true      # Stop experiment when budget exceeded
+budget_warning: 10.0       # Warn when estimated cost exceeds $10
+token_budget: 25000        # Optional hard teacher-token budget
+budget_stop: true          # Stop experiment when budget exceeded
 ```
 
 Token usage is tracked per cycle and saved to `token_usage.json` in the experiment directory.
@@ -527,7 +558,7 @@ promptillery baseline [OPTIONS]
 
 **Options:**
 
-- `--config`, `-c`: Path to experiment config YAML file (reads dataset settings)
+- positional `config`: Path to experiment config YAML file (reads dataset settings)
 - `--dataset`, `-d`: Dataset name (e.g., 'tweet_eval', 'stanfordnlp/imdb')
 - `--dataset-config`, `-dc`: Dataset config/subset (e.g., 'sentiment', 'plain_text')
 - `--text-column`: Name of the text column (default: "text")
@@ -545,7 +576,7 @@ promptillery baseline [OPTIONS]
 
 ```bash
 # Using an experiment config file (reads dataset and column settings)
-promptillery baseline -c examples/text_classification_transformers.yaml
+promptillery baseline examples/text_classification_transformers.yaml
 
 # Using a specific dataset with default columns (text, label)
 promptillery baseline -d stanfordnlp/imdb -dc plain_text

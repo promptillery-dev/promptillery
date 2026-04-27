@@ -7,7 +7,7 @@
 # Use case: When you want straightforward data augmentation without the
 # complexity of analyzing model uncertainty or misclassifications.
 #
-# To run: python -m promptillery.cli train --config examples/augmentation_basic.yaml
+# To run: uv run promptillery train examples/augmentation_without_active_learning_selection.yaml
 # =============================================================================
 
 name: "basic_augmentation_tweet_eval"

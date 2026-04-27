@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List, Optional
-import typer
 from pathlib import Path
+from typing import List
 
 import typer
 from dotenv import load_dotenv
