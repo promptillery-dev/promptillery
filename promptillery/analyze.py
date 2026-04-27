@@ -18,6 +18,7 @@ PREFERRED_METRICS = (
 )
 LOWER_IS_BETTER = {"eval_loss", "loss", "perplexity"}
 REQUIRED_RUN_FILES = (
+    "run_manifest.json",
     "experiment_config.yaml",
     "metrics.json",
     "token_usage.json",
@@ -119,6 +120,12 @@ def summarize_run(
 
     metrics = _load_json(run_dir / "metrics.json")
     token_usage = _load_json(run_dir / "token_usage.json")
+    run_manifest = _load_json(run_dir / "run_manifest.json")
+    if run_manifest.get("status") != "completed":
+        raise ValueError(
+            f"{run_dir} has run_manifest status={run_manifest.get('status')!r}; "
+            "only completed runs are summarized"
+        )
     config = {}
     if (run_dir / "experiment_config.yaml").exists():
         try:
@@ -167,6 +174,9 @@ def summarize_run(
     grand_total = token_usage.get("grand_total", {})
     return {
         "run_dir": str(run_dir),
+        "run_id": run_manifest.get("run_id", ""),
+        "run_status": run_manifest.get("status", ""),
+        "selection_split": run_manifest.get("selection_split", ""),
         "experiment": config.get("name", run_dir.name),
         "metric": metric_name or "",
         "mode": resolved_mode,
@@ -201,6 +211,9 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "run_dir",
+        "run_id",
+        "run_status",
+        "selection_split",
         "experiment",
         "metric",
         "mode",

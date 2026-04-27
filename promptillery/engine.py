@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import shutil
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -225,6 +226,17 @@ def ensure_validation_split(
     return dataset
 
 
+def require_paper_splits(dataset: DatasetDict) -> None:
+    """Require strict split discipline for paper-mode experiments."""
+    required = {"train", "validation", "test"}
+    missing = sorted(required.difference(dataset.keys()))
+    if missing:
+        raise ValueError(
+            "paper_mode=true requires train, validation, and test splits; "
+            f"missing {missing}"
+        )
+
+
 class EarlyStopper:
     """Handles early stopping logic based on metric monitoring."""
 
@@ -345,6 +357,8 @@ class DistillationEngine:
                 {split: ds.select(range(len(ds))) for split, ds in dataset.items()}
             )
             self.dataset = ensure_validation_split(self.dataset, self.cfg)
+            if self.cfg.paper_mode:
+                require_paper_splits(self.dataset)
             logger.info("Using pre-loaded dataset")
         else:
             # Load dataset from scratch
@@ -366,6 +380,8 @@ class DistillationEngine:
             # Apply stratified sampling if configured
             self.dataset = prepare_dataset(self.dataset, self.cfg.sampling)
             self.dataset = ensure_validation_split(self.dataset, self.cfg)
+            if self.cfg.paper_mode:
+                require_paper_splits(self.dataset)
 
             # keep track of the origin of every row
             for split, ds in self.dataset.items():
@@ -375,7 +391,8 @@ class DistillationEngine:
                 self.dataset[split] = ds
 
         self.out_dir = self.cfg.get_output_dir()
-        self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.out_dir.mkdir(parents=True, exist_ok=False)
+        self.run_id = self.out_dir.name
 
         # Save experiment configuration copy to output directory
         config_copy_path = self.out_dir / "experiment_config.yaml"
@@ -461,6 +478,10 @@ class DistillationEngine:
         """Return the split used for cycle rewards and policy context."""
         if "validation" in self.dataset:
             return "validation"
+        if self.cfg.paper_mode:
+            raise ValueError(
+                "paper_mode=true requires a validation split for cycle rewards"
+            )
         if "test" in self.dataset:
             logger.warning(
                 "No validation split found; using test split for cycle evaluation. "
@@ -694,10 +715,18 @@ class DistillationEngine:
                 row_input = int(row["teacher_input_tokens"] or 0)
                 row_output = int(row["teacher_output_tokens"] or 0)
                 row_total = int(row["teacher_total_tokens"] or 0)
-                if row_total != row_input + row_output:
+                if row_total < row_input + row_output:
                     raise ValueError(
                         "Invalid SFT token accounting: teacher_total_tokens must "
-                        "equal teacher_input_tokens + teacher_output_tokens"
+                        "be at least teacher_input_tokens + teacher_output_tokens"
+                    )
+                if (
+                    self.cfg.paper_mode
+                    and "usage_estimated" in ds.column_names
+                    and bool(row["usage_estimated"])
+                ):
+                    raise ValueError(
+                        "paper_mode=true rejects SFT rows with usage_estimated=true"
                     )
                 input_tokens += row_input
                 output_tokens += row_output
@@ -937,6 +966,19 @@ class DistillationEngine:
                 )
             predicted_total = predicted_cost.get("total_tokens")
             if predicted_total is not None and usage.total_tokens > predicted_total:
+                self.token_tracker.record_manual_usage(
+                    usage, OperationType.AUGMENTATION_FAILURE
+                )
+                usage_recorded = True
+                self._record_teacher_attempt(
+                    cycle=cycle,
+                    status="budget_violation",
+                    predicted_cost=predicted_cost,
+                    budget_before=budget_before or self._budget_snapshot(),
+                    realized_cost=usage,
+                    failure_type="realized_tokens_exceeded_preflight",
+                    metadata={"teacher": self.cfg.teacher},
+                )
                 raise ValueError(
                     "Realized teacher tokens exceeded preflight estimate: "
                     f"realized={usage.total_tokens} predicted={predicted_total}"
@@ -946,6 +988,19 @@ class DistillationEngine:
                 tokens_remaining is not None
                 and usage.total_tokens > int(tokens_remaining)
             ):
+                self.token_tracker.record_manual_usage(
+                    usage, OperationType.AUGMENTATION_FAILURE
+                )
+                usage_recorded = True
+                self._record_teacher_attempt(
+                    cycle=cycle,
+                    status="budget_violation",
+                    predicted_cost=predicted_cost,
+                    budget_before=budget_before or self._budget_snapshot(),
+                    realized_cost=usage,
+                    failure_type="realized_tokens_exceeded_remaining_budget",
+                    metadata={"teacher": self.cfg.teacher},
+                )
                 raise ValueError(
                     "Realized teacher tokens exceeded remaining token budget: "
                     f"realized={usage.total_tokens} remaining={tokens_remaining}"
@@ -1062,106 +1117,119 @@ class DistillationEngine:
         results = {}
         final_model = None
         eval_split = self._cycle_eval_split()
+        run_status = "completed"
+        run_error = None
 
         try:
-            for cycle in range(self.cfg.cycles):
-                # Use context manager for robust cycle lifecycle
-                with self.token_tracker.cycle(cycle):
-                    if cycle == 0:
-                        self._record_external_sft_token_usage()
-                    # if cycle > 0:
-                    #     await self._pseudo_label("train")
-                    model = self.trainer.train()
-                    metrics = self.trainer.evaluate(model, split=eval_split)
-                    logger.info(
-                        "Cycle %d metrics on %s split: %s",
-                        cycle,
-                        eval_split,
-                        metrics,
-                    )
-                    results[str(cycle)] = metrics
-                    final_model = model
+            try:
+                for cycle in range(self.cfg.cycles):
+                    with self.token_tracker.cycle(cycle):
+                        if cycle == 0:
+                            self._record_external_sft_token_usage()
 
-                    # Check for early stopping
-                    should_stop = self.early_stopper.should_stop(metrics, cycle, model)
-                    if should_stop:
-                        logger.info(f"Training stopped early at cycle {cycle}")
-                        # Use best model if restore_best is enabled
-                        best_model = self.early_stopper.get_best_model()
-                        if best_model is not None:
-                            final_model = best_model
-                            logger.info(
-                                f"Restored best model from cycle {self.early_stopper.best_cycle}"
-                            )
-
-                    previous_metrics = results.get(str(cycle - 1), {})
-                    budget_before = self._budget_snapshot()
-                    sample_context = None
-                    policy_features = {}
-                    if self.augmentation_enabled:
-                        sample_context = self._prepare_sample_context(
-                            model,
-                            cycle=cycle,
-                            metrics=metrics,
-                            previous_metrics=previous_metrics,
-                            budget=budget_before,
+                        model = self.trainer.train()
+                        metrics = self.trainer.evaluate(model, split=eval_split)
+                        metrics = {
+                            **metrics,
+                            "_selection_split": eval_split,
+                            "_run_id": self.run_id,
+                        }
+                        logger.info(
+                            "Cycle %d metrics on %s split: %s",
+                            cycle,
+                            eval_split,
+                            metrics,
                         )
-                        policy_features = sample_context.get("policy_features", {})
-                        feature_path = self.out_dir / f"policy_features_cycle_{cycle}.json"
-                        feature_path.write_text(
-                            json.dumps(policy_features, indent=2),
-                            encoding="utf-8",
+                        results[str(cycle)] = metrics
+                        final_model = model
+
+                        should_stop = self.early_stopper.should_stop(
+                            metrics, cycle, model
                         )
+                        if should_stop:
+                            logger.info(f"Training stopped early at cycle {cycle}")
+                            best_model = self.early_stopper.get_best_model()
+                            if best_model is not None:
+                                final_model = best_model
+                                logger.info(
+                                    "Restored best model from cycle "
+                                    f"{self.early_stopper.best_cycle}"
+                                )
 
-                    cycle_state = self._cycle_state(
-                        cycle,
-                        metrics,
-                        eval_split=eval_split,
-                        policy_features=policy_features,
-                    )
-                    action_name = "stop"
-                    predicted_cost = {}
-                    decision_metadata = {}
-
-                    if not should_stop and cycle < self.cfg.cycles - 1:
-                        action_name = "augment" if self.augmentation_enabled else "skip"
+                        previous_metrics = results.get(str(cycle - 1), {})
+                        budget_before = self._budget_snapshot()
+                        sample_context = None
+                        policy_features = {}
                         if self.augmentation_enabled:
-                            outcome = await self._augment(
+                            sample_context = self._prepare_sample_context(
                                 model,
-                                cycle,
-                                sample_context=sample_context,
-                                budget_before=budget_before,
+                                cycle=cycle,
+                                metrics=metrics,
+                                previous_metrics=previous_metrics,
+                                budget=budget_before,
                             )
-                            action_name = outcome["action_name"]
-                            predicted_cost = outcome["predicted_cost"]
-                            decision_metadata = outcome["metadata"]
-                    elif cycle >= self.cfg.cycles - 1:
-                        action_name = "final_cycle"
+                            policy_features = sample_context.get("policy_features", {})
+                            feature_path = (
+                                self.out_dir / f"policy_features_cycle_{cycle}.json"
+                            )
+                            feature_path.write_text(
+                                json.dumps(policy_features, indent=2),
+                                encoding="utf-8",
+                            )
 
-                    self._record_policy_decision(
-                        cycle=cycle,
-                        action_name=action_name,
-                        state=cycle_state,
-                        budget_before=budget_before,
-                        predicted_cost=predicted_cost,
-                        decision_metadata=decision_metadata,
-                    )
-                    self._save_dataset(cycle)  # save the dataset after the augmentation
-                # Print cycle summary after context manager closes
-                self.token_tracker.print_cycle_summary()
+                        cycle_state = self._cycle_state(
+                            cycle,
+                            metrics,
+                            eval_split=eval_split,
+                            policy_features=policy_features,
+                        )
+                        action_name = "stop"
+                        predicted_cost = {}
+                        decision_metadata = {}
 
-                # Check for budget stop
-                if self.token_tracker.should_stop_for_budget():
-                    logger.info(
-                        f"Training stopped due to budget limit at cycle {cycle}"
-                    )
-                    break
+                        if not should_stop and cycle < self.cfg.cycles - 1:
+                            action_name = (
+                                "augment" if self.augmentation_enabled else "skip"
+                            )
+                            if self.augmentation_enabled:
+                                outcome = await self._augment(
+                                    model,
+                                    cycle,
+                                    sample_context=sample_context,
+                                    budget_before=budget_before,
+                                )
+                                action_name = outcome["action_name"]
+                                predicted_cost = outcome["predicted_cost"]
+                                decision_metadata = outcome["metadata"]
+                        elif cycle >= self.cfg.cycles - 1:
+                            action_name = "final_cycle"
 
-                if self.early_stopper.stopped:
-                    break
+                        self._record_policy_decision(
+                            cycle=cycle,
+                            action_name=action_name,
+                            state=cycle_state,
+                            budget_before=budget_before,
+                            predicted_cost=predicted_cost,
+                            decision_metadata=decision_metadata,
+                        )
+                        self._save_dataset(cycle)
 
-            # Print final token usage summary
-            self.token_tracker.print_final_summary()
+                    self.token_tracker.print_cycle_summary()
+
+                    if self.token_tracker.should_stop_for_budget():
+                        logger.info(
+                            f"Training stopped due to budget limit at cycle {cycle}"
+                        )
+                        break
+
+                    if self.early_stopper.stopped:
+                        break
+
+                self.token_tracker.print_final_summary()
+            except Exception as exc:
+                run_status = "failed"
+                run_error = {"type": type(exc).__name__, "message": str(exc)}
+                raise
 
         finally:
             # Always save token usage, even on error/interruption
@@ -1198,9 +1266,34 @@ class DistillationEngine:
                     }
 
                 if results:  # Only save if we have some results
-                    Path(self.out_dir / "metrics.json").write_text(json.dumps(results, indent=2))
+                    Path(self.out_dir / "metrics.json").write_text(
+                        json.dumps(results, indent=2)
+                    )
             except Exception as e:
                 logger.error(f"Failed to save metrics.json: {e}", exc_info=True)
+
+            try:
+                run_manifest = {
+                    "schema_version": 1,
+                    "run_id": self.run_id,
+                    "status": run_status,
+                    "error": run_error,
+                    "expected_cycles": self.cfg.cycles,
+                    "cycles_completed": self.token_tracker.summary.cycles_completed,
+                    "selection_split": eval_split,
+                    "paper_mode": self.cfg.paper_mode,
+                    "config_hash": sha256(
+                        json.dumps(
+                            self.cfg.model_dump(mode="json"), sort_keys=True
+                        ).encode("utf-8")
+                    ).hexdigest(),
+                }
+                Path(self.out_dir / "run_manifest.json").write_text(
+                    json.dumps(run_manifest, indent=2, sort_keys=True),
+                    encoding="utf-8",
+                )
+            except Exception as e:
+                logger.error(f"Failed to save run_manifest.json: {e}", exc_info=True)
 
         # Save final model and handle uploading
         if final_model is not None:

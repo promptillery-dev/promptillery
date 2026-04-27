@@ -1,8 +1,11 @@
 """Configuration models for promptillery."""
 
 import itertools
+import json
 import re
+import uuid
 from datetime import datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 
@@ -222,6 +225,10 @@ class ExperimentConfig(BaseModel):
         default=False,
         description="If True, create a validation split from train when missing instead of using test for cycle rewards.",
     )
+    paper_mode: bool = Field(
+        default=False,
+        description="If True, require strict split and token-accounting behavior for paper runs.",
+    )
 
     # Auto-modify name based on student type
     auto_modify_name: bool = Field(
@@ -362,8 +369,13 @@ class ExperimentConfig(BaseModel):
 
     def get_output_dir(self) -> Path:
         """Generate output directory path based on experiment name and timestamp."""
-        timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
-        experiment_dir = f"{self.name}_{timestamp}"
+        timestamp = datetime.now().strftime(f"{TIMESTAMP_FORMAT}_%f")
+        config_hash = sha256(
+            json.dumps(self.model_dump(mode="json"), sort_keys=True).encode("utf-8")
+        ).hexdigest()[:8]
+        seed = self.seed if isinstance(self.seed, int) else "sweep"
+        suffix = uuid.uuid4().hex[:6]
+        experiment_dir = f"{self.name}_{timestamp}_s{seed}_{config_hash}_{suffix}"
         return Path(self.base_output_dir) / experiment_dir
 
     def get_list_parameters(self) -> List[str]:

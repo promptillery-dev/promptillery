@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 from typing import List
 
@@ -13,6 +14,7 @@ from .ablation import AblationStudyRunner
 from .analyze import analyze_runs, write_summary_csv
 from .config import ExperimentConfig
 from .engine import DistillationEngine, evaluate_model
+from .policy_controller import PolicyController, enumerate_actions
 from .sft_materialize import materialize_sft_records
 from .utils import setup_logging
 
@@ -216,6 +218,51 @@ def analyze(
     writer = csv.DictWriter(sys.stdout, fieldnames=list(rows[0].keys()))
     writer.writeheader()
     writer.writerows(rows)
+
+
+@app.command("policy-smoke")
+def policy_smoke(
+    policy: str = typer.Option(
+        "cost_heuristic",
+        "--policy",
+        help="Policy to smoke test: random_feasible, cost_heuristic, frugalkd_p, or fixed_*",
+    ),
+    tokens_remaining: int = typer.Option(
+        4096,
+        "--tokens-remaining",
+        help="Synthetic remaining token budget for the hard action mask",
+    ),
+    seed: int = typer.Option(13, "--seed", help="Random seed for random_feasible"),
+) -> None:
+    """Smoke test the budget-aware policy action contract."""
+    state = {
+        "budget": {
+            "token_budget": 10000,
+            "tokens_remaining": tokens_remaining,
+            "total_tokens": 10000 - tokens_remaining,
+        },
+        "features": {
+            "eval_error_rate": 0.35,
+            "eval_entropy_normalized_mean": 0.42,
+            "eval_hard_error_rate": 0.18,
+            "eval_max_confusion_rate": 0.12,
+            "synthetic_ratio": 0.20,
+            "token_budget_remaining_frac": tokens_remaining / 10000,
+        },
+    }
+    predicted_costs = {
+        action.name: {
+            "total_tokens": 48 * action.batch_size
+            * (2 if action.teacher_tier == "strong" else 1)
+        }
+        for action in enumerate_actions(include_stop=False)
+    }
+    controller = PolicyController(policy, seed=seed)
+    choice = controller.select(state, predicted_costs=predicted_costs)
+    if choice.predicted_cost.get("total_tokens", 0) > tokens_remaining:
+        typer.echo("Error: selected action exceeds hard budget mask", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(json.dumps(choice.model_dump(), indent=2, sort_keys=True))
 
 
 @app.command()

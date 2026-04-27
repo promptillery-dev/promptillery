@@ -123,7 +123,11 @@ def _usage_from_response(response: Any) -> Dict[str, int]:
     input_tokens = int(usage.get("prompt_tokens", 0) or 0)
     output_tokens = int(usage.get("completion_tokens", 0) or 0)
     provider_total_tokens = int(usage.get("total_tokens", 0) or 0)
-    total_tokens = input_tokens + output_tokens
+    if provider_total_tokens and provider_total_tokens < input_tokens + output_tokens:
+        raise ValueError(
+            "Provider total_tokens is smaller than prompt_tokens + completion_tokens"
+        )
+    total_tokens = provider_total_tokens or (input_tokens + output_tokens)
     return {
         "teacher_input_tokens": input_tokens,
         "teacher_output_tokens": output_tokens,
@@ -167,6 +171,8 @@ async def materialize_sft_records(
         raise ValueError("materialize-sft requires a single seed value")
     if isinstance(config.token_budget, list):
         raise ValueError("materialize-sft requires a single token_budget value")
+    if config.paper_mode and allow_estimated_usage:
+        raise ValueError("paper_mode=true rejects allow_estimated_usage")
     if mode not in {"gold", "teacher"}:
         raise ValueError("mode must be 'gold' or 'teacher'")
     if mode == "teacher" and config.teacher_max_output_tokens is None:
@@ -212,6 +218,7 @@ async def materialize_sft_records(
     written = 0
     attempted = 0
     usage_estimated_records = 0
+    record_hashes: list[str] = []
     stop_reason = "completed"
     materialized_at = datetime.now(timezone.utc).isoformat()
 
@@ -293,6 +300,10 @@ async def materialize_sft_records(
                             "Rerun with allow_estimated_usage only for non-paper dry runs."
                         )
                     if usage["teacher_total_tokens"] <= 0:
+                        if config.paper_mode:
+                            raise ValueError(
+                                "paper_mode=true requires provider-reported token usage"
+                            )
                         usage["teacher_input_tokens"] = _estimate_input_tokens(
                             config.teacher, messages
                         )
@@ -347,20 +358,23 @@ async def materialize_sft_records(
                     "predicted_teacher_total_tokens": predicted_total,
                     **usage,
                 }
-                if record["teacher_total_tokens"] != (
+                if record["teacher_total_tokens"] < (
                     record["teacher_input_tokens"] + record["teacher_output_tokens"]
                 ):
                     raise ValueError(
-                        "Invalid token accounting: teacher_total_tokens must equal "
-                        "teacher_input_tokens + teacher_output_tokens"
+                        "Invalid token accounting: teacher_total_tokens must be at "
+                        "least teacher_input_tokens + teacher_output_tokens"
                     )
-                f.write(json.dumps(record, sort_keys=True) + "\n")
+                line = json.dumps(record, sort_keys=True)
+                record_hashes.append(sha256(line.encode("utf-8")).hexdigest())
+                f.write(line + "\n")
                 written += 1
 
         if written == 0:
             raise ValueError("No SFT records were materialized")
 
         manifest = {
+            "schema_version": 1,
             "output_path": str(output_path),
             "manifest_path": str(manifest_path),
             "config_name": config.name,
@@ -373,14 +387,24 @@ async def materialize_sft_records(
             "source_records": len(source),
             "attempted_records": attempted,
             "records": written,
+            "records_sha256": record_hashes,
             "stop_reason": stop_reason,
             "allow_partial": allow_partial,
+            "allow_estimated_usage": allow_estimated_usage,
             "mode": mode,
+            "max_samples": max_samples,
+            "prompt_operator": prompt_operator,
+            "teacher_tier": teacher_tier,
             "token_budget": config.token_budget,
             "teacher_total_tokens": total_tokens,
             "usage_estimated_records": usage_estimated_records,
             "materialized_at": materialized_at,
         }
+        artifact_hash = sha256()
+        with temp_path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                artifact_hash.update(chunk)
+        manifest["artifact_sha256"] = artifact_hash.hexdigest()
         with temp_manifest_path.open("w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=2, sort_keys=True)
             f.write("\n")

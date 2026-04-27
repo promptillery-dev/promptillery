@@ -371,8 +371,9 @@ uv run promptillery analyze out/examples --output out/examples/summary.csv
 
 The summary includes the selected metric, best/final values, cumulative teacher
 tokens, token-budget overage, and a simple cycle-level quality-cost AUC. Analysis
-requires `experiment_config.yaml`, `metrics.json`, and `token_usage.json` so
-partial run directories do not get summarized as paper evidence.
+requires `run_manifest.json`, `experiment_config.yaml`, `metrics.json`, and
+`token_usage.json` so partial run directories do not get summarized as paper
+evidence.
 
 `materialize-sft` writes a sibling `.manifest.json` file with source counts,
 stop reason, template/config hashes, and estimated-usage counts. Teacher-mode
@@ -440,6 +441,7 @@ Promptillery automatically organizes experiments into dedicated directories with
 ├── training/                 # Model training artifacts
 ├── logs/                     # TensorBoard logs
 ├── model/                    # Final trained model
+├── run_manifest.json         # Run status, run_id, split, and config hash
 ├── metrics.json              # Final evaluation metrics
 ├── token_usage.json          # API token usage and cost tracking
 ├── teacher_attempts.jsonl    # Online teacher-call audit trail, when used

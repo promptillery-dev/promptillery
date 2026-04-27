@@ -222,6 +222,13 @@ class CausalLMSFTTrainer(BaseTrainer):
     def evaluate(self, trainer: Trainer, split: str = "test") -> Dict[str, Any]:
         """Evaluate SFT loss/perplexity on the requested split."""
         if split not in self.dataset:
+            if self.cfg.paper_mode or self.trainer_config.get(
+                "require_requested_eval_split", False
+            ):
+                available = ", ".join(self.dataset.keys())
+                raise ValueError(
+                    f"Requested split {split} is unavailable. Available: {available}"
+                )
             fallback = self._eval_split() or "train"
             logger.warning(
                 "Requested split %s is unavailable; evaluating on %s",
