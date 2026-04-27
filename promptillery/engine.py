@@ -35,6 +35,14 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
+try:
+    from litellm import token_counter as _token_counter
+
+    _HAS_TOKEN_COUNTER = True
+except ImportError:
+    _token_counter = None  # type: ignore[assignment]
+    _HAS_TOKEN_COUNTER = False
+
 
 class AugmentedArticle(BaseModel):
     """Single augmented article with text and label."""
@@ -450,10 +458,19 @@ class DistillationEngine:
         action_name: str,
         state: Dict[str, Any],
         budget_before: Dict[str, Any],
+        predicted_cost: Dict[str, Any] | None = None,
+        decision_metadata: Dict[str, Any] | None = None,
         reward: float | None = None,
     ) -> None:
         """Record the fixed-loop decision using the policy decision schema."""
         realized_cost = self.token_tracker.current_cycle_usage().model_dump()
+        metadata = {
+            "seed": self.cfg.seed,
+            "student": self.cfg.student,
+            "student_type": self.cfg.student_type,
+        }
+        metadata.update(decision_metadata or {})
+
         self.policy_decision_logger.record(
             PolicyDecision(
                 cycle=cycle,
@@ -464,18 +481,76 @@ class DistillationEngine:
                     "teacher": self.cfg.teacher,
                     "augmentation_batch_size": self.cfg.augmentation_batch_size,
                     "prompt_enabled": self.augmentation_enabled,
+                    "teacher_max_output_tokens": self.cfg.teacher_max_output_tokens,
                 },
+                predicted_cost=predicted_cost or {},
                 realized_cost=realized_cost,
                 reward=reward,
                 budget_before=budget_before,
                 budget_after=self._budget_snapshot(),
-                metadata={
-                    "seed": self.cfg.seed,
-                    "student": self.cfg.student,
-                    "student_type": self.cfg.student_type,
-                },
+                metadata=metadata,
             )
         )
+
+    def _estimate_teacher_call_tokens(
+        self, messages: List[Dict[str, str]], budget_before: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Conservatively estimate token use for one teacher call."""
+        estimator = "chars_per_3_fallback"
+        estimator_error = None
+
+        if _HAS_TOKEN_COUNTER and _token_counter is not None:
+            try:
+                input_tokens = int(
+                    _token_counter(model=self.cfg.teacher, messages=messages)
+                )
+                estimator = "litellm.token_counter"
+            except Exception as exc:
+                estimator_error = f"{type(exc).__name__}: {exc}"
+                input_tokens = self._estimate_tokens_from_chars(messages)
+        else:
+            input_tokens = self._estimate_tokens_from_chars(messages)
+
+        max_output_tokens = self.cfg.teacher_max_output_tokens
+        predicted_total = None
+        if max_output_tokens is not None:
+            predicted_total = input_tokens + max_output_tokens
+
+        tokens_remaining = budget_before.get("tokens_remaining")
+        token_budget = budget_before.get("token_budget")
+        preflight_enforced = token_budget is not None and max_output_tokens is not None
+        allowed = True
+        reason = None
+
+        if token_budget is not None and max_output_tokens is None:
+            reason = "teacher_max_output_tokens_not_set"
+        elif (
+            preflight_enforced
+            and predicted_total is not None
+            and tokens_remaining is not None
+            and predicted_total > tokens_remaining
+        ):
+            allowed = False
+            reason = "predicted_tokens_exceed_remaining_budget"
+
+        return {
+            "input_tokens": input_tokens,
+            "max_output_tokens": max_output_tokens,
+            "total_tokens": predicted_total,
+            "tokens_remaining": tokens_remaining,
+            "token_budget": token_budget,
+            "allowed": allowed,
+            "preflight_enforced": preflight_enforced,
+            "estimator": estimator,
+            "estimator_error": estimator_error,
+            "reason": reason,
+        }
+
+    @staticmethod
+    def _estimate_tokens_from_chars(messages: List[Dict[str, str]]) -> int:
+        """Fallback token estimate when the model tokenizer is unavailable."""
+        total_chars = sum(len(str(message.get("content", ""))) for message in messages)
+        return max(1, (total_chars + 2) // 3)
 
     def _parse_augmented_response(self, content: str) -> List[Dict[str, Any]]:
         """Parse the teacher model's structured JSON response.
@@ -609,8 +684,12 @@ class DistillationEngine:
         return context
 
     async def _augment(
-        self, model, cycle: int, sample_context: Dict[str, Any] | None = None
-    ) -> None:
+        self,
+        model,
+        cycle: int,
+        sample_context: Dict[str, Any] | None = None,
+        budget_before: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
         """Augment training data using the teacher model in batch mode.
 
         Instead of generating samples per misclassified example, this method:
@@ -620,7 +699,11 @@ class DistillationEngine:
         """
         if not self.augmentation_enabled or not self.prompt_template:
             logger.info("Augmentation disabled or no prompt provided, skipping")
-            return
+            return {
+                "action_name": "skip",
+                "predicted_cost": {},
+                "metadata": {"skip_reason": "augmentation_disabled"},
+            }
 
         ds = self.dataset["train"]
 
@@ -646,12 +729,30 @@ class DistillationEngine:
             f"Requesting {self.cfg.augmentation_batch_size} augmented samples from teacher model"
         )
 
-        try:
-            result = await acompletion(
-                model=self.cfg.teacher,
-                messages=[{"role": "user", "content": msg}],
-                response_format=AugmentedResponse,
+        messages = [{"role": "user", "content": msg}]
+        predicted_cost = self._estimate_teacher_call_tokens(
+            messages, budget_before or self._budget_snapshot()
+        )
+        if not predicted_cost["allowed"]:
+            logger.warning(
+                "Skipping augmentation because budget preflight masked the teacher call: %s",
+                predicted_cost["reason"],
             )
+            return {
+                "action_name": "budget_masked",
+                "predicted_cost": predicted_cost,
+                "metadata": {"mask_reason": predicted_cost["reason"]},
+            }
+
+        try:
+            completion_kwargs = {
+                "model": self.cfg.teacher,
+                "messages": messages,
+                "response_format": AugmentedResponse,
+            }
+            if self.cfg.teacher_max_output_tokens is not None:
+                completion_kwargs["max_tokens"] = self.cfg.teacher_max_output_tokens
+            result = await acompletion(**completion_kwargs)
             self.token_tracker.record_usage(result, OperationType.AUGMENTATION)
             response_path = self.out_dir / f"teacher_response_cycle_{cycle}.json"
             response_path.write_text(
@@ -664,7 +765,11 @@ class DistillationEngine:
 
             if not articles:
                 logger.warning("No articles parsed from teacher response")
-                return
+                return {
+                    "action_name": "augment_empty",
+                    "predicted_cost": predicted_cost,
+                    "metadata": {"articles_parsed": 0, "articles_added": 0},
+                }
 
             logger.info(f"Received {len(articles)} augmented samples from teacher")
 
@@ -698,10 +803,21 @@ class DistillationEngine:
 
         except Exception as e:
             logger.error(f"Batch augmentation failed: {e}")
-            return
+            return {
+                "action_name": "augment_failed",
+                "predicted_cost": predicted_cost,
+                "metadata": {
+                    "error_type": type(e).__name__,
+                    "error": str(e),
+                },
+            }
 
         if not aug_rows:
-            return
+            return {
+                "action_name": "augment_empty",
+                "predicted_cost": predicted_cost,
+                "metadata": {"articles_parsed": 0, "articles_added": 0},
+            }
 
         columns = aug_rows[0].keys()
         data_dict = {c: [r[c] for r in aug_rows] for c in columns}
@@ -712,6 +828,14 @@ class DistillationEngine:
             f"Added {len(aug_rows)} augmented samples to training set "
             f"(total: {len(self.dataset['train'])})"
         )
+        return {
+            "action_name": "augment",
+            "predicted_cost": predicted_cost,
+            "metadata": {
+                "articles_parsed": len(aug_rows),
+                "articles_added": len(aug_rows),
+            },
+        }
 
     async def run(self) -> Dict[str, Any]:
         results = {}
@@ -764,10 +888,21 @@ class DistillationEngine:
                         cycle, metrics, policy_features=policy_features
                     )
                     action_name = "stop"
+                    predicted_cost = {}
+                    decision_metadata = {}
 
                     if not should_stop and cycle < self.cfg.cycles - 1:
                         action_name = "augment" if self.augmentation_enabled else "skip"
-                        await self._augment(model, cycle, sample_context=sample_context)
+                        if self.augmentation_enabled:
+                            outcome = await self._augment(
+                                model,
+                                cycle,
+                                sample_context=sample_context,
+                                budget_before=budget_before,
+                            )
+                            action_name = outcome["action_name"]
+                            predicted_cost = outcome["predicted_cost"]
+                            decision_metadata = outcome["metadata"]
                     elif cycle >= self.cfg.cycles - 1:
                         action_name = "final_cycle"
 
@@ -776,6 +911,8 @@ class DistillationEngine:
                         action_name=action_name,
                         state=cycle_state,
                         budget_before=budget_before,
+                        predicted_cost=predicted_cost,
+                        decision_metadata=decision_metadata,
                     )
                     self._save_dataset(cycle)  # save the dataset after the augmentation
                 # Print cycle summary after context manager closes

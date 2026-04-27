@@ -176,6 +176,11 @@ class ExperimentConfig(BaseModel):
     prompt: Optional[str] = None
     prompt_vars: Optional[Dict[str, Any]] = None
     augmentation_batch_size: Union[int, List[int]] = 10
+    teacher_max_output_tokens: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Optional max_tokens cap for teacher calls, used for hard token-budget preflight",
+    )
 
     # Budget control
     budget_warning: Optional[float] = Field(
