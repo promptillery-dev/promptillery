@@ -297,6 +297,12 @@ def pilot_gate(
         "--require-frontier/--no-require-frontier",
         help="Require matched fixed-policy frontier rows for every run",
     ),
+    require_same_count_control: bool = typer.Option(
+        False,
+        "--require-same-count-controls/--no-require-same-count-controls",
+        "--require-same-count-control/--no-require-same-count-control",
+        help="Require same_count control rows for every seed/budget pair",
+    ),
 ) -> None:
     """Validate cheap-pilot artifacts against reviewer-facing gate checks."""
     if mode not in {"auto", "max", "min"}:
@@ -313,6 +319,7 @@ def pilot_gate(
             expected_budgets=_csv_option_values(budgets),
             require_teacher_attempts=require_teacher_attempts,
             require_frontier=require_frontier,
+            require_same_count_control=require_same_count_control,
         )
     except ValueError as exc:
         typer.echo(f"Error: {exc}", err=True)

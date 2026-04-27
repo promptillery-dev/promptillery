@@ -17,6 +17,7 @@ PREFERRED_METRICS = (
     "eval_loss",
 )
 LOWER_IS_BETTER = {"eval_loss", "loss", "perplexity"}
+SAME_COUNT_CONTROL_NAMES = {"same_count", "same_synthetic_count"}
 REQUIRED_RUN_FILES = (
     "run_manifest.json",
     "experiment_config.yaml",
@@ -26,6 +27,7 @@ REQUIRED_RUN_FILES = (
 POLICY_BEHAVIOR_FIELDS = [
     "run_dir",
     "run_id",
+    "control_name",
     "experiment",
     "dataset",
     "dataset_subset",
@@ -33,6 +35,7 @@ POLICY_BEHAVIOR_FIELDS = [
     "student_type",
     "seed",
     "token_budget",
+    "synthetic_record_budget",
     "policy_name",
     "action_space_id",
     "cycle",
@@ -57,6 +60,7 @@ POLICY_BEHAVIOR_FIELDS = [
 TEACHER_CALIBRATION_FIELDS = [
     "run_dir",
     "run_id",
+    "control_name",
     "experiment",
     "policy_name",
     "cycle",
@@ -90,6 +94,7 @@ TEACHER_CALIBRATION_FIELDS = [
 ORACLE_FRONTIER_FIELDS = [
     "run_dir",
     "run_id",
+    "control_name",
     "experiment",
     "dataset",
     "dataset_subset",
@@ -97,6 +102,7 @@ ORACLE_FRONTIER_FIELDS = [
     "student_type",
     "seed",
     "token_budget",
+    "synthetic_record_budget",
     "selection_split",
     "metric",
     "mode",
@@ -288,6 +294,21 @@ def _teacher_attempt_summary(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _final_synthetic_count(policy_decisions: List[Dict[str, Any]]) -> int | None:
+    """Infer final accepted synthetic row count from decision logs."""
+    counts: list[int] = []
+    for decision in policy_decisions:
+        state = decision.get("state", {}) or {}
+        metadata = decision.get("metadata", {}) or {}
+        before = _safe_int(state.get("synthetic_count"))
+        added = _safe_int(
+            metadata.get("records_added", metadata.get("articles_added", 0))
+        )
+        if before is not None:
+            counts.append(before + (added or 0))
+    return max(counts) if counts else None
+
+
 def _run_context(run_dir: Path) -> Dict[str, Any]:
     """Return common run metadata used by paper-analysis CSVs."""
     run_manifest = _load_json(run_dir / "run_manifest.json")
@@ -303,6 +324,9 @@ def _run_context(run_dir: Path) -> Dict[str, Any]:
     return {
         "run_dir": str(run_dir),
         "run_id": run_manifest.get("run_id", ""),
+        "control_name": run_manifest.get(
+            "control_name", config.get("control_name", "")
+        ),
         "experiment": config.get("name", run_manifest.get("task_name", run_dir.name)),
         "dataset": run_manifest.get("dataset", config.get("dataset", "")),
         "dataset_subset": run_manifest.get("dataset_subset", ""),
@@ -313,6 +337,9 @@ def _run_context(run_dir: Path) -> Dict[str, Any]:
         "seed": run_manifest.get("seed", config.get("seed", "")),
         "token_budget": run_manifest.get(
             "token_budget", config.get("token_budget", "")
+        ),
+        "synthetic_record_budget": run_manifest.get(
+            "synthetic_record_budget", config.get("synthetic_record_budget", "")
         ),
         "policy_name": run_manifest.get(
             "policy_name", config.get("policy_name", "")
@@ -390,6 +417,7 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
             {
                 "run_dir": context["run_dir"],
                 "run_id": attempt.get("run_id", context["run_id"]),
+                "control_name": context["control_name"],
                 "experiment": context["experiment"],
                 "policy_name": context["policy_name"],
                 "cycle": attempt.get("cycle"),
@@ -436,6 +464,8 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
 
 
 def _is_fixed_policy(row: Dict[str, Any]) -> bool:
+    if _is_same_count_control(row):
+        return False
     policy_name = str(row.get("policy_name") or "")
     return policy_name == "fixed_promptillery" or policy_name.startswith("fixed_")
 
@@ -490,6 +520,7 @@ def summarize_oracle_frontier(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]
             {
                 "run_dir": row.get("run_dir"),
                 "run_id": row.get("run_id"),
+                "control_name": row.get("control_name"),
                 "experiment": row.get("experiment"),
                 "dataset": row.get("dataset"),
                 "dataset_subset": row.get("dataset_subset"),
@@ -497,6 +528,7 @@ def summarize_oracle_frontier(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]
                 "student_type": row.get("student_type"),
                 "seed": row.get("seed"),
                 "token_budget": row.get("token_budget"),
+                "synthetic_record_budget": row.get("synthetic_record_budget"),
                 "selection_split": row.get("selection_split"),
                 "metric": row.get("metric"),
                 "mode": mode,
@@ -553,6 +585,12 @@ def summarize_run(
     policy_decisions = _load_jsonl(run_dir / "policy_decisions.jsonl")
     teacher_attempts = _load_jsonl(run_dir / "teacher_attempts.jsonl")
     teacher_summary = _teacher_attempt_summary(teacher_attempts)
+    manifest_final_synthetic_count = run_manifest.get("final_synthetic_count")
+    final_synthetic_count = (
+        manifest_final_synthetic_count
+        if manifest_final_synthetic_count is not None
+        else _final_synthetic_count(policy_decisions)
+    )
     config = {}
     if (run_dir / "experiment_config.yaml").exists():
         try:
@@ -604,6 +642,7 @@ def summarize_run(
         "run_dir": str(run_dir),
         "run_id": run_manifest.get("run_id", ""),
         "run_status": run_manifest.get("status", ""),
+        "control_name": run_manifest.get("control_name", config.get("control_name", "")),
         "selection_split": run_manifest.get("selection_split", ""),
         "paper_mode": run_manifest.get("paper_mode", ""),
         "task_name": run_manifest.get("task_name", config.get("name", run_dir.name)),
@@ -628,6 +667,10 @@ def summarize_run(
         "final_metric": final_value,
         "cycle_quality_cost_auc": _cycle_auc(points),
         "token_budget": token_budget,
+        "synthetic_record_budget": run_manifest.get(
+            "synthetic_record_budget", config.get("synthetic_record_budget")
+        ),
+        "final_synthetic_count": final_synthetic_count,
         "token_budget_overage": (
             max(0, grand_total.get("total_tokens", 0) - int(token_budget))
             if isinstance(token_budget, int)
@@ -660,6 +703,7 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "run_dir",
         "run_id",
         "run_status",
+        "control_name",
         "selection_split",
         "paper_mode",
         "task_name",
@@ -680,6 +724,8 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "final_metric",
         "cycle_quality_cost_auc",
         "token_budget",
+        "synthetic_record_budget",
+        "final_synthetic_count",
         "token_budget_overage",
         "teacher_input_tokens",
         "teacher_output_tokens",
@@ -752,6 +798,16 @@ def _normalize_set(values: Iterable[Any]) -> set[str]:
     return {str(value) for value in values}
 
 
+def _is_same_count_control(row: Dict[str, Any]) -> bool:
+    """Return whether an analysis row is tagged as a same-count control."""
+    control_name = str(row.get("control_name") or "")
+    policy_name = str(row.get("policy_name") or "")
+    return (
+        control_name in SAME_COUNT_CONTROL_NAMES
+        or policy_name in SAME_COUNT_CONTROL_NAMES
+    )
+
+
 def _gate_check(name: str, passed: bool, **details: Any) -> Dict[str, Any]:
     """Build one machine-readable pilot gate check."""
     return {"name": name, "passed": passed, **details}
@@ -767,6 +823,7 @@ def validate_pilot_gate(
     expected_budgets: List[str] | None = None,
     require_teacher_attempts: bool = True,
     require_frontier: bool = True,
+    require_same_count_control: bool = False,
 ) -> Dict[str, Any]:
     """Return a pass/fail report for the cheap policy-axis pilot."""
     rows = analyze_runs(path, metric=metric, mode=mode)
@@ -836,6 +893,7 @@ def validate_pilot_gate(
                 str(row.get("token_budget")),
             )
             for row in rows
+            if not _is_same_count_control(row)
         }
         checks.append(
             _gate_check(
@@ -964,6 +1022,51 @@ def validate_pilot_gate(
                 "fixed_policy_frontier_available",
                 not missing_frontier,
                 violating_run_ids=[row.get("run_id") for row in missing_frontier],
+            )
+        )
+
+    if require_same_count_control:
+        same_count_rows = [
+            row for row in rows if _is_same_count_control(row)
+        ]
+        non_control_rows = [row for row in rows if not _is_same_count_control(row)]
+        target_seeds = expected_seed_set or _normalize_set(
+            row.get("seed") for row in non_control_rows
+        )
+        target_budgets = expected_budget_set or _normalize_set(
+            row.get("token_budget") for row in non_control_rows
+        )
+        target_pairs = {
+            (str(seed), str(budget))
+            for seed in target_seeds
+            for budget in target_budgets
+        }
+        found_pairs = {
+            (str(row.get("seed")), str(row.get("token_budget")))
+            for row in same_count_rows
+        }
+        malformed_controls = []
+        for row in same_count_rows:
+            final_count = _safe_int(row.get("final_synthetic_count"))
+            target_count = _safe_int(row.get("synthetic_record_budget"))
+            if target_count is None or final_count != target_count:
+                malformed_controls.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "final_synthetic_count": final_count,
+                        "synthetic_record_budget": target_count,
+                    }
+                )
+        checks.append(
+            _gate_check(
+                "same_count_controls_present",
+                target_pairs.issubset(found_pairs) and not malformed_controls,
+                expected_pairs=[list(pair) for pair in sorted(target_pairs)],
+                found_pairs=[list(pair) for pair in sorted(found_pairs)],
+                missing_pairs=[
+                    list(pair) for pair in sorted(target_pairs - found_pairs)
+                ],
+                malformed_controls=malformed_controls,
             )
         )
 

@@ -4,8 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 from datasets import Dataset, DatasetDict
+from jinja2 import Template
 
 from promptillery.engine import DistillationEngine
+from promptillery.policy_controller import PolicyAction
 from promptillery.token_tracker import TokenTracker
 from promptillery.trainers.causal_lm_sft_trainer import CausalLMSFTTrainer
 
@@ -129,6 +131,98 @@ def test_augmented_sft_rows_require_sft_schema():
             teacher_tier="cheap",
             prompt_operator="coverage",
         )
+
+
+def test_same_count_cap_limits_rendered_policy_batch_size():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        teacher="teacher/mock",
+        augmentation_batch_size=8,
+        synthetic_record_budget=2,
+        policy_teacher_tiers={},
+    )
+    engine.dataset = DatasetDict(
+        {
+            "train": Dataset.from_dict(
+                {
+                    "text": ["base", "already synthetic"],
+                    "label": [0, 1],
+                    "source_split": ["train", "augmented"],
+                }
+            )
+        }
+    )
+    engine.prompt_template = Template("make {{ augmentation_batch_size }} records")
+    engine.cfg_vars = {}
+    engine.prompt_vars = {}
+
+    action = PolicyAction(
+        prompt_operator="coverage",
+        teacher_tier="cheap",
+        batch_size=4,
+    )
+    prompt, env = engine._render_augmentation_prompt({}, action)
+
+    assert env["augmentation_batch_size"] == 1
+    assert prompt == "make 1 records"
+
+    seen_prompts = []
+    engine._estimate_teacher_call_tokens = lambda messages, budget, teacher_model: (
+        seen_prompts.append(messages[0]["content"])
+        or {"total_tokens": 10, "allowed": True}
+    )
+
+    costs = engine._policy_predicted_costs([action], {}, {"token_budget": 100})
+
+    assert seen_prompts == ["make 1 records"]
+    assert costs[action.name]["total_tokens"] == 10
+
+
+def test_same_count_cap_exhaustion_skips_teacher_call(monkeypatch):
+    called = False
+
+    async def fake_acompletion(**kwargs):
+        nonlocal called
+        called = True
+        return {}
+
+    monkeypatch.setattr("promptillery.engine.acompletion", fake_acompletion)
+
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        teacher="teacher/mock",
+        augmentation_batch_size=4,
+        synthetic_record_budget=1,
+        policy_teacher_tiers={},
+    )
+    engine.dataset = DatasetDict(
+        {
+            "train": Dataset.from_dict(
+                {
+                    "text": ["already synthetic"],
+                    "label": [0],
+                    "source_split": ["augmented"],
+                }
+            )
+        }
+    )
+    engine.augmentation_enabled = True
+    engine.prompt_template = object()
+
+    result = asyncio.run(
+        engine._augment(
+            model=None,
+            cycle=1,
+            sample_context={"classification_report": "test"},
+            budget_before={"token_budget": 100, "tokens_remaining": 100},
+            decision_id="decision-1",
+        )
+    )
+
+    assert result["action_name"] == "augment_empty"
+    assert result["metadata"]["skip_reason"] == "synthetic_record_budget_exhausted"
+    assert result["metadata"]["records_requested"] == 0
+    assert not called
 
 
 def test_online_sft_augmentation_appends_teacher_records(monkeypatch, tmp_path):

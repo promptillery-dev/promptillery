@@ -531,6 +531,7 @@ class DistillationEngine:
             if action and not action.is_stop and action.batch_size
             else self.cfg.augmentation_batch_size
         )
+        batch_size = self._effective_acquisition_batch_size(int(batch_size))
         teacher_model = self._teacher_for_action(action)
         prompt_operator = action.prompt_operator if action else None
         teacher_tier = action.teacher_tier if action else None
@@ -625,6 +626,34 @@ class DistillationEngine:
         )
         return "train"
 
+    def _current_synthetic_count(self) -> int | None:
+        """Return accepted synthetic rows in the current train split."""
+        if (
+            "train" not in self.dataset
+            or "source_split" not in self.dataset["train"].column_names
+        ):
+            return None
+        return sum(
+            1
+            for value in self.dataset["train"]["source_split"]
+            if value == "augmented"
+        )
+
+    def _synthetic_records_remaining(self) -> int | None:
+        """Return remaining accepted synthetic row slots, if capped."""
+        synthetic_record_budget = getattr(self.cfg, "synthetic_record_budget", None)
+        if synthetic_record_budget is None:
+            return None
+        current_synthetic = self._current_synthetic_count() or 0
+        return max(0, int(synthetic_record_budget) - current_synthetic)
+
+    def _effective_acquisition_batch_size(self, requested_batch_size: int) -> int:
+        """Cap teacher-requested rows by remaining same-count control slots."""
+        remaining_records = self._synthetic_records_remaining()
+        if remaining_records is None:
+            return requested_batch_size
+        return min(requested_batch_size, remaining_records)
+
     def _cycle_state(
         self,
         cycle: int,
@@ -638,16 +667,7 @@ class DistillationEngine:
             len(self.dataset["validation"]) if "validation" in self.dataset else None
         )
         test_size = len(self.dataset["test"]) if "test" in self.dataset else None
-        synthetic_count = None
-        if (
-            "train" in self.dataset
-            and "source_split" in self.dataset["train"].column_names
-        ):
-            synthetic_count = sum(
-                1
-                for value in self.dataset["train"]["source_split"]
-                if value == "augmented"
-            )
+        synthetic_count = self._current_synthetic_count()
 
         return {
             "cycle": cycle,
@@ -658,6 +678,9 @@ class DistillationEngine:
             "validation_size": validation_size,
             "test_size": test_size,
             "synthetic_count": synthetic_count,
+            "synthetic_record_budget": getattr(
+                self.cfg, "synthetic_record_budget", None
+            ),
             "budget": self._budget_snapshot(),
             "features": policy_features or {},
         }
@@ -1186,8 +1209,26 @@ class DistillationEngine:
             if policy_action and not policy_action.is_stop and policy_action.batch_size
             else self.cfg.augmentation_batch_size
         )
+        acquisition_batch_size = self._effective_acquisition_batch_size(
+            int(acquisition_batch_size)
+        )
         prompt_operator = policy_action.prompt_operator if policy_action else None
         teacher_tier = policy_action.teacher_tier if policy_action else None
+
+        if acquisition_batch_size <= 0:
+            synthetic_record_budget = getattr(self.cfg, "synthetic_record_budget", None)
+            synthetic_count = self._current_synthetic_count()
+            return {
+                "action_name": "augment_empty",
+                "predicted_cost": {"total_tokens": 0},
+                "metadata": {
+                    "records_requested": 0,
+                    "records_added": 0,
+                    "skip_reason": "synthetic_record_budget_exhausted",
+                    "synthetic_record_budget": synthetic_record_budget,
+                    "synthetic_count_before": synthetic_count,
+                },
+            }
 
         # Render the prompt template with action overrides after config values.
         msg, _ = self._render_augmentation_prompt(sample_context, policy_action)
@@ -1433,6 +1474,44 @@ class DistillationEngine:
                 },
             }
 
+        synthetic_record_budget = getattr(self.cfg, "synthetic_record_budget", None)
+        if synthetic_record_budget is not None:
+            current_synthetic = self._current_synthetic_count() or 0
+            remaining_records = self._synthetic_records_remaining() or 0
+            if remaining_records <= 0:
+                self._record_teacher_attempt(
+                    cycle=cycle,
+                    status="empty_response",
+                    predicted_cost=predicted_cost,
+                    budget_before=budget_before or self._budget_snapshot(),
+                    attempt_id=attempt_id,
+                    decision_id=decision_id,
+                    realized_cost=usage,
+                    failure_type="synthetic_record_budget_exhausted",
+                    metadata={
+                        **attempt_metadata,
+                        "records_parsed": len(parsed_records),
+                        "records_accepted": 0,
+                        "synthetic_record_budget": synthetic_record_budget,
+                        "synthetic_count_before": current_synthetic,
+                        "response_sha256": response_sha256,
+                    },
+                )
+                return {
+                    "action_name": "augment_empty",
+                    "predicted_cost": predicted_cost,
+                    "metadata": {
+                        "records_parsed": len(parsed_records),
+                        "records_added": 0,
+                        "synthetic_record_budget": synthetic_record_budget,
+                        "synthetic_count_before": current_synthetic,
+                        "attempt_id": attempt_id,
+                        **attempt_metadata,
+                    },
+                }
+            if len(aug_rows) > remaining_records:
+                aug_rows = aug_rows[:remaining_records]
+
         columns = aug_rows[0].keys()
         data_dict = {c: [r[c] for r in aug_rows] for c in columns}
         extra = Dataset.from_dict(data_dict)
@@ -1548,8 +1627,28 @@ class DistillationEngine:
                         policy_action = None
                         action_scores = {}
                         policy_stopped = False
+                        synthetic_budget = getattr(
+                            self.cfg, "synthetic_record_budget", None
+                        )
+                        synthetic_count = self._current_synthetic_count()
+                        synthetic_budget_exhausted = (
+                            synthetic_budget is not None
+                            and synthetic_count is not None
+                            and synthetic_count >= int(synthetic_budget)
+                        )
 
-                        if not should_stop and cycle < self.cfg.cycles - 1:
+                        if (
+                            synthetic_budget_exhausted
+                            and cycle < self.cfg.cycles - 1
+                        ):
+                            action_name = "synthetic_record_budget_stop"
+                            policy_stopped = True
+                            decision_metadata = {
+                                "acquisition_outcome": action_name,
+                                "synthetic_record_budget": synthetic_budget,
+                                "synthetic_count": synthetic_count,
+                            }
+                        elif not should_stop and cycle < self.cfg.cycles - 1:
                             action_name = (
                                 "augment" if self.augmentation_enabled else "skip"
                             )
@@ -1714,6 +1813,7 @@ class DistillationEngine:
                     "cycles_completed": self.token_tracker.summary.cycles_completed,
                     "selection_split": eval_split,
                     "paper_mode": self.cfg.paper_mode,
+                    "control_name": self.cfg.control_name,
                     "task_name": self.cfg.name,
                     "dataset": self.cfg.dataset,
                     "dataset_subset": self.cfg.dataset_subset,
@@ -1721,6 +1821,8 @@ class DistillationEngine:
                     "student_type": self.cfg.student_type,
                     "seed": self.cfg.seed,
                     "token_budget": self.cfg.token_budget,
+                    "synthetic_record_budget": self.cfg.synthetic_record_budget,
+                    "final_synthetic_count": self._current_synthetic_count(),
                     "action_space": {
                         "prompt_operators": self.cfg.policy_prompt_operators,
                         "teacher_tiers": list(

@@ -234,9 +234,21 @@ class ExperimentConfig(BaseModel):
         default=None,
         description="Optional teacher-token budget. Can be a list for ablations.",
     )
+    synthetic_record_budget: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description=(
+            "Optional cap on accepted synthetic training records. Used for "
+            "same-count controls."
+        ),
+    )
     budget_stop: bool = Field(
         default=False,
         description="If True, automatically stop experiment when a configured budget is exceeded",
+    )
+    control_name: Optional[str] = Field(
+        default=None,
+        description="Optional analysis tag for controls such as same_count.",
     )
     price_table_path: Optional[str] = Field(
         default=None,
