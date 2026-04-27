@@ -11,7 +11,7 @@ import typer
 from dotenv import load_dotenv
 
 from .ablation import AblationStudyRunner
-from .analyze import analyze_runs, write_summary_csv
+from .analyze import analyze_runs, write_audit_csvs, write_summary_csv
 from .config import ExperimentConfig
 from .engine import DistillationEngine, evaluate_model
 from .policy_controller import PolicyController, enumerate_actions
@@ -178,6 +178,11 @@ def analyze(
         "-o",
         help="Optional CSV output path; prints CSV to stdout when omitted",
     ),
+    audit_dir: str | None = typer.Option(
+        None,
+        "--audit-dir",
+        help="Optional directory for policy_actions, teacher_calibration, and oracle_frontier CSVs",
+    ),
     metric: str | None = typer.Option(
         None,
         "--metric",
@@ -210,7 +215,21 @@ def analyze(
     if output:
         write_summary_csv(rows, Path(output))
         typer.echo(f"Wrote analysis summary to {output}")
+        if audit_dir:
+            audit_paths = write_audit_csvs(Path(path), rows, Path(audit_dir))
+            typer.echo(
+                "Wrote audit CSVs to "
+                + ", ".join(str(value) for value in audit_paths.values())
+            )
         return
+
+    if audit_dir:
+        audit_paths = write_audit_csvs(Path(path), rows, Path(audit_dir))
+        typer.echo(
+            "Wrote audit CSVs to "
+            + ", ".join(str(value) for value in audit_paths.values()),
+            err=True,
+        )
 
     import csv
     import sys
