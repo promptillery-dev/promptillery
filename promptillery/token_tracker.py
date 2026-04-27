@@ -248,6 +248,12 @@ class TokenTracker:
         """
         return self.budget_stop and self._budget_exceeded
 
+    def current_cycle_usage(self) -> TokenUsage:
+        """Return token usage recorded in the active cycle."""
+        if self._current_cycle is None:
+            return TokenUsage()
+        return self._current_cycle.cycle_total
+
     def print_cycle_summary(self) -> None:
         """Display cycle summary using Rich table."""
         if self._quiet or self.console is None:

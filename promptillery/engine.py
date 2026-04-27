@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -19,6 +20,7 @@ from litellm import acompletion
 from pydantic import BaseModel
 
 from .config import ExperimentConfig, SamplingConfig
+from .policy_decisions import PolicyDecision, PolicyDecisionLogger
 from .token_tracker import OperationType, TokenTracker
 from .trainers import TrainerFactory
 from .utils import (
@@ -94,6 +96,15 @@ def ensure_class_label(dataset: DatasetDict, label_column: str) -> DatasetDict:
             dataset[split] = dataset[split].cast_column(label_column, class_label)
 
     return dataset
+
+
+def _response_to_jsonable(response: Any) -> Any:
+    """Convert a LiteLLM response into data that can be JSON archived."""
+    if hasattr(response, "model_dump"):
+        return response.model_dump()
+    if isinstance(response, dict):
+        return response
+    return str(response)
 
 
 def prepare_dataset(
@@ -281,7 +292,7 @@ class DistillationEngine:
                 "or provide single values for 'promptillery train'."
             )
 
-        set_seed(42)
+        set_seed(self.cfg.seed)
 
         if dataset is not None:
             # Use pre-loaded dataset (e.g., from ablation runner)
@@ -324,6 +335,14 @@ class DistillationEngine:
                 self.cfg.model_dump(), f, default_flow_style=False, sort_keys=False
             )
 
+        if self.cfg.price_table_path:
+            price_table_path = Path(self.cfg.price_table_path)
+            if not price_table_path.exists():
+                raise FileNotFoundError(
+                    f"Configured price_table_path does not exist: {price_table_path}"
+                )
+            shutil.copy2(price_table_path, self.out_dir / "price_table.yaml")
+
         # Create trainer using factory
         self.trainer = TrainerFactory.create_trainer(
             self.cfg, self.dataset, self.out_dir
@@ -341,6 +360,9 @@ class DistillationEngine:
             budget_warning=self.cfg.budget_warning,
             budget_stop=self.cfg.budget_stop,
         )
+        self.policy_decision_logger = PolicyDecisionLogger(
+            self.out_dir / "policy_decisions.jsonl"
+        )
 
         # Create Jinja2 environment with format_samples_for_prompt available
         self.jinja_env = create_prompt_environment()
@@ -353,6 +375,93 @@ class DistillationEngine:
         # Initialize component flags based on flat config fields
         self.augmentation_enabled = bool(self.cfg.prompt)
         self.dataset_persistence_enabled = self.cfg.persist_datasets
+
+    def _budget_snapshot(self, include_current_cycle: bool = True) -> Dict[str, Any]:
+        """Return current budget accounting state for decision logs."""
+        grand_total = self.token_tracker.summary.grand_total
+        current_usage = self.token_tracker.current_cycle_usage()
+        spent = grand_total.estimated_cost
+        if include_current_cycle and current_usage.estimated_cost is not None:
+            spent = (spent or 0.0) + current_usage.estimated_cost
+
+        total_tokens = grand_total.total_tokens
+        if include_current_cycle:
+            total_tokens += current_usage.total_tokens
+
+        remaining = None
+        if self.cfg.budget_warning is not None and spent is not None:
+            remaining = self.cfg.budget_warning - spent
+
+        return {
+            "budget_limit_usd": self.cfg.budget_warning,
+            "spent_usd": spent,
+            "remaining_usd": remaining,
+            "budget_stop": self.cfg.budget_stop,
+            "total_tokens": total_tokens,
+        }
+
+    def _cycle_state(self, cycle: int, metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a compact state snapshot for fixed and learned policies."""
+        train_size = len(self.dataset["train"]) if "train" in self.dataset else None
+        validation_size = (
+            len(self.dataset["validation"]) if "validation" in self.dataset else None
+        )
+        test_size = len(self.dataset["test"]) if "test" in self.dataset else None
+        synthetic_count = None
+        if (
+            "train" in self.dataset
+            and "source_split" in self.dataset["train"].column_names
+        ):
+            synthetic_count = sum(
+                1
+                for value in self.dataset["train"]["source_split"]
+                if value == "augmented"
+            )
+
+        return {
+            "cycle": cycle,
+            "cycles": self.cfg.cycles,
+            "metrics": metrics,
+            "train_size": train_size,
+            "validation_size": validation_size,
+            "test_size": test_size,
+            "synthetic_count": synthetic_count,
+            "budget": self._budget_snapshot(),
+        }
+
+    def _record_policy_decision(
+        self,
+        *,
+        cycle: int,
+        action_name: str,
+        state: Dict[str, Any],
+        budget_before: Dict[str, Any],
+        reward: float | None = None,
+    ) -> None:
+        """Record the fixed-loop decision using the policy decision schema."""
+        realized_cost = self.token_tracker.current_cycle_usage().model_dump()
+        self.policy_decision_logger.record(
+            PolicyDecision(
+                cycle=cycle,
+                policy_name="fixed_promptillery",
+                action_name=action_name,
+                state=state,
+                action={
+                    "teacher": self.cfg.teacher,
+                    "augmentation_batch_size": self.cfg.augmentation_batch_size,
+                    "prompt_enabled": self.augmentation_enabled,
+                },
+                realized_cost=realized_cost,
+                reward=reward,
+                budget_before=budget_before,
+                budget_after=self._budget_snapshot(),
+                metadata={
+                    "seed": self.cfg.seed,
+                    "student": self.cfg.student,
+                    "student_type": self.cfg.student_type,
+                },
+            )
+        )
 
     def _parse_augmented_response(self, content: str) -> List[Dict[str, Any]]:
         """Parse the teacher model's structured JSON response.
@@ -498,6 +607,12 @@ class DistillationEngine:
                 messages=[{"role": "user", "content": msg}],
                 response_format=AugmentedResponse,
             )
+            self.token_tracker.record_usage(result, OperationType.AUGMENTATION)
+            response_path = self.out_dir / f"teacher_response_cycle_{cycle}.json"
+            response_path.write_text(
+                json.dumps(_response_to_jsonable(result), indent=2, default=str),
+                encoding="utf-8",
+            )
 
             content = result["choices"][0]["message"]["content"]
             articles = self._parse_augmented_response(content)
@@ -511,9 +626,6 @@ class DistillationEngine:
             # Get field names from config
             text_field = self.cfg.text_field
             label_field = self.cfg.label_field
-
-            # Record token usage from response
-            self.token_tracker.record_usage(result, OperationType.AUGMENTATION)
 
             # Create new rows from augmented articles
             aug_rows: List[Dict[str, Any]] = []
@@ -584,8 +696,22 @@ class DistillationEngine:
                                 f"Restored best model from cycle {self.early_stopper.best_cycle}"
                             )
 
+                    budget_before = self._budget_snapshot()
+                    cycle_state = self._cycle_state(cycle, metrics)
+                    action_name = "stop"
+
                     if not should_stop and cycle < self.cfg.cycles - 1:
+                        action_name = "augment" if self.augmentation_enabled else "skip"
                         await self._augment(model, cycle)
+                    elif cycle >= self.cfg.cycles - 1:
+                        action_name = "final_cycle"
+
+                    self._record_policy_decision(
+                        cycle=cycle,
+                        action_name=action_name,
+                        state=cycle_state,
+                        budget_before=budget_before,
+                    )
                     self._save_dataset(cycle)  # save the dataset after the augmentation
                 # Print cycle summary after context manager closes
                 self.token_tracker.print_cycle_summary()
@@ -659,7 +785,9 @@ def evaluate_model(
     Returns:
         Dictionary containing evaluation metrics and metadata
     """
-    set_seed(42)
+    if isinstance(config.seed, list):
+        raise ValueError("evaluate_model requires a single seed value, not a list")
+    set_seed(config.seed)
 
     logger.info(f"Loading dataset: {config.dataset}")
 

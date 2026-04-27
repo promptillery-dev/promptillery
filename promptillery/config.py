@@ -161,6 +161,10 @@ class ExperimentConfig(BaseModel):
 
     # Core parameters - can be single value or list for ablations
     cycles: Union[int, List[int]] = 3
+    seed: Union[int, List[int]] = Field(
+        default=42,
+        description="Random seed for experiment reproducibility. Can be a list for ablations.",
+    )
 
     # Component configurations
     early_stopping: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
@@ -182,6 +186,10 @@ class ExperimentConfig(BaseModel):
     budget_stop: bool = Field(
         default=False,
         description="If True, automatically stop experiment when budget_warning is exceeded",
+    )
+    price_table_path: Optional[str] = Field(
+        default=None,
+        description="Optional frozen token price table copied into run outputs for paper reporting",
     )
 
     # Training hyperparameters - can be single value or list for ablations
