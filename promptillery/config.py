@@ -239,6 +239,13 @@ class ExperimentConfig(BaseModel):
         default_factory=lambda: [16, 32, 64],
         description="Batch-size action values for policy-controlled acquisition.",
     )
+    policy_include_stop: bool = Field(
+        default=True,
+        description=(
+            "Whether STOP is an exposed policy action. If false, the controller "
+            "still falls back to STOP when no non-stop action is feasible."
+        ),
+    )
     policy_lambda_cost: float = Field(
         default=1e-4,
         ge=0.0,

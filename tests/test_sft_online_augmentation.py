@@ -243,6 +243,21 @@ def test_policy_controller_manifest_exposes_fixed_linear_weights():
     assert "eval_error_rate" in manifest["linear_weights"]
 
 
+def test_engine_action_space_can_hide_stop_for_sensitivity_slice():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        policy_teacher_tiers={"cheap": "mock/teacher"},
+        policy_prompt_operators=["coverage"],
+        policy_batch_sizes=[8],
+        policy_include_stop=False,
+    )
+
+    actions = engine._build_action_space()
+
+    assert actions
+    assert all(not action.is_stop for action in actions)
+
+
 def test_student_only_policy_alias_selects_stop_action():
     controller = PolicyController("student_only", seed=13)
     actions = [

@@ -532,7 +532,7 @@ class DistillationEngine:
             prompt_operators=self.cfg.policy_prompt_operators,
             teacher_tiers=teacher_tiers,
             batch_sizes=self.cfg.policy_batch_sizes,
-            include_stop=True,
+            include_stop=self.cfg.policy_include_stop,
         )
 
     @staticmethod
@@ -2228,7 +2228,7 @@ class DistillationEngine:
                         )
                         or ["cheap", "strong"],
                         "batch_sizes": self.cfg.policy_batch_sizes,
-                        "include_stop": True,
+                        "include_stop": self.cfg.policy_include_stop,
                         "action_space_id": self.action_space_id,
                     },
                     "artifact_paths": {
