@@ -6,6 +6,7 @@ from .utils import (
     extract_hard_negatives,
     extract_high_entropy_samples,
     format_classification_report,
+    format_choices_for_prompt,
     format_samples_for_prompt,
 )
 
@@ -15,6 +16,7 @@ __all__ = [
     "engine",
     "utils",
     "format_samples_for_prompt",
+    "format_choices_for_prompt",
     "format_classification_report",
     "create_prompt_environment",
     "extract_few_shot_samples",

@@ -18,6 +18,7 @@ from promptillery.utils import (
     extract_hard_negatives,
     extract_high_entropy_samples,
     format_classification_report,
+    format_choices_for_prompt,
 )
 
 
@@ -284,6 +285,17 @@ def test_fixed_mixed_teacher_alternates_teacher_tiers():
     assert second.action.teacher_tier == "strong"
 
 
+def test_format_choices_for_prompt_handles_arc_choices():
+    rendered = format_choices_for_prompt(
+        {
+            "label": ["A", "B", "C"],
+            "text": ["evaporation", "condensation", "sublimation"],
+        }
+    )
+
+    assert rendered == "A. evaporation\nB. condensation\nC. sublimation"
+
+
 def test_materialize_writes_canonical_label_artifact(tmp_path):
     features = Features(
         {
@@ -317,6 +329,35 @@ def test_materialize_writes_canonical_label_artifact(tmp_path):
     ]
 
 
+def test_materialize_writes_configured_canonical_labels(tmp_path):
+    source = Dataset.from_dict(
+        {"question": ["a"], "answerKey": ["A"]},
+    )
+    config = SimpleNamespace(
+        dataset="allenai/ai2_arc",
+        dataset_subset="ARC-Challenge",
+        trainer_config={
+            "materialize_sft": {
+                "canonical_labels": ["A", "B", "C", "D", "E"],
+            }
+        },
+    )
+
+    artifact_path = _write_canonical_labels_artifact(
+        config=config,
+        output_path=tmp_path / "train.jsonl",
+        source=source,
+        label_field="answerKey",
+        canonical_labels=["A", "B", "C", "D", "E"],
+    )
+
+    payload = json.loads((tmp_path / "canonical_labels.json").read_text())
+    assert artifact_path == str(tmp_path / "canonical_labels.json")
+    assert payload["canonical_label_count"] == 5
+    assert payload["canonical_labels"] == ["A", "B", "C", "D", "E"]
+    assert payload["normalized_canonical_labels"] == ["a", "b", "c", "d", "e"]
+
+
 def test_select_source_examples_can_stratify_materialization_cap():
     features = Features(
         {
@@ -341,6 +382,26 @@ def test_select_source_examples_can_stratify_materialization_cap():
 
     assert len(subset) == 6
     assert set(subset["label"]) == {0, 1, 2}
+
+
+def test_select_source_examples_can_stratify_string_labels():
+    dataset = Dataset.from_dict(
+        {
+            "question": [f"question-{index}" for index in range(15)],
+            "answerKey": ["A"] * 5 + ["B"] * 5 + ["C"] * 5,
+        },
+    )
+
+    subset = _select_source_examples(
+        dataset,
+        max_samples=6,
+        stratify_by="answerKey",
+        seed=13,
+        canonical_labels=["A", "B", "C"],
+    )
+
+    assert len(subset) == 6
+    assert set(subset["answerKey"]) == {"A", "B", "C"}
 
 
 def test_select_source_examples_rejects_too_small_stratified_cap():

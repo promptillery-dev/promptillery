@@ -112,9 +112,13 @@ def _write_canonical_labels_artifact(
     output_path: Path,
     source,
     label_field: str,
+    canonical_labels: List[str] | None = None,
 ) -> str | None:
     """Write the canonical label schema next to materialized SFT JSONL files."""
-    canonical_labels = _class_label_names(source, label_field)
+    label_source = "config.trainer_config.materialize_sft.canonical_labels"
+    if not canonical_labels:
+        canonical_labels = _class_label_names(source, label_field)
+        label_source = "datasets.ClassLabel.names"
     if not canonical_labels:
         return None
 
@@ -126,7 +130,7 @@ def _write_canonical_labels_artifact(
         "dataset": config.dataset,
         "dataset_subset": config.dataset_subset,
         "label_field": label_field,
-        "source": "datasets.ClassLabel.names",
+        "source": label_source,
         "normalization": "canonical_label",
         "canonical_label_count": len(canonical_labels),
         "canonical_labels": canonical_labels,
@@ -139,12 +143,24 @@ def _write_canonical_labels_artifact(
     return str(artifact_path)
 
 
+def _configured_canonical_labels(config: ExperimentConfig) -> List[str]:
+    """Return explicit canonical labels configured for materialization."""
+    materialize_config = config.trainer_config.get("materialize_sft", {})
+    labels = materialize_config.get("canonical_labels") or config.trainer_config.get(
+        "canonical_labels"
+    )
+    if not labels:
+        return []
+    return [str(label) for label in labels]
+
+
 def _select_source_examples(
     source,
     *,
     max_samples: int | None,
     stratify_by: str | None = None,
     seed: int = 0,
+    canonical_labels: List[str] | None = None,
 ):
     """Select materialization rows, optionally preserving label coverage."""
     if max_samples is None or max_samples >= len(source):
@@ -158,17 +174,40 @@ def _select_source_examples(
             f"Available columns: {available}"
         )
 
-    labels = _class_label_names(source, stratify_by)
+    labels = list(canonical_labels or _class_label_names(source, stratify_by))
     if not labels:
         raise ValueError(
             f"Cannot stratify max_samples by '{stratify_by}' because it is not "
-            "a ClassLabel-style field"
+            "a ClassLabel-style field and no canonical_labels were configured"
         )
     if max_samples < len(labels):
         raise ValueError(
             f"max_samples={max_samples} is too small to cover "
             f"{len(labels)} labels when stratify_max_samples=true"
         )
+    if canonical_labels:
+        canonical_set = {_normalize_canonical_label(label) for label in labels}
+        buckets: Dict[str, List[int]] = {label: [] for label in canonical_set}
+        for index, row in enumerate(source):
+            label = _normalize_canonical_label(row[stratify_by])
+            if label in buckets:
+                buckets[label].append(index)
+        missing = sorted(label for label, indexes in buckets.items() if not indexes)
+        if missing:
+            raise ValueError(
+                f"Cannot cover canonical labels from '{stratify_by}': "
+                f"missing={missing}"
+            )
+
+        selected: list[int] = []
+        for label in sorted(buckets):
+            selected.append(buckets[label][0])
+        for index in range(len(source)):
+            if len(selected) >= max_samples:
+                break
+            if index not in selected:
+                selected.append(index)
+        return source.select(selected[:max_samples])
 
     return source.train_test_split(
         train_size=max_samples,
@@ -294,6 +333,7 @@ async def materialize_sft_records(
         or DEFAULT_TEACHER_PROMPT_TEMPLATE
     )
     gold_answer_field = materialize_config.get("gold_answer_field")
+    configured_canonical_labels = _configured_canonical_labels(config)
     stratify_max_samples = bool(materialize_config.get("stratify_max_samples", False))
 
     dataset = load_materialization_dataset(config)
@@ -309,6 +349,7 @@ async def materialize_sft_records(
         if stratify_max_samples
         else None,
         seed=int(config.seed),
+        canonical_labels=configured_canonical_labels,
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -484,6 +525,7 @@ async def materialize_sft_records(
             output_path=output_path,
             source=source,
             label_field=gold_answer_field or config.label_field,
+            canonical_labels=configured_canonical_labels,
         )
 
         manifest = {

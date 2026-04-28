@@ -132,6 +132,43 @@ def format_samples_for_prompt(
     ).strip()
 
 
+def format_choices_for_prompt(choices: Any) -> str:
+    """Format multiple-choice options for prompt templates.
+
+    HuggingFace multiple-choice datasets commonly expose choices as
+    ``{"label": [...], "text": [...]}``. This helper keeps YAML templates simple
+    and avoids depending on ad hoc Jinja filters for zipping nested fields.
+    """
+    if choices is None:
+        return ""
+
+    if isinstance(choices, dict):
+        labels = choices.get("label") or choices.get("labels")
+        texts = choices.get("text") or choices.get("texts")
+        if isinstance(labels, list) and isinstance(texts, list):
+            return "\n".join(
+                f"{str(label).strip()}. {str(text).strip()}"
+                for label, text in zip(labels, texts)
+            )
+        if isinstance(texts, list):
+            return "\n".join(
+                f"{index + 1}. {str(text).strip()}" for index, text in enumerate(texts)
+            )
+
+    if isinstance(choices, list):
+        lines: list[str] = []
+        for index, choice in enumerate(choices):
+            if isinstance(choice, dict):
+                label = choice.get("label", index + 1)
+                text = choice.get("text", choice.get("value", ""))
+                lines.append(f"{str(label).strip()}. {str(text).strip()}")
+            else:
+                lines.append(f"{index + 1}. {str(choice).strip()}")
+        return "\n".join(lines)
+
+    return str(choices).strip()
+
+
 def _apply_label_map(
     samples: List[Dict[str, Any]],
     label_map: Dict[int, str],
@@ -158,6 +195,7 @@ def create_prompt_environment() -> Environment:
 
     Available functions:
         - format_samples_for_prompt: Format sample lists for prompts
+        - format_choices_for_prompt: Format multiple-choice option lists
         - format_classification_report: Generate classification report from predictions
 
     Example usage in YAML config:
@@ -176,6 +214,7 @@ def create_prompt_environment() -> Environment:
     """
     env = Environment()
     env.globals["format_samples_for_prompt"] = format_samples_for_prompt
+    env.globals["format_choices_for_prompt"] = format_choices_for_prompt
     env.globals["format_classification_report"] = format_classification_report
     return env
 
