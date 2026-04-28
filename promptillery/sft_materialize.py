@@ -139,6 +139,44 @@ def _write_canonical_labels_artifact(
     return str(artifact_path)
 
 
+def _select_source_examples(
+    source,
+    *,
+    max_samples: int | None,
+    stratify_by: str | None = None,
+    seed: int = 0,
+):
+    """Select materialization rows, optionally preserving label coverage."""
+    if max_samples is None or max_samples >= len(source):
+        return source
+    if not stratify_by:
+        return source.select(range(max_samples))
+    if stratify_by not in source.column_names:
+        available = ", ".join(sorted(source.column_names))
+        raise ValueError(
+            f"Cannot stratify max_samples by '{stratify_by}'. "
+            f"Available columns: {available}"
+        )
+
+    labels = _class_label_names(source, stratify_by)
+    if not labels:
+        raise ValueError(
+            f"Cannot stratify max_samples by '{stratify_by}' because it is not "
+            "a ClassLabel-style field"
+        )
+    if max_samples < len(labels):
+        raise ValueError(
+            f"max_samples={max_samples} is too small to cover "
+            f"{len(labels)} labels when stratify_max_samples=true"
+        )
+
+    return source.train_test_split(
+        train_size=max_samples,
+        stratify_by_column=stratify_by,
+        seed=seed,
+    )["train"]
+
+
 def _format_template(template: str, values: Dict[str, Any]) -> str:
     """Format a user template and fail with a useful missing-key error."""
     try:
@@ -256,6 +294,7 @@ async def materialize_sft_records(
         or DEFAULT_TEACHER_PROMPT_TEMPLATE
     )
     gold_answer_field = materialize_config.get("gold_answer_field")
+    stratify_max_samples = bool(materialize_config.get("stratify_max_samples", False))
 
     dataset = load_materialization_dataset(config)
     if split not in dataset:
@@ -263,8 +302,14 @@ async def materialize_sft_records(
         raise ValueError(f"Split '{split}' not found. Available splits: {available}")
 
     source = dataset[split]
-    if max_samples is not None:
-        source = source.select(range(min(max_samples, len(source))))
+    source = _select_source_examples(
+        source,
+        max_samples=max_samples,
+        stratify_by=(gold_answer_field or config.label_field)
+        if stratify_max_samples
+        else None,
+        seed=int(config.seed),
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = output_path.with_name(f".{output_path.name}.tmp")
@@ -461,6 +506,7 @@ async def materialize_sft_records(
             "allow_estimated_usage": allow_estimated_usage,
             "mode": mode,
             "max_samples": max_samples,
+            "stratify_max_samples": stratify_max_samples,
             "prompt_operator": prompt_operator,
             "teacher_tier": teacher_tier,
             "token_budget": config.token_budget,

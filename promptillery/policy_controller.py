@@ -237,7 +237,7 @@ class PolicyController:
             action, scores = self._select_scored(
                 non_stop, state, predicted_costs, self._linear_score
             )
-        elif self.policy_name == "STOP":
+        elif self.policy_name in {"STOP", "student_only"}:
             action = stop
             scores = {"STOP": 0.0}
         else:

@@ -425,7 +425,10 @@ def policy_smoke(
     policy: str = typer.Option(
         "cost_heuristic",
         "--policy",
-        help="Policy to smoke test: random_feasible, cost_heuristic, frugalkd_p, or fixed_*",
+        help=(
+            "Policy to smoke test: student_only, random_feasible, "
+            "cost_heuristic, frugalkd_p, or fixed_*"
+        ),
     ),
     tokens_remaining: int = typer.Option(
         4096,

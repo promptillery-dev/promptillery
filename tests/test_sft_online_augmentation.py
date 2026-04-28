@@ -8,7 +8,10 @@ from jinja2 import Template
 
 from promptillery.engine import DistillationEngine, ensure_origin_columns
 from promptillery.policy_controller import PolicyAction, PolicyController
-from promptillery.sft_materialize import _write_canonical_labels_artifact
+from promptillery.sft_materialize import (
+    _select_source_examples,
+    _write_canonical_labels_artifact,
+)
 from promptillery.token_tracker import TokenTracker
 from promptillery.trainers.causal_lm_sft_trainer import CausalLMSFTTrainer
 from promptillery.utils import (
@@ -237,6 +240,23 @@ def test_policy_controller_manifest_exposes_fixed_linear_weights():
     assert "eval_error_rate" in manifest["linear_weights"]
 
 
+def test_student_only_policy_alias_selects_stop_action():
+    controller = PolicyController("student_only", seed=13)
+    actions = [
+        PolicyAction(prompt_operator="coverage", teacher_tier="cheap", batch_size=8),
+        PolicyAction(is_stop=True),
+    ]
+
+    choice = controller.select(
+        {"tokens_remaining": 10_000},
+        actions=actions,
+        predicted_costs={"coverage:cheap:b8": {"total_tokens": 64}},
+    )
+
+    assert choice.action.is_stop
+    assert choice.action_scores == {"STOP": 0.0}
+
+
 def test_materialize_writes_canonical_label_artifact(tmp_path):
     features = Features(
         {
@@ -268,6 +288,56 @@ def test_materialize_writes_canonical_label_artifact(tmp_path):
         "cash_withdrawal",
         "card_arrival",
     ]
+
+
+def test_select_source_examples_can_stratify_materialization_cap():
+    features = Features(
+        {
+            "text": Value("string"),
+            "label": ClassLabel(names=["alpha", "beta", "gamma"]),
+        }
+    )
+    dataset = Dataset.from_dict(
+        {
+            "text": [f"example-{index}" for index in range(30)],
+            "label": [0] * 10 + [1] * 10 + [2] * 10,
+        },
+        features=features,
+    )
+
+    subset = _select_source_examples(
+        dataset,
+        max_samples=6,
+        stratify_by="label",
+        seed=13,
+    )
+
+    assert len(subset) == 6
+    assert set(subset["label"]) == {0, 1, 2}
+
+
+def test_select_source_examples_rejects_too_small_stratified_cap():
+    features = Features(
+        {
+            "text": Value("string"),
+            "label": ClassLabel(names=["alpha", "beta", "gamma"]),
+        }
+    )
+    dataset = Dataset.from_dict(
+        {
+            "text": [f"example-{index}" for index in range(9)],
+            "label": [0] * 3 + [1] * 3 + [2] * 3,
+        },
+        features=features,
+    )
+
+    with pytest.raises(ValueError, match="too small to cover"):
+        _select_source_examples(
+            dataset,
+            max_samples=2,
+            stratify_by="label",
+            seed=13,
+        )
 
 
 def test_origin_columns_preserve_materialized_sft_metadata():
