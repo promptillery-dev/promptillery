@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -17,10 +17,14 @@ class PredictionResult:
     """Container for prediction results with confidence and entropy."""
 
     indices: List[int]
-    predicted_labels: List[int]
-    true_labels: List[int]
+    predicted_labels: List[Any]
+    true_labels: List[Any]
     confidences: List[float]
     entropies: Optional[List[float]] = None
+    label_names: Optional[List[str]] = None
+    predicted_texts: Optional[List[str]] = None
+    true_texts: Optional[List[str]] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class BaseTrainer(ABC):

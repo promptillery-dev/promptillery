@@ -83,6 +83,17 @@ def _prediction_features(
             confusion_pairs.most_common(1)[0][1] / total
         )
 
+    metadata = predictions.metadata or {}
+    for name in (
+        "exact_match",
+        "invalid_label_rate",
+        "macro_f1",
+        "macro_f1_full_canonical",
+    ):
+        value = _as_float(metadata.get(name))
+        if value is not None:
+            features[f"{prefix}_{name}"] = value
+
     return features
 
 

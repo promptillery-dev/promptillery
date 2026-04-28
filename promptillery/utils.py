@@ -262,11 +262,13 @@ def extract_high_entropy_samples(
     samples = []
     for i in sorted_indices:
         idx = predictions.indices[i]
+        true_label = _display_true_label(predictions, i)
+        predicted_label = _display_predicted_label(predictions, i)
         samples.append(
             {
                 "text": dataset[idx][text_column],
-                "label": predictions.true_labels[i],
-                "predicted_label": predictions.predicted_labels[i],
+                "label": true_label,
+                "predicted_label": predicted_label,
                 "confidence": predictions.confidences[i],
                 "entropy": predictions.entropies[i],
             }
@@ -317,8 +319,8 @@ def extract_hard_negatives(
             hard_negs.append(
                 {
                     "text": dataset[idx][text_column],
-                    "label": true,
-                    "predicted_label": pred,
+                    "label": _display_true_label(predictions, i),
+                    "predicted_label": _display_predicted_label(predictions, i),
                     "confidence": conf,
                 }
             )
@@ -326,6 +328,31 @@ def extract_hard_negatives(
     # Sort by confidence (highest first) and take top_k
     hard_negs.sort(key=lambda x: x["confidence"], reverse=True)
     return hard_negs[:top_k]
+
+
+def _display_true_label(predictions: "PredictionResult", i: int) -> Any:
+    """Return the most readable true label available for prompt context."""
+    if predictions.true_texts and i < len(predictions.true_texts):
+        return predictions.true_texts[i]
+    return _display_numeric_label(predictions, predictions.true_labels[i])
+
+
+def _display_predicted_label(predictions: "PredictionResult", i: int) -> Any:
+    """Return the most readable predicted label available for prompt context."""
+    if predictions.predicted_texts and i < len(predictions.predicted_texts):
+        return predictions.predicted_texts[i]
+    return _display_numeric_label(predictions, predictions.predicted_labels[i])
+
+
+def _display_numeric_label(predictions: "PredictionResult", label: Any) -> Any:
+    """Map numeric labels to names when the trainer supplied a label list."""
+    if (
+        predictions.label_names
+        and isinstance(label, int)
+        and 0 <= label < len(predictions.label_names)
+    ):
+        return predictions.label_names[label]
+    return label
 
 
 def format_classification_report(
@@ -360,20 +387,54 @@ def format_classification_report(
     if not predictions.predicted_labels or not predictions.true_labels:
         return "No predictions available for classification report."
 
-    # Prepare target names if label_map provided
+    y_true: List[Any]
+    y_pred: List[Any]
+    if predictions.true_texts and predictions.predicted_texts:
+        y_true = list(predictions.true_texts)
+        y_pred = list(predictions.predicted_texts)
+    else:
+        y_true = list(predictions.true_labels)
+        y_pred = list(predictions.predicted_labels)
+
+    labels = None
     target_names = None
-    if label_map:
+    if label_map and not (predictions.true_texts and predictions.predicted_texts):
         # Get unique labels and sort them
         unique_labels = sorted(
             set(predictions.true_labels + predictions.predicted_labels)
         )
+        labels = unique_labels
         target_names = [label_map.get(label, str(label)) for label in unique_labels]
+    elif predictions.label_names and predictions.true_texts and predictions.predicted_texts:
+        label_names = list(predictions.label_names)
+        extra_labels = sorted((set(y_true) | set(y_pred)) - set(label_names))
+        labels = label_names + extra_labels
 
     report = sklearn_classification_report(
-        y_true=predictions.true_labels,
-        y_pred=predictions.predicted_labels,
+        y_true=y_true,
+        y_pred=y_pred,
+        labels=labels,
         target_names=target_names,
         zero_division=0,
     )
+
+    metadata = predictions.metadata or {}
+    summary_lines = []
+    for key in (
+        "macro_f1",
+        "macro_f1_full_canonical",
+        "invalid_label_rate",
+        "exact_match",
+    ):
+        value = metadata.get(key)
+        if isinstance(value, (int, float)):
+            summary_lines.append(f"{key}: {value:.4f}")
+    for key in ("canonical_label_count", "observed_gold_label_count"):
+        value = metadata.get(key)
+        if isinstance(value, int):
+            summary_lines.append(f"{key}: {value}")
+
+    if summary_lines:
+        return "\n".join(summary_lines) + "\n\n" + report
 
     return report

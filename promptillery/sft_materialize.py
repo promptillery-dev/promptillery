@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
@@ -77,6 +78,65 @@ def _label_text(
         except ValueError:
             return str(label), label_field
     return str(label), label_field
+
+
+def _normalize_canonical_label(value: Any) -> str:
+    """Normalize a class label the same way SFT canonical-label evaluation does."""
+    text = str(value).strip().lower()
+    text = " ".join(text.split()).strip(" .,:;")
+    return re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+
+
+def _class_label_names(dataset, label_field: str) -> List[str]:
+    """Return canonical ClassLabel names for a dataset field when available."""
+    feature = dataset.features.get(label_field)
+    names = getattr(feature, "names", None)
+    if names:
+        return [str(name) for name in names]
+    num_classes = getattr(feature, "num_classes", None)
+    int2str = getattr(feature, "int2str", None)
+    if num_classes is not None and int2str is not None:
+        labels = []
+        for index in range(int(num_classes)):
+            try:
+                labels.append(str(int2str(index)))
+            except ValueError:
+                return []
+        return labels
+    return []
+
+
+def _write_canonical_labels_artifact(
+    *,
+    config: ExperimentConfig,
+    output_path: Path,
+    source,
+    label_field: str,
+) -> str | None:
+    """Write the canonical label schema next to materialized SFT JSONL files."""
+    canonical_labels = _class_label_names(source, label_field)
+    if not canonical_labels:
+        return None
+
+    normalized_labels = [_normalize_canonical_label(label) for label in canonical_labels]
+    artifact_path = output_path.parent / "canonical_labels.json"
+    temp_path = artifact_path.with_name(f".{artifact_path.name}.tmp")
+    payload = {
+        "schema_version": 1,
+        "dataset": config.dataset,
+        "dataset_subset": config.dataset_subset,
+        "label_field": label_field,
+        "source": "datasets.ClassLabel.names",
+        "normalization": "canonical_label",
+        "canonical_label_count": len(canonical_labels),
+        "canonical_labels": canonical_labels,
+        "normalized_canonical_labels": normalized_labels,
+    }
+    with temp_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, sort_keys=True)
+        f.write("\n")
+    temp_path.replace(artifact_path)
+    return str(artifact_path)
 
 
 def _format_template(template: str, values: Dict[str, Any]) -> str:
@@ -221,6 +281,7 @@ async def materialize_sft_records(
     record_hashes: list[str] = []
     stop_reason = "completed"
     materialized_at = datetime.now(timezone.utc).isoformat()
+    canonical_labels_path = None
 
     try:
         with temp_path.open("w", encoding="utf-8") as f:
@@ -373,6 +434,13 @@ async def materialize_sft_records(
         if written == 0:
             raise ValueError("No SFT records were materialized")
 
+        canonical_labels_path = _write_canonical_labels_artifact(
+            config=config,
+            output_path=output_path,
+            source=source,
+            label_field=gold_answer_field or config.label_field,
+        )
+
         manifest = {
             "schema_version": 1,
             "output_path": str(output_path),
@@ -400,6 +468,8 @@ async def materialize_sft_records(
             "usage_estimated_records": usage_estimated_records,
             "materialized_at": materialized_at,
         }
+        if canonical_labels_path:
+            manifest["canonical_labels_path"] = canonical_labels_path
         artifact_hash = sha256()
         with temp_path.open("rb") as f:
             for chunk in iter(lambda: f.read(1024 * 1024), b""):
