@@ -1705,6 +1705,48 @@ def test_summarize_run_extends_auc_to_token_budget(tmp_path):
     assert round(summary["cycle_quality_cost_auc"], 3) == 0.175
 
 
+def test_summarize_run_reports_online_and_total_teacher_auc(tmp_path):
+    _write_run(
+        tmp_path,
+        name="seed_offset",
+        policy_name="cost_heuristic",
+        token_budget=20,
+    )
+    run_dir = tmp_path / "seed_offset"
+    metrics = {
+        "0": {"macro_f1": 0.1, "_teacher_tokens_at_eval": 100},
+        "1": {"macro_f1": 0.2, "_teacher_tokens_at_eval": 110},
+    }
+    token_usage = {
+        "cycles_completed": 2,
+        "totals": {
+            "sft_data": {
+                "input_tokens": 60,
+                "output_tokens": 40,
+                "total_tokens": 100,
+            }
+        },
+        "grand_total": {
+            "input_tokens": 67,
+            "output_tokens": 43,
+            "total_tokens": 110,
+        },
+        "per_cycle": [
+            {"cycle": 0, "cycle_total": {"total_tokens": 100}},
+            {"cycle": 1, "cycle_total": {"total_tokens": 10}},
+        ],
+    }
+    (run_dir / "metrics.json").write_text(json.dumps(metrics))
+    (run_dir / "token_usage.json").write_text(json.dumps(token_usage))
+
+    summary = summarize_run(run_dir, metric="macro_f1")
+
+    assert round(summary["cycle_quality_cost_auc"], 3) == 0.175
+    assert round(summary["online_acquisition_quality_cost_auc"], 3) == 0.175
+    assert round(summary["total_teacher_quality_cost_auc"], 4) == 0.1125
+    assert summary["seed_teacher_total_tokens"] == 100
+
+
 def test_pilot_gate_requires_heldout_test_metric(tmp_path):
     _write_run(tmp_path, name="missing", policy_name="frugalkd_p")
 

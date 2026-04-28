@@ -203,6 +203,10 @@ PAPER_MAIN_RESULT_FIELDS = [
     "run_count",
     "mean_cycle_quality_cost_auc",
     "std_cycle_quality_cost_auc",
+    "mean_online_acquisition_quality_cost_auc",
+    "std_online_acquisition_quality_cost_auc",
+    "mean_total_teacher_quality_cost_auc",
+    "std_total_teacher_quality_cost_auc",
     "mean_heldout_metric",
     "std_heldout_metric",
     "mean_final_metric",
@@ -224,6 +228,8 @@ PAPER_PAIRWISE_DELTA_FIELDS = [
     "baseline_policy",
     "baseline_control_name",
     "delta_cycle_quality_cost_auc",
+    "delta_online_acquisition_quality_cost_auc",
+    "delta_total_teacher_quality_cost_auc",
     "delta_heldout_metric",
     "delta_final_metric",
     "auc_win",
@@ -1482,7 +1488,10 @@ def summarize_run(
 
     resolved_mode = _resolve_mode(metric_name, mode)
     cycle_tokens = _cycle_token_totals(token_usage)
-    points = []
+    charged_seed_total = _charged_seed_total(token_usage)
+    seed_total = _safe_int(seed_summary.get("seed_teacher_total_tokens")) or 0
+    online_points = []
+    total_points = []
     values = []
     for cycle, values_for_cycle in cycles:
         if metric_name in values_for_cycle:
@@ -1493,7 +1502,12 @@ def summarize_run(
             )
             if tokens_at_eval is None:
                 tokens_at_eval = float(cycle_tokens.get(cycle, 0))
-            points.append((tokens_at_eval, value))
+            online_tokens_at_eval = max(
+                0.0,
+                float(tokens_at_eval) - float(charged_seed_total),
+            )
+            online_points.append((online_tokens_at_eval, value))
+            total_points.append((float(seed_total) + online_tokens_at_eval, value))
 
     best_cycle = None
     best_value = None
@@ -1521,6 +1535,9 @@ def summarize_run(
     grand_total = token_usage.get("grand_total", {})
     token_budget = run_manifest.get("token_budget", config.get("token_budget"))
     token_budget_int = _safe_int(token_budget)
+    total_teacher_horizon = (
+        seed_total + token_budget_int if token_budget_int is not None else None
+    )
     teacher_total_tokens = _safe_int(grand_total.get("total_tokens")) or 0
     cycles_completed = _safe_int(
         token_usage.get(
@@ -1575,7 +1592,15 @@ def summarize_run(
         "heldout_observed_gold_label_count": _safe_int(
             heldout.get("observed_gold_label_count") if heldout else None
         ),
-        "cycle_quality_cost_auc": _cycle_auc(points, x_max=token_budget_int),
+        "cycle_quality_cost_auc": _cycle_auc(
+            online_points, x_max=token_budget_int
+        ),
+        "online_acquisition_quality_cost_auc": _cycle_auc(
+            online_points, x_max=token_budget_int
+        ),
+        "total_teacher_quality_cost_auc": _cycle_auc(
+            total_points, x_max=total_teacher_horizon
+        ),
         "token_budget": token_budget,
         "synthetic_record_budget": run_manifest.get(
             "synthetic_record_budget", config.get("synthetic_record_budget")
@@ -1645,6 +1670,8 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "heldout_canonical_label_count",
         "heldout_observed_gold_label_count",
         "cycle_quality_cost_auc",
+        "online_acquisition_quality_cost_auc",
+        "total_teacher_quality_cost_auc",
         "token_budget",
         "synthetic_record_budget",
         "final_synthetic_count",
@@ -1825,6 +1852,12 @@ def summarize_paper_main_results(
         auc_mean, auc_std = _mean_std(
             row.get("cycle_quality_cost_auc") for row in group
         )
+        online_auc_mean, online_auc_std = _mean_std(
+            row.get("online_acquisition_quality_cost_auc") for row in group
+        )
+        total_auc_mean, total_auc_std = _mean_std(
+            row.get("total_teacher_quality_cost_auc") for row in group
+        )
         heldout_mean, heldout_std = _mean_std(
             row.get("heldout_metric") for row in group
         )
@@ -1852,6 +1885,10 @@ def summarize_paper_main_results(
                 "run_count": len(group),
                 "mean_cycle_quality_cost_auc": auc_mean,
                 "std_cycle_quality_cost_auc": auc_std,
+                "mean_online_acquisition_quality_cost_auc": online_auc_mean,
+                "std_online_acquisition_quality_cost_auc": online_auc_std,
+                "mean_total_teacher_quality_cost_auc": total_auc_mean,
+                "std_total_teacher_quality_cost_auc": total_auc_std,
                 "mean_heldout_metric": heldout_mean,
                 "std_heldout_metric": heldout_std,
                 "mean_final_metric": final_mean,
@@ -1894,6 +1931,16 @@ def summarize_paper_pairwise_deltas(
             baseline.get("cycle_quality_cost_auc"),
             mode,
         )
+        online_auc_delta = _improvement_delta(
+            success.get("online_acquisition_quality_cost_auc"),
+            baseline.get("online_acquisition_quality_cost_auc"),
+            mode,
+        )
+        total_auc_delta = _improvement_delta(
+            success.get("total_teacher_quality_cost_auc"),
+            baseline.get("total_teacher_quality_cost_auc"),
+            mode,
+        )
         heldout_delta = _improvement_delta(
             success.get("heldout_metric"), baseline.get("heldout_metric"), mode
         )
@@ -1914,6 +1961,8 @@ def summarize_paper_pairwise_deltas(
                 "baseline_policy": baseline_policy,
                 "baseline_control_name": baseline.get("control_name"),
                 "delta_cycle_quality_cost_auc": auc_delta,
+                "delta_online_acquisition_quality_cost_auc": online_auc_delta,
+                "delta_total_teacher_quality_cost_auc": total_auc_delta,
                 "delta_heldout_metric": heldout_delta,
                 "delta_final_metric": final_delta,
                 "auc_win": _win_flag(auc_delta),
