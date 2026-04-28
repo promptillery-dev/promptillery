@@ -225,6 +225,10 @@ class PolicyController:
         if self.policy_name == "random_feasible":
             action = self.rng.choice(non_stop)
             scores = {candidate.name: 0.0 for candidate in non_stop}
+        elif self.policy_name == "fixed_mixed_teacher":
+            action, scores = self._select_mixed_teacher(
+                non_stop, state, predicted_costs
+            )
         elif self.policy_name.startswith("fixed_"):
             action, scores = self._select_fixed(non_stop, state, predicted_costs)
         elif self.policy_name in {"cheap_only", "strong_only"}:
@@ -270,6 +274,19 @@ class PolicyController:
         predicted_costs: Mapping[str, Any],
     ) -> tuple[PolicyAction, Dict[str, float]]:
         tier = self.policy_name.removesuffix("_only")
+        matching = [action for action in actions if action.teacher_tier == tier]
+        if not matching:
+            matching = list(actions)
+        return self._select_scored(matching, state, predicted_costs, self._low_cost_score)
+
+    def _select_mixed_teacher(
+        self,
+        actions: Sequence[PolicyAction],
+        state: Mapping[str, Any],
+        predicted_costs: Mapping[str, Any],
+    ) -> tuple[PolicyAction, Dict[str, float]]:
+        cycle = int(state.get("cycle", 0) or 0)
+        tier = "cheap" if cycle % 2 == 0 else "strong"
         matching = [action for action in actions if action.teacher_tier == tier]
         if not matching:
             matching = list(actions)

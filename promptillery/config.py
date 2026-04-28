@@ -196,7 +196,7 @@ class ExperimentConfig(BaseModel):
             "Teacher-acquisition policy. Use fixed_promptillery for the legacy "
             "loop, or PolicyController names such as random_feasible, "
             "cost_heuristic, frugalkd_p, fixed_coverage, cheap_only, "
-            "student_only, or STOP."
+            "fixed_mixed_teacher, student_only, or STOP."
         ),
     )
     policy_prompt_operators: List[str] = Field(

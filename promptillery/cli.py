@@ -427,7 +427,7 @@ def policy_smoke(
         "--policy",
         help=(
             "Policy to smoke test: student_only, random_feasible, "
-            "cost_heuristic, frugalkd_p, or fixed_*"
+            "cost_heuristic, frugalkd_p, fixed_mixed_teacher, or fixed_*"
         ),
     ),
     tokens_remaining: int = typer.Option(

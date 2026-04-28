@@ -257,6 +257,33 @@ def test_student_only_policy_alias_selects_stop_action():
     assert choice.action_scores == {"STOP": 0.0}
 
 
+def test_fixed_mixed_teacher_alternates_teacher_tiers():
+    controller = PolicyController("fixed_mixed_teacher", seed=13)
+    actions = [
+        PolicyAction(prompt_operator="coverage", teacher_tier="cheap", batch_size=8),
+        PolicyAction(prompt_operator="coverage", teacher_tier="strong", batch_size=8),
+        PolicyAction(is_stop=True),
+    ]
+    predicted_costs = {
+        "coverage:cheap:b8": {"total_tokens": 64},
+        "coverage:strong:b8": {"total_tokens": 128},
+    }
+
+    first = controller.select(
+        {"cycle": 0, "tokens_remaining": 10_000},
+        actions=actions,
+        predicted_costs=predicted_costs,
+    )
+    second = controller.select(
+        {"cycle": 1, "tokens_remaining": 10_000},
+        actions=actions,
+        predicted_costs=predicted_costs,
+    )
+
+    assert first.action.teacher_tier == "cheap"
+    assert second.action.teacher_tier == "strong"
+
+
 def test_materialize_writes_canonical_label_artifact(tmp_path):
     features = Features(
         {
