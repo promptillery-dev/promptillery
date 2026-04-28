@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import csv
+import itertools
 import json
 import math
+import random
 import statistics
 from collections import defaultdict
 from hashlib import sha256
@@ -184,6 +186,7 @@ PAPER_PAIRWISE_SUMMARY_FIELDS = [
     "student_type",
     "metric",
     "mode",
+    "summary_scope",
     "token_budget",
     "success_policy",
     "baseline_policy",
@@ -194,6 +197,8 @@ PAPER_PAIRWISE_SUMMARY_FIELDS = [
     "auc_ties",
     "auc_win_rate",
     "auc_mean_delta",
+    "auc_mean_delta_ci_low",
+    "auc_mean_delta_ci_high",
     "auc_sign_test_p",
     "heldout_n",
     "heldout_wins",
@@ -201,6 +206,8 @@ PAPER_PAIRWISE_SUMMARY_FIELDS = [
     "heldout_ties",
     "heldout_win_rate",
     "heldout_mean_delta",
+    "heldout_mean_delta_ci_low",
+    "heldout_mean_delta_ci_high",
     "heldout_sign_test_p",
     "final_n",
     "final_wins",
@@ -208,6 +215,8 @@ PAPER_PAIRWISE_SUMMARY_FIELDS = [
     "final_ties",
     "final_win_rate",
     "final_mean_delta",
+    "final_mean_delta_ci_low",
+    "final_mean_delta_ci_high",
     "final_sign_test_p",
 ]
 PAPER_QUALITY_COST_POINT_FIELDS = [
@@ -1386,7 +1395,9 @@ def summarize_paper_pairwise_deltas(
     )
 
 
-def _paper_pairwise_summary_key(row: Dict[str, Any]) -> tuple[Any, ...]:
+def _paper_pairwise_summary_key(
+    row: Dict[str, Any], *, all_budgets: bool = False
+) -> tuple[Any, ...]:
     """Group paired deltas by axes used for statistical summaries."""
     return (
         row.get("dataset"),
@@ -1395,7 +1406,8 @@ def _paper_pairwise_summary_key(row: Dict[str, Any]) -> tuple[Any, ...]:
         row.get("student_type"),
         row.get("metric"),
         row.get("mode"),
-        row.get("token_budget"),
+        "all_budgets" if all_budgets else "budget",
+        "ALL" if all_budgets else row.get("token_budget"),
         row.get("success_policy"),
         row.get("baseline_policy"),
         row.get("baseline_control_name"),
@@ -1412,6 +1424,55 @@ def _exact_two_sided_sign_test_p(wins: int, losses: int) -> float | None:
     return min(1.0, 2 * probability)
 
 
+def _percentile(sorted_values: List[float], probability: float) -> float | None:
+    """Return a linearly interpolated percentile from sorted values."""
+    if not sorted_values:
+        return None
+    if len(sorted_values) == 1:
+        return sorted_values[0]
+    index = probability * (len(sorted_values) - 1)
+    lower = math.floor(index)
+    upper = math.ceil(index)
+    if lower == upper:
+        return sorted_values[int(index)]
+    fraction = index - lower
+    return sorted_values[lower] * (1 - fraction) + sorted_values[upper] * fraction
+
+
+def _bootstrap_mean_ci(
+    values: List[float],
+    *,
+    confidence: float = 0.95,
+    max_exact_resamples: int = 50_000,
+    sampled_resamples: int = 10_000,
+) -> tuple[float | None, float | None]:
+    """Return a deterministic percentile bootstrap CI for the mean."""
+    if not values:
+        return None, None
+    if len(values) == 1:
+        return values[0], values[0]
+
+    n = len(values)
+    total_exact = n**n
+    if total_exact <= max_exact_resamples:
+        means = [
+            statistics.fmean(values[index] for index in indexes)
+            for indexes in itertools.product(range(n), repeat=n)
+        ]
+    else:
+        payload = json.dumps([round(value, 12) for value in values]).encode("utf-8")
+        seed = int(sha256(payload).hexdigest()[:16], 16)
+        rng = random.Random(seed)
+        means = [
+            statistics.fmean(values[rng.randrange(n)] for _ in range(n))
+            for _ in range(sampled_resamples)
+        ]
+
+    means.sort()
+    alpha = (1 - confidence) / 2
+    return _percentile(means, alpha), _percentile(means, 1 - alpha)
+
+
 def _paired_delta_stats(
     rows: List[Dict[str, Any]],
     delta_key: str,
@@ -1426,6 +1487,7 @@ def _paired_delta_stats(
     losses = sum(1 for value in deltas if value < 0)
     ties = sum(1 for value in deltas if value == 0)
     mean_delta, _ = _mean_std(deltas)
+    ci_low, ci_high = _bootstrap_mean_ci(deltas)
     return {
         "n": len(deltas),
         "wins": wins,
@@ -1433,6 +1495,8 @@ def _paired_delta_stats(
         "ties": ties,
         "win_rate": wins / len(deltas) if deltas else None,
         "mean_delta": mean_delta,
+        "mean_delta_ci_low": ci_low,
+        "mean_delta_ci_high": ci_high,
         "sign_test_p": _exact_two_sided_sign_test_p(wins, losses),
     }
 
@@ -1443,7 +1507,8 @@ def summarize_paper_pairwise_summary(
     """Aggregate paired deltas into reviewer-facing win-rate summaries."""
     grouped: Dict[tuple[Any, ...], List[Dict[str, Any]]] = defaultdict(list)
     for row in delta_rows:
-        grouped[_paper_pairwise_summary_key(row)].append(row)
+        grouped[_paper_pairwise_summary_key(row, all_budgets=False)].append(row)
+        grouped[_paper_pairwise_summary_key(row, all_budgets=True)].append(row)
 
     summary_rows = []
     for key, group in sorted(
@@ -1456,6 +1521,7 @@ def summarize_paper_pairwise_summary(
             student_type,
             metric,
             mode,
+            summary_scope,
             token_budget,
             success_policy,
             baseline_policy,
@@ -1472,6 +1538,7 @@ def summarize_paper_pairwise_summary(
                 "student_type": student_type,
                 "metric": metric,
                 "mode": mode,
+                "summary_scope": summary_scope,
                 "token_budget": token_budget,
                 "success_policy": success_policy,
                 "baseline_policy": baseline_policy,
@@ -1482,6 +1549,8 @@ def summarize_paper_pairwise_summary(
                 "auc_ties": auc["ties"],
                 "auc_win_rate": auc["win_rate"],
                 "auc_mean_delta": auc["mean_delta"],
+                "auc_mean_delta_ci_low": auc["mean_delta_ci_low"],
+                "auc_mean_delta_ci_high": auc["mean_delta_ci_high"],
                 "auc_sign_test_p": auc["sign_test_p"],
                 "heldout_n": heldout["n"],
                 "heldout_wins": heldout["wins"],
@@ -1489,6 +1558,8 @@ def summarize_paper_pairwise_summary(
                 "heldout_ties": heldout["ties"],
                 "heldout_win_rate": heldout["win_rate"],
                 "heldout_mean_delta": heldout["mean_delta"],
+                "heldout_mean_delta_ci_low": heldout["mean_delta_ci_low"],
+                "heldout_mean_delta_ci_high": heldout["mean_delta_ci_high"],
                 "heldout_sign_test_p": heldout["sign_test_p"],
                 "final_n": final["n"],
                 "final_wins": final["wins"],
@@ -1496,6 +1567,8 @@ def summarize_paper_pairwise_summary(
                 "final_ties": final["ties"],
                 "final_win_rate": final["win_rate"],
                 "final_mean_delta": final["mean_delta"],
+                "final_mean_delta_ci_low": final["mean_delta_ci_low"],
+                "final_mean_delta_ci_high": final["mean_delta_ci_high"],
                 "final_sign_test_p": final["sign_test_p"],
             }
         )
@@ -1930,7 +2003,8 @@ def _write_paper_report_markdown(
             "",
             "Use `paper_main_results.csv` for the main table, "
             "`paper_pairwise_deltas.csv` for paired seed/budget deltas, "
-            "`paper_pairwise_summary.csv` for win rates and sign tests, "
+            "`paper_pairwise_summary.csv` for per-budget and all-budget win "
+            "rates, effect-size CIs, and sign tests, "
             "`paper_quality_cost_points.csv` for quality-cost curves, "
             "`paper_budget_audit.csv` for the accounting table, and "
             "`paper_action_frequencies.csv` plus "

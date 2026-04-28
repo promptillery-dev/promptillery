@@ -204,11 +204,24 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert delta_rows[0]["baseline_policy"] == "cost_heuristic"
     assert float(delta_rows[0]["delta_final_metric"]) > 0
     assert delta_rows[0]["final_win"] == "True"
-    assert len(summary_rows) == 1
-    assert summary_rows[0]["final_wins"] == "1"
-    assert summary_rows[0]["final_losses"] == "0"
-    assert summary_rows[0]["final_win_rate"] == "1.0"
-    assert summary_rows[0]["final_sign_test_p"] == "1.0"
+    assert len(summary_rows) == 2
+    budget_summary = next(
+        row for row in summary_rows if row["summary_scope"] == "budget"
+    )
+    all_budget_summary = next(
+        row for row in summary_rows if row["summary_scope"] == "all_budgets"
+    )
+    assert budget_summary["final_wins"] == "1"
+    assert budget_summary["final_losses"] == "0"
+    assert budget_summary["final_win_rate"] == "1.0"
+    assert budget_summary["final_sign_test_p"] == "1.0"
+    assert float(budget_summary["final_mean_delta_ci_low"]) > 0
+    assert (
+        budget_summary["final_mean_delta_ci_low"]
+        == budget_summary["final_mean_delta_ci_high"]
+    )
+    assert all_budget_summary["token_budget"] == "ALL"
+    assert all_budget_summary["final_n"] == "1"
     frugal_points = [row for row in point_rows if row["run_id"] == "frugal"]
     assert [row["split"] for row in frugal_points] == [
         "validation",
