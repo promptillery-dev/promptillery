@@ -711,6 +711,31 @@ def test_paper_gate_passes_complete_report(tmp_path):
         final_metric=0.6,
         heldout_metric=0.55,
     )
+    for name in ("frugal", "heuristic"):
+        _write_dataset_cycle(
+            tmp_path,
+            name,
+            [
+                {
+                    "id": f"{name}/seed/0",
+                    "student_prompt": "balance question",
+                    "teacher_response": "alpha",
+                    "gold_answer": "alpha",
+                    "source_split": "train",
+                    "source_idx": 0,
+                    "origin_cycle": 0,
+                },
+                {
+                    "id": f"{name}/augmented/1/0",
+                    "student_prompt": f"{name} synthetic question",
+                    "teacher_response": "beta",
+                    "gold_answer": "beta",
+                    "source_split": "augmented",
+                    "source_idx": -1,
+                    "origin_cycle": 1,
+                },
+            ],
+        )
     rows = analyze_runs(tmp_path, metric="macro_f1")
     report_dir = tmp_path / "paper_report"
     write_paper_report(

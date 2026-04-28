@@ -3774,6 +3774,13 @@ def validate_paper_gate(
         / "audit"
         / "budget_feasibility_certificate.csv",
         "provenance_audit": report_dir / "audit" / "provenance_audit.csv",
+        "synthetic_quality": report_dir / "audit" / "synthetic_quality.csv",
+        "synthetic_label_distribution": report_dir
+        / "audit"
+        / "synthetic_label_distribution.csv",
+        "same_count_distribution": report_dir
+        / "audit"
+        / "same_count_distribution.csv",
     }
     if require_figures:
         paths["paper_figures_manifest"] = (
@@ -3796,6 +3803,9 @@ def validate_paper_gate(
     budget_rows = _read_csv_rows(paths["paper_budget_audit"])
     certificate_rows = _read_csv_rows(paths["budget_feasibility_certificate"])
     provenance_rows = _read_csv_rows(paths["provenance_audit"])
+    synthetic_quality_rows = _read_csv_rows(paths["synthetic_quality"])
+    synthetic_label_rows = _read_csv_rows(paths["synthetic_label_distribution"])
+    same_count_distribution_rows = _read_csv_rows(paths["same_count_distribution"])
 
     checks.append(
         _gate_check(
@@ -3962,6 +3972,43 @@ def validate_paper_gate(
             "paper_provenance_consistent_across_runs",
             bool(provenance_rows) and not provenance_consistency_failures,
             failures=provenance_consistency_failures,
+        )
+    )
+
+    synthetic_quality_failures = [
+        {
+            "run_id": row.get("run_id"),
+            "policy_name": row.get("policy_name"),
+            "dataset_cycle_path": row.get("dataset_cycle_path"),
+            "dataset_load_error": row.get("dataset_load_error"),
+        }
+        for row in synthetic_quality_rows
+        if not _truthy(row.get("dataset_persisted"))
+    ]
+    checks.append(
+        _gate_check(
+            "paper_synthetic_quality_audit_passes",
+            bool(synthetic_quality_rows) and not synthetic_quality_failures,
+            synthetic_quality_row_count=len(synthetic_quality_rows),
+            label_distribution_row_count=len(synthetic_label_rows),
+            failures=synthetic_quality_failures,
+        )
+    )
+    checks.append(
+        _gate_check(
+            "paper_synthetic_label_distribution_present",
+            bool(synthetic_label_rows),
+            label_distribution_row_count=len(synthetic_label_rows),
+        )
+    )
+    requires_same_count_distribution = "same_count" in set(required_control_names)
+    checks.append(
+        _gate_check(
+            "paper_same_count_distribution_present",
+            (not requires_same_count_distribution)
+            or bool(same_count_distribution_rows),
+            required=requires_same_count_distribution,
+            same_count_distribution_row_count=len(same_count_distribution_rows),
         )
     )
 
