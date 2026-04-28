@@ -618,6 +618,165 @@ def test_augmented_sft_rows_preserve_schema_fields():
     ]
 
 
+def test_paper_mode_accepts_canonical_online_sft_labels():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        trainer_config={
+            "prompt_field": "student_prompt",
+            "response_field": "teacher_response",
+            "gold_answer_field": "gold_answer",
+            "answer_extraction": "canonical_label",
+            "canonical_labels": ["cash_withdrawal", "cash_deposit"],
+        },
+        paper_mode=True,
+        seed=13,
+    )
+    engine.run_id = "run-test"
+    ds = Dataset.from_dict(
+        {
+            "student_prompt": ["base prompt"],
+            "teacher_response": ["cash_withdrawal"],
+            "gold_answer": ["cash_withdrawal"],
+        }
+    )
+
+    rows = engine._build_augmented_sft_rows(
+        [
+            {
+                "student_prompt": "Where is the nearest ATM?",
+                "teacher_response": "Cash Withdrawal",
+                "gold_answer": "cash_withdrawal",
+            }
+        ],
+        ds,
+        cycle=1,
+        teacher_model="teacher/mock",
+        teacher_tier="cheap",
+        prompt_operator="coverage",
+    )
+
+    assert rows[0]["teacher_response"] == "Cash Withdrawal"
+    assert rows[0]["gold_answer"] == "cash_withdrawal"
+
+
+def test_paper_mode_rejects_noncanonical_online_sft_teacher_label():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        trainer_config={
+            "prompt_field": "student_prompt",
+            "response_field": "teacher_response",
+            "gold_answer_field": "gold_answer",
+            "answer_extraction": "canonical_label",
+            "canonical_labels": ["cash_withdrawal", "cash_deposit"],
+        },
+        paper_mode=True,
+        seed=13,
+    )
+    engine.run_id = "run-test"
+    ds = Dataset.from_dict(
+        {
+            "student_prompt": ["base prompt"],
+            "teacher_response": ["cash_withdrawal"],
+            "gold_answer": ["cash_withdrawal"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="non-canonical teacher_response"):
+        engine._build_augmented_sft_rows(
+            [
+                {
+                    "student_prompt": "Where is the nearest ATM?",
+                    "teacher_response": "please call support",
+                    "gold_answer": "cash_withdrawal",
+                }
+            ],
+            ds,
+            cycle=1,
+            teacher_model="teacher/mock",
+            teacher_tier="cheap",
+            prompt_operator="coverage",
+        )
+
+
+def test_paper_mode_rejects_online_sft_teacher_gold_mismatch():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        trainer_config={
+            "prompt_field": "student_prompt",
+            "response_field": "teacher_response",
+            "gold_answer_field": "gold_answer",
+            "answer_extraction": "canonical_label",
+            "canonical_labels": ["cash_withdrawal", "cash_deposit"],
+        },
+        paper_mode=True,
+        seed=13,
+    )
+    engine.run_id = "run-test"
+    ds = Dataset.from_dict(
+        {
+            "student_prompt": ["base prompt"],
+            "teacher_response": ["cash_withdrawal"],
+            "gold_answer": ["cash_withdrawal"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="mismatched labels"):
+        engine._build_augmented_sft_rows(
+            [
+                {
+                    "student_prompt": "Where is the nearest ATM?",
+                    "teacher_response": "cash_withdrawal",
+                    "gold_answer": "cash_deposit",
+                }
+            ],
+            ds,
+            cycle=1,
+            teacher_model="teacher/mock",
+            teacher_tier="cheap",
+            prompt_operator="coverage",
+        )
+
+
+def test_nonpaper_online_sft_does_not_require_canonical_label_artifact():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        trainer_config={
+            "prompt_field": "student_prompt",
+            "response_field": "teacher_response",
+            "gold_answer_field": "gold_answer",
+            "answer_extraction": "canonical_label",
+            "canonical_labels_path": "missing-canonical-labels.json",
+        },
+        paper_mode=False,
+        seed=13,
+    )
+    engine.run_id = "run-test"
+    ds = Dataset.from_dict(
+        {
+            "student_prompt": ["base prompt"],
+            "teacher_response": ["cash_withdrawal"],
+            "gold_answer": ["cash_withdrawal"],
+        }
+    )
+
+    rows = engine._build_augmented_sft_rows(
+        [
+            {
+                "student_prompt": "Where is the nearest ATM?",
+                "teacher_response": "anything goes in non-paper mode",
+                "gold_answer": "cash_deposit",
+            }
+        ],
+        ds,
+        cycle=1,
+        teacher_model="teacher/mock",
+        teacher_tier="cheap",
+        prompt_operator="coverage",
+    )
+
+    assert rows[0]["teacher_response"] == "anything goes in non-paper mode"
+
+
 def test_augmented_sft_rows_require_sft_schema():
     engine = DistillationEngine.__new__(DistillationEngine)
     engine.cfg = SimpleNamespace(

@@ -325,6 +325,16 @@ def pilot_gate(
         "--same-count-control-policy",
         help="Optional required policy_name for same_count controls",
     ),
+    require_paper_mode: bool = typer.Option(
+        False,
+        "--require-paper-mode/--no-require-paper-mode",
+        help="Require paper_mode=true and reviewer-facing cycle metadata",
+    ),
+    require_provider_reported_usage: bool = typer.Option(
+        False,
+        "--require-provider-reported-usage/--no-require-provider-reported-usage",
+        help="Reject estimated seed usage and non-provider teacher debits",
+    ),
     success_policy: str | None = typer.Option(
         None,
         "--success-policy",
@@ -391,6 +401,8 @@ def pilot_gate(
             require_same_count_control=require_same_count_control,
             same_count_source_policy=same_count_source_policy,
             same_count_control_policy=same_count_control_policy,
+            require_paper_mode=require_paper_mode,
+            require_provider_reported_usage=require_provider_reported_usage,
             success_policy=success_policy,
             success_baselines=_csv_option_values(success_baselines),
             min_auc_win_rate=min_auc_win_rate,

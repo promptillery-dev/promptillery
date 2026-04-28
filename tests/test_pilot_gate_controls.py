@@ -16,11 +16,15 @@ def _write_run(
     name: str,
     policy_name: str,
     control_name: str | None = None,
+    status: str = "completed",
+    paper_mode: bool = True,
     seed: int = 13,
     token_budget: int = 25000,
     synthetic_record_budget: int | None = None,
     final_synthetic_count: int = 0,
     manifest_final_synthetic_count: int | None = None,
+    expected_cycles: int | None = 2,
+    cycles_completed: int = 2,
     cycle0_metric: float = 0.1,
     final_metric: float = 0.2,
     heldout_metric: float | None = None,
@@ -32,12 +36,14 @@ def _write_run(
     run_dir.mkdir(parents=True)
     run_manifest = {
         "run_id": name,
-        "status": "completed",
+        "status": status,
         "selection_split": "validation",
+        "paper_mode": paper_mode,
         "policy_name": policy_name,
         "control_name": control_name,
         "seed": seed,
         "token_budget": token_budget,
+        "cycles_completed": cycles_completed,
         "synthetic_record_budget": synthetic_record_budget,
         "final_synthetic_count": (
             final_synthetic_count
@@ -45,6 +51,8 @@ def _write_run(
             else manifest_final_synthetic_count
         ),
     }
+    if expected_cycles is not None:
+        run_manifest["expected_cycles"] = expected_cycles
     (run_dir / "run_manifest.json").write_text(json.dumps(run_manifest))
     (run_dir / "experiment_config.yaml").write_text(
         "\n".join(
@@ -81,7 +89,7 @@ def _write_run(
     (run_dir / "token_usage.json").write_text(
         json.dumps(
             {
-                "cycles_completed": 2,
+                "cycles_completed": cycles_completed,
                 "grand_total": {
                     "input_tokens": 10,
                     "output_tokens": 5,
@@ -138,6 +146,117 @@ def test_pilot_gate_requires_same_count_control(tmp_path):
         and not check["passed"]
         for check in missing["checks"]
     )
+
+
+def test_pilot_gate_requires_paper_mode_when_requested(tmp_path):
+    _write_run(
+        tmp_path,
+        name="nonpaper",
+        policy_name="frugalkd_p",
+        paper_mode=False,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_paper_mode=True,
+    )
+
+    check = next(
+        check for check in report["checks"] if check["name"] == "paper_mode_enabled"
+    )
+    assert not report["passed"]
+    assert check["violating_run_ids"] == ["nonpaper"]
+
+
+def test_pilot_gate_rejects_bad_paper_cycle_metadata(tmp_path):
+    _write_run(
+        tmp_path,
+        name="bad_cycles",
+        policy_name="frugalkd_p",
+        cycles_completed=3,
+        expected_cycles=2,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_paper_mode=True,
+    )
+
+    check = next(
+        check for check in report["checks"] if check["name"] == "paper_cycle_bounds"
+    )
+    assert not report["passed"]
+    assert check["failures"] == [
+        {
+            "run_id": "bad_cycles",
+            "cycles_completed": 3,
+            "expected_cycles": 2,
+        }
+    ]
+
+
+def test_pilot_gate_rejects_non_provider_teacher_debits(tmp_path):
+    _write_run(tmp_path, name="reserved", policy_name="frugalkd_p")
+    run_dir = tmp_path / "reserved"
+    (run_dir / "teacher_attempts.jsonl").write_text(
+        json.dumps(
+            {
+                "cycle": 0,
+                "attempt_id": "reserved:a0",
+                "decision_id": "reserved:d1",
+                "run_id": "reserved",
+                "status": "failed",
+                "failure_type": "ValueError",
+                "predicted_cost": {"total_tokens": 10},
+                "provider_reported_cost": {},
+                "ledger_debit_cost": {"total_tokens": 10},
+                "realized_cost": {"total_tokens": 10},
+                "ledger_debit_source": "reserved_bound",
+                "budget_before": {"tokens_remaining": 100},
+                "budget_after": {"tokens_remaining": 90},
+                "metadata": {},
+            }
+        )
+        + "\n"
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=True,
+        require_frontier=False,
+        require_provider_reported_usage=True,
+    )
+
+    teacher_check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "teacher_attempts_successful"
+    )
+    provider_check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "provider_reported_usage_present"
+    )
+    assert not report["passed"]
+    assert teacher_check["violating_run_ids"] == ["reserved"]
+    assert provider_check["missing_provider_attempt_ids"] == ["reserved:a0"]
+    assert provider_check["non_provider_debit_attempt_ids"] == ["reserved:a0"]
 
 
 def test_pilot_gate_rejects_malformed_same_count_control(tmp_path):

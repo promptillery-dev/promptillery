@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 from hashlib import sha256
 from pathlib import Path
@@ -1149,6 +1150,154 @@ class DistillationEngine:
                 row[col] = self._default_augmented_column_value(ds[0][col])
         return {col: row[col] for col in ds.column_names}
 
+    def _normalize_online_sft_label(self, value: Any) -> str:
+        """Normalize teacher/gold labels before accepting online SFT rows."""
+        trainer_config = self.cfg.trainer_config or {}
+        text = str(value).strip()
+        mode = trainer_config.get("answer_extraction", "text")
+        if mode == "number":
+            matches = re.findall(r"-?\d+(?:\.\d+)?", text.replace(",", ""))
+            return matches[-1] if matches else text.lower()
+        if mode == "choice":
+            match = re.search(r"\b([A-E])\b", text.upper())
+            return match.group(1) if match else text.strip().upper()
+        if mode == "canonical_label":
+            text = re.sub(r"\s+", " ", text.lower()).strip(" .,:;")
+            return re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+        return re.sub(r"\s+", " ", text.lower()).strip(" .,:;")
+
+    def _resolve_online_sft_canonical_labels_path(self) -> Path | None:
+        """Resolve a configured canonical-label artifact for online SFT checks."""
+        trainer_config = self.cfg.trainer_config or {}
+        configured = trainer_config.get("canonical_labels_path")
+        if not configured:
+            return None
+        path = Path(str(configured)).expanduser()
+        if path.is_absolute():
+            return path
+
+        candidates = [Path.cwd() / path]
+        out_dir = getattr(self, "out_dir", None)
+        if out_dir is not None:
+            candidates.append(Path(out_dir) / path)
+        base_output_dir = getattr(self.cfg, "base_output_dir", None)
+        if base_output_dir:
+            candidates.append(Path(str(base_output_dir)) / path)
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return candidates[0]
+
+    def _online_sft_canonical_labels(self) -> List[str]:
+        """Return normalized canonical labels configured for online SFT."""
+        cached = getattr(self, "_online_sft_canonical_labels_cache", None)
+        if cached is not None:
+            return list(cached)
+
+        trainer_config = self.cfg.trainer_config or {}
+        labels = trainer_config.get("canonical_labels")
+        if labels:
+            normalized = []
+            seen = set()
+            for label in labels:
+                label_text = self._normalize_online_sft_label(label)
+                if label_text and label_text not in seen:
+                    seen.add(label_text)
+                    normalized.append(label_text)
+            self._online_sft_canonical_labels_cache = normalized
+            return list(normalized)
+
+        labels_path = self._resolve_online_sft_canonical_labels_path()
+        if labels_path is None:
+            self._online_sft_canonical_labels_cache = []
+            return []
+        if not labels_path.exists():
+            raise FileNotFoundError(
+                f"canonical_labels_path does not exist: {labels_path}"
+            )
+        with labels_path.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+        labels = payload.get("normalized_canonical_labels") or payload.get(
+            "canonical_labels"
+        )
+        if not labels:
+            raise ValueError(
+                "canonical_labels_path must contain canonical_labels or "
+                "normalized_canonical_labels"
+            )
+        normalized = []
+        seen = set()
+        for label in labels:
+            label_text = self._normalize_online_sft_label(label)
+            if label_text and label_text not in seen:
+                seen.add(label_text)
+                normalized.append(label_text)
+        self._online_sft_canonical_labels_cache = normalized
+        return list(normalized)
+
+    def _validate_augmented_sft_label_pair(
+        self,
+        *,
+        teacher_response: str,
+        gold_answer: str,
+        cycle: int,
+        index: int,
+    ) -> None:
+        """Reject invalid synthetic labels before they enter SFT training."""
+        trainer_config = self.cfg.trainer_config or {}
+        require_valid_config = bool(trainer_config.get("require_canonical_sft_labels"))
+        require_agreement_config = bool(
+            trainer_config.get("require_teacher_gold_agreement")
+        )
+        label_configured = bool(
+            trainer_config.get("canonical_labels")
+            or trainer_config.get("canonical_labels_path")
+        )
+        paper_may_require_labels = bool(
+            getattr(self.cfg, "paper_mode", False) and label_configured
+        )
+        if (
+            not require_valid_config
+            and not require_agreement_config
+            and not paper_may_require_labels
+        ):
+            return
+
+        canonical_labels = (
+            self._online_sft_canonical_labels()
+            if require_valid_config or paper_may_require_labels
+            else []
+        )
+        paper_requires_labels = bool(paper_may_require_labels and canonical_labels)
+        require_valid = require_valid_config or paper_requires_labels
+        require_agreement = require_agreement_config or paper_requires_labels
+        if not require_valid and not require_agreement:
+            return
+
+        teacher_label = self._normalize_online_sft_label(teacher_response)
+        gold_label = self._normalize_online_sft_label(gold_answer)
+        canonical_set = set(canonical_labels)
+        record_id = f"cycle={cycle} record={index}"
+
+        if require_valid and canonical_set:
+            if teacher_label not in canonical_set:
+                raise ValueError(
+                    "online SFT augmentation produced non-canonical "
+                    f"teacher_response for {record_id}: {teacher_response!r}"
+                )
+            if gold_label not in canonical_set:
+                raise ValueError(
+                    "online SFT augmentation produced non-canonical "
+                    f"gold_answer for {record_id}: {gold_answer!r}"
+                )
+
+        if require_agreement and teacher_label != gold_label:
+            raise ValueError(
+                "online SFT augmentation produced mismatched labels for "
+                f"{record_id}: teacher_response={teacher_response!r}, "
+                f"gold_answer={gold_answer!r}"
+            )
+
     def _build_augmented_sft_rows(
         self,
         records: List[Dict[str, Any]],
@@ -1182,6 +1331,12 @@ class DistillationEngine:
             if not student_prompt or not teacher_response:
                 continue
             gold_answer = str(record.get("gold_answer") or teacher_response).strip()
+            self._validate_augmented_sft_label_pair(
+                teacher_response=teacher_response,
+                gold_answer=gold_answer,
+                cycle=cycle,
+                index=index,
+            )
             row = {
                 "id": f"{self.run_id}/augmented/{cycle}/{index}",
                 prompt_field: student_prompt,

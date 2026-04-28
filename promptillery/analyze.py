@@ -85,6 +85,7 @@ TEACHER_CALIBRATION_FIELDS = [
     "provider_reported_input_tokens",
     "provider_reported_output_tokens",
     "provider_reported_total_tokens",
+    "provider_reported_present",
     "ledger_debit_input_tokens",
     "ledger_debit_output_tokens",
     "ledger_debit_total_tokens",
@@ -162,6 +163,13 @@ def _safe_int(value: Any) -> int | None:
     if numeric is None:
         return None
     return int(numeric)
+
+
+def _truthy(value: Any) -> bool:
+    """Return whether an artifact field encodes a truthy boolean."""
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "y"}
 
 
 def _rank_score(
@@ -496,8 +504,9 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
     for attempt in _load_jsonl(run_dir / "teacher_attempts.jsonl"):
         metadata = attempt.get("metadata", {}) or {}
         predicted = attempt.get("predicted_cost", {}) or {}
+        provider_reported_raw = attempt.get("provider_reported_cost") or {}
         provider_reported = (
-            attempt.get("provider_reported_cost") or attempt.get("realized_cost", {})
+            provider_reported_raw or attempt.get("realized_cost", {})
         )
         ledger_debit = attempt.get("ledger_debit_cost") or attempt.get(
             "realized_cost", {}
@@ -550,6 +559,7 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
                     "output_tokens"
                 ),
                 "provider_reported_total_tokens": provider_total,
+                "provider_reported_present": bool(provider_reported_raw),
                 "ledger_debit_input_tokens": ledger_debit.get("input_tokens"),
                 "ledger_debit_output_tokens": ledger_debit.get("output_tokens"),
                 "ledger_debit_total_tokens": ledger_total,
@@ -764,6 +774,14 @@ def summarize_run(
 
     grand_total = token_usage.get("grand_total", {})
     token_budget = run_manifest.get("token_budget", config.get("token_budget"))
+    token_budget_int = _safe_int(token_budget)
+    teacher_total_tokens = _safe_int(grand_total.get("total_tokens")) or 0
+    cycles_completed = _safe_int(
+        token_usage.get(
+            "cycles_completed", run_manifest.get("cycles_completed", len(cycles))
+        )
+    )
+    expected_cycles = _safe_int(run_manifest.get("expected_cycles", config.get("cycles")))
     return {
         "run_dir": str(run_dir),
         "run_id": run_manifest.get("run_id", ""),
@@ -813,16 +831,17 @@ def summarize_run(
         ),
         "final_synthetic_count": final_synthetic_count,
         "token_budget_overage": (
-            max(0, grand_total.get("total_tokens", 0) - int(token_budget))
-            if isinstance(token_budget, int)
+            max(0, teacher_total_tokens - token_budget_int)
+            if token_budget_int is not None
             else None
         ),
         "teacher_input_tokens": grand_total.get("input_tokens", 0),
         "teacher_output_tokens": grand_total.get("output_tokens", 0),
-        "teacher_total_tokens": grand_total.get("total_tokens", 0),
+        "teacher_total_tokens": teacher_total_tokens,
         "estimated_cost": grand_total.get("estimated_cost"),
         **seed_summary,
-        "cycles_completed": token_usage.get("cycles_completed", len(cycles)),
+        "cycles_completed": cycles_completed,
+        "expected_cycles": expected_cycles,
         "policy_decision_count": len(policy_decisions),
         "policy_stop_count": sum(
             1 for row in policy_decisions if row.get("action_name") == "STOP"
@@ -886,6 +905,7 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "online_teacher_total_tokens",
         "total_teacher_total_tokens",
         "cycles_completed",
+        "expected_cycles",
         "policy_decision_count",
         "policy_stop_count",
         "teacher_attempt_count",
@@ -1248,6 +1268,8 @@ def validate_pilot_gate(
     require_same_count_control: bool = False,
     same_count_source_policy: str = "frugalkd_p",
     same_count_control_policy: str | None = None,
+    require_paper_mode: bool = False,
+    require_provider_reported_usage: bool = False,
     success_policy: str | None = None,
     success_baselines: List[str] | None = None,
     min_auc_win_rate: float | None = None,
@@ -1349,6 +1371,107 @@ def validate_pilot_gate(
                     list(combo) for combo in sorted(found_combos - expected_combos)
                 ],
                 duplicates=duplicate_combos,
+            )
+        )
+
+    if require_paper_mode:
+        non_completed_rows = [
+            row for row in rows if str(row.get("run_status") or "") != "completed"
+        ]
+        checks.append(
+            _gate_check(
+                "paper_runs_completed",
+                not non_completed_rows,
+                violating_run_ids=[row.get("run_id") for row in non_completed_rows],
+            )
+        )
+
+        non_paper_rows = [row for row in rows if not _truthy(row.get("paper_mode"))]
+        checks.append(
+            _gate_check(
+                "paper_mode_enabled",
+                not non_paper_rows,
+                violating_run_ids=[row.get("run_id") for row in non_paper_rows],
+            )
+        )
+
+        cycle_failures = []
+        for row in rows:
+            cycles_completed = _safe_int(row.get("cycles_completed"))
+            expected_cycles = _safe_int(row.get("expected_cycles"))
+            if (
+                cycles_completed is None
+                or expected_cycles is None
+                or cycles_completed <= 0
+                or cycles_completed > expected_cycles
+            ):
+                cycle_failures.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "cycles_completed": cycles_completed,
+                        "expected_cycles": expected_cycles,
+                    }
+                )
+        checks.append(
+            _gate_check(
+                "paper_cycle_bounds",
+                not cycle_failures,
+                failures=cycle_failures,
+            )
+        )
+
+    if require_provider_reported_usage:
+        estimated_seed_rows = [
+            row
+            for row in rows
+            if (_safe_int(row.get("seed_usage_estimated_records")) or 0) > 0
+        ]
+        checks.append(
+            _gate_check(
+                "no_estimated_seed_usage",
+                not estimated_seed_rows,
+                violating_run_ids=[row.get("run_id") for row in estimated_seed_rows],
+            )
+        )
+
+        failed_teacher_rows = [
+            row
+            for row in rows
+            if (_safe_int(row.get("teacher_failure_count")) or 0) > 0
+            or (_safe_int(row.get("teacher_budget_violation_count")) or 0) > 0
+        ]
+        checks.append(
+            _gate_check(
+                "teacher_attempts_successful",
+                not failed_teacher_rows,
+                violating_run_ids=[row.get("run_id") for row in failed_teacher_rows],
+            )
+        )
+
+        dispatched_attempts = [
+            row for row in calibration_rows if str(row.get("status") or "") != "masked"
+        ]
+        missing_provider_attempts = [
+            row
+            for row in dispatched_attempts
+            if row.get("provider_reported_present") is not True
+            or _safe_int(row.get("provider_reported_total_tokens")) is None
+        ]
+        non_provider_debits = [
+            row
+            for row in dispatched_attempts
+            if str(row.get("ledger_debit_source") or "") != "provider_reported"
+        ]
+        checks.append(
+            _gate_check(
+                "provider_reported_usage_present",
+                not missing_provider_attempts and not non_provider_debits,
+                missing_provider_attempt_ids=[
+                    row.get("attempt_id") for row in missing_provider_attempts
+                ],
+                non_provider_debit_attempt_ids=[
+                    row.get("attempt_id") for row in non_provider_debits
+                ],
             )
         )
 
