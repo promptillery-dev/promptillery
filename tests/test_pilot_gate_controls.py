@@ -449,6 +449,91 @@ def test_pilot_gate_requires_success_policy_auc_win(tmp_path):
     assert check["win_rate"] == 0.0
 
 
+def test_pilot_gate_does_not_count_ties_as_wins(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        final_metric=0.2,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        final_metric=0.2,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p", "cost_heuristic"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        success_policy="frugalkd_p",
+        success_baselines=["cost_heuristic"],
+        min_final_win_rate=1.0,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "success_policy_beats_baselines_final"
+    )
+    assert not report["passed"]
+    assert check["failures"][0]["delta"] == 0.0
+    assert check["failures"][0]["won"] is False
+
+
+def test_pilot_gate_requires_each_baseline_to_pass(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        final_metric=0.3,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        final_metric=0.4,
+    )
+    _write_run(
+        tmp_path,
+        name="random",
+        policy_name="random_feasible",
+        final_metric=0.1,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p", "cost_heuristic", "random_feasible"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        success_policy="frugalkd_p",
+        success_baselines=["cost_heuristic", "random_feasible"],
+        min_final_win_rate=0.5,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "success_policy_beats_baselines_final"
+    )
+    assert not report["passed"]
+    assert [
+        (row["baseline"], row["passed"], row["win_rate"])
+        for row in check["per_baseline"]
+    ] == [
+        ("cost_heuristic", False, 0.0),
+        ("random_feasible", True, 1.0),
+    ]
+
+
 def test_pilot_gate_accepts_success_policy_heldout_win(tmp_path):
     _write_run(
         tmp_path,

@@ -1131,31 +1131,43 @@ def _paired_success_check(
         if str(row.get("policy_name") or "") == success_policy
         and not _is_same_count_control(row)
     ]
-    baselines_by_key: Dict[tuple[str, ...], List[Dict[str, Any]]] = {}
+    baseline_names = sorted(
+        {str(row.get("policy_name") or row.get("control_name") or "") for row in baseline_rows}
+    )
+    baselines_by_name_and_key: Dict[str, Dict[tuple[str, ...], List[Dict[str, Any]]]] = {}
     for row in baseline_rows:
-        baselines_by_key.setdefault(_success_match_key(row), []).append(row)
+        baseline_name = str(row.get("policy_name") or row.get("control_name") or "")
+        baselines_by_name_and_key.setdefault(baseline_name, {}).setdefault(
+            _success_match_key(row), []
+        ).append(row)
 
     comparisons = []
     missing_pairs = []
-    for policy_row in success_rows:
-        key = _success_match_key(policy_row)
-        matched = baselines_by_key.get(key, [])
-        if not matched:
-            missing_pairs.append(
-                {
-                    "run_id": policy_row.get("run_id"),
-                    "key": list(key),
-                }
-            )
-            continue
-        for baseline_row in matched:
-            delta = _comparison_delta(
-                _safe_float(policy_row.get(value_key)),
-                _safe_float(baseline_row.get(value_key)),
-                str(policy_row.get("mode") or "max"),
-            )
-            comparisons.append(
-                {
+    per_baseline = []
+    threshold = max(min_delta, 0.0)
+    for baseline_name in baseline_names:
+        matched_for_baseline = baselines_by_name_and_key.get(baseline_name, {})
+        baseline_comparisons = []
+        baseline_missing = []
+        for policy_row in success_rows:
+            key = _success_match_key(policy_row)
+            matched = matched_for_baseline.get(key, [])
+            if not matched:
+                baseline_missing.append(
+                    {
+                        "baseline": baseline_name,
+                        "run_id": policy_row.get("run_id"),
+                        "key": list(key),
+                    }
+                )
+                continue
+            for baseline_row in matched:
+                delta = _comparison_delta(
+                    _safe_float(policy_row.get(value_key)),
+                    _safe_float(baseline_row.get(value_key)),
+                    str(policy_row.get("mode") or "max"),
+                )
+                comparison = {
                     "policy_run_id": policy_row.get("run_id"),
                     "baseline_run_id": baseline_row.get("run_id"),
                     "baseline_policy": baseline_row.get("policy_name"),
@@ -1163,16 +1175,42 @@ def _paired_success_check(
                     "seed": policy_row.get("seed"),
                     "token_budget": policy_row.get("token_budget"),
                     "delta": delta,
-                    "won": delta is not None and delta >= min_delta,
+                    "won": delta is not None and delta > threshold,
                 }
-            )
+                baseline_comparisons.append(comparison)
+                comparisons.append(comparison)
+
+        valid_for_baseline = [
+            row for row in baseline_comparisons if row["delta"] is not None
+        ]
+        wins_for_baseline = sum(1 for row in valid_for_baseline if row["won"])
+        win_rate_for_baseline = (
+            wins_for_baseline / len(valid_for_baseline)
+            if valid_for_baseline
+            else 0.0
+        )
+        per_baseline.append(
+            {
+                "baseline": baseline_name,
+                "comparison_count": len(valid_for_baseline),
+                "win_count": wins_for_baseline,
+                "win_rate": win_rate_for_baseline,
+                "passed": bool(valid_for_baseline)
+                and not baseline_missing
+                and win_rate_for_baseline >= min_win_rate,
+                "missing_pairs": baseline_missing,
+            }
+        )
+        missing_pairs.extend(baseline_missing)
 
     valid = [row for row in comparisons if row["delta"] is not None]
     win_count = sum(1 for row in valid if row["won"])
     win_rate = (win_count / len(valid)) if valid else 0.0
     return _gate_check(
         name,
-        bool(valid) and not missing_pairs and win_rate >= min_win_rate,
+        bool(valid)
+        and bool(per_baseline)
+        and all(row["passed"] for row in per_baseline),
         success_policy=success_policy,
         value_key=value_key,
         min_win_rate=min_win_rate,
@@ -1180,6 +1218,7 @@ def _paired_success_check(
         comparison_count=len(valid),
         win_count=win_count,
         win_rate=win_rate,
+        per_baseline=per_baseline,
         missing_pairs=missing_pairs,
         failures=[
             row
