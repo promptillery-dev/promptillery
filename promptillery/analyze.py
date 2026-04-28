@@ -358,6 +358,46 @@ PAPER_BUDGET_AUDIT_FIELDS = [
     "mean_total_teacher_output_tokens",
     "mean_total_teacher_total_tokens",
 ]
+PROVENANCE_AUDIT_FIELDS = [
+    "run_dir",
+    "run_id",
+    "control_name",
+    "experiment",
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "seed",
+    "token_budget",
+    "policy_name",
+    "run_manifest_schema_version",
+    "has_run_reproducibility",
+    "has_source_control",
+    "has_runtime",
+    "has_hardware",
+    "has_config_provenance",
+    "has_config_run_copy_sha256",
+    "config_hash_matches",
+    "config_run_copy_sha256_matches",
+    "has_dataset_source",
+    "has_models",
+    "package_head_sha",
+    "workspace_head_sha",
+    "pyproject_sha256",
+    "uv_lock_sha256",
+    "package_git_dirty",
+    "workspace_git_dirty",
+    "materialized_data_file_count",
+    "materialized_manifest_count",
+    "missing_materialized_manifest_count",
+    "materialized_manifest_provenance_count",
+    "materialized_manifest_accounting_count",
+    "materialized_manifest_integrity_count",
+    "materialized_manifest_token_accounting_count",
+    "provenance_passed",
+    "failure_reasons",
+    "missing_materialized_manifests",
+]
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
@@ -634,6 +674,254 @@ def _seed_materialization_summary(
         "total_teacher_input_tokens": seed_input + online_input,
         "total_teacher_output_tokens": seed_output + online_output,
         "total_teacher_total_tokens": seed_total + online_total,
+    }
+
+
+def _reproducibility_has_required_sections(payload: Dict[str, Any]) -> bool:
+    """Return whether a reproducibility block has the paper-required shape."""
+    return all(
+        key in payload
+        for key in (
+            "source_control",
+            "runtime",
+            "hardware",
+            "config_provenance",
+            "dataset_source",
+            "models",
+        )
+    )
+
+
+def _manifest_has_seed_accounting(payload: Dict[str, Any]) -> bool:
+    """Return whether a materialized SFT manifest has seed-noise accounting."""
+    return all(
+        key in payload
+        for key in (
+            "accepted_records",
+            "rejected_records",
+            "teacher_gold_agreement_records",
+            "teacher_gold_disagreement_records",
+            "teacher_gold_disagreement_rate",
+        )
+    )
+
+
+def _stable_json_sha256(value: Any) -> str:
+    """Return the stable SHA-256 digest used for JSON-like artifacts."""
+    return sha256(json.dumps(value, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def _file_sha256(path: Path) -> str:
+    """Return the SHA-256 digest of a file."""
+    digest = sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _materialized_manifest_checks(
+    data_path: Path, payload: Dict[str, Any]
+) -> tuple[bool, bool]:
+    """Validate materialized JSONL integrity and token totals."""
+    lines = [
+        line.strip()
+        for line in data_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    expected_hashes = payload.get("records_sha256") or []
+    observed_hashes = [sha256(line.encode("utf-8")).hexdigest() for line in lines]
+    artifact_matches = (
+        bool(payload.get("artifact_sha256"))
+        and payload.get("artifact_sha256") == _file_sha256(data_path)
+    )
+    records_match = int(payload.get("records", 0) or 0) == len(lines)
+    row_hashes_match = expected_hashes == observed_hashes
+    integrity_ok = artifact_matches and records_match and row_hashes_match
+
+    input_tokens = 0
+    output_tokens = 0
+    total_tokens = 0
+    rows_parse = True
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            rows_parse = False
+            continue
+        input_tokens += int(row.get("teacher_input_tokens", 0) or 0)
+        output_tokens += int(row.get("teacher_output_tokens", 0) or 0)
+        total_tokens += int(row.get("teacher_total_tokens", 0) or 0)
+    token_ok = (
+        rows_parse
+        and input_tokens == int(payload.get("teacher_input_tokens", 0) or 0)
+        and output_tokens == int(payload.get("teacher_output_tokens", 0) or 0)
+        and total_tokens == int(payload.get("teacher_total_tokens", 0) or 0)
+        and int(payload.get("accepted_records", len(lines)) or 0) == len(lines)
+        and int(payload.get("attempted_records", len(lines)) or 0)
+        >= int(payload.get("accepted_records", len(lines)) or 0)
+    )
+    return integrity_ok, token_ok
+
+
+def summarize_provenance_audit(run_dir: Path) -> Dict[str, Any]:
+    """Summarize reviewer-facing provenance completeness for one run."""
+    run_manifest = _load_json(run_dir / "run_manifest.json")
+    config = _load_run_config(run_dir)
+    repro = run_manifest.get("reproducibility") or {}
+    source_control = repro.get("source_control") or {}
+    package_git = source_control.get("package") or {}
+    workspace_git = source_control.get("workspace") or {}
+    config_provenance = repro.get("config_provenance") or {}
+    runtime = repro.get("runtime") or {}
+    lockfiles = runtime.get("lockfiles") or {}
+    data_files = _configured_data_files(config)
+
+    missing_manifests: list[str] = []
+    manifest_count = 0
+    manifest_provenance_count = 0
+    manifest_accounting_count = 0
+    manifest_integrity_count = 0
+    manifest_token_accounting_count = 0
+    for data_file in data_files:
+        resolved = _resolve_existing_path(data_file, run_dir)
+        if resolved is None:
+            missing_manifests.append(data_file)
+            continue
+        manifest_path = Path(str(resolved) + ".manifest.json")
+        if not manifest_path.exists():
+            missing_manifests.append(str(manifest_path))
+            continue
+        manifest_count += 1
+        payload = _load_json(manifest_path)
+        if _reproducibility_has_required_sections(
+            payload.get("reproducibility") or {}
+        ):
+            manifest_provenance_count += 1
+        if _manifest_has_seed_accounting(payload):
+            manifest_accounting_count += 1
+        integrity_ok, token_ok = _materialized_manifest_checks(resolved, payload)
+        manifest_integrity_count += int(integrity_ok)
+        manifest_token_accounting_count += int(token_ok)
+
+    has_reproducibility = bool(repro)
+    has_source_control = bool(repro.get("source_control"))
+    has_runtime = bool(repro.get("runtime"))
+    has_hardware = bool(repro.get("hardware"))
+    has_config_provenance = bool(repro.get("config_provenance"))
+    has_config_run_copy_sha256 = bool(config_provenance.get("run_copy_sha256"))
+    config_hash = str(run_manifest.get("config_hash") or "")
+    expected_config_hash = _stable_json_sha256(config) if config else ""
+    config_hash_matches = bool(config_hash) and config_hash == expected_config_hash
+    config_copy_path = run_dir / "experiment_config.yaml"
+    run_copy_sha256 = str(config_provenance.get("run_copy_sha256") or "")
+    config_run_copy_sha256_matches = (
+        bool(run_copy_sha256)
+        and config_copy_path.exists()
+        and run_copy_sha256 == _file_sha256(config_copy_path)
+    )
+    has_dataset_source = bool(repro.get("dataset_source"))
+    has_models = bool(repro.get("models"))
+    package_head_sha = str(package_git.get("head_sha") or "")
+    workspace_head_sha = str(workspace_git.get("head_sha") or "")
+    pyproject_sha256 = str(lockfiles.get("pyproject.toml") or "")
+    uv_lock_sha256 = str(lockfiles.get("uv.lock") or "")
+    package_git_dirty = bool(package_git.get("is_dirty"))
+    workspace_git_dirty = bool(workspace_git.get("is_dirty"))
+
+    failure_reasons = []
+    if int(run_manifest.get("schema_version", 0) or 0) < 3:
+        failure_reasons.append("run_manifest_schema_version_lt_3")
+    if not has_reproducibility:
+        failure_reasons.append("missing_run_reproducibility")
+    if not has_source_control:
+        failure_reasons.append("missing_source_control")
+    if not has_runtime:
+        failure_reasons.append("missing_runtime")
+    if not has_hardware:
+        failure_reasons.append("missing_hardware")
+    if not has_config_provenance:
+        failure_reasons.append("missing_config_provenance")
+    if not has_config_run_copy_sha256:
+        failure_reasons.append("missing_config_run_copy_sha256")
+    if not config_hash:
+        failure_reasons.append("missing_config_hash")
+    elif not config_hash_matches:
+        failure_reasons.append("config_hash_mismatch")
+    if has_config_run_copy_sha256 and not config_run_copy_sha256_matches:
+        failure_reasons.append("config_run_copy_sha256_mismatch")
+    if not has_dataset_source:
+        failure_reasons.append("missing_dataset_source")
+    if not has_models:
+        failure_reasons.append("missing_models")
+    if not package_head_sha:
+        failure_reasons.append("missing_package_head_sha")
+    if not workspace_head_sha:
+        failure_reasons.append("missing_workspace_head_sha")
+    if not pyproject_sha256:
+        failure_reasons.append("missing_pyproject_sha256")
+    if not uv_lock_sha256:
+        failure_reasons.append("missing_uv_lock_sha256")
+    if package_git_dirty:
+        failure_reasons.append("dirty_package_git")
+    if workspace_git_dirty:
+        failure_reasons.append("dirty_workspace_git")
+    if missing_manifests:
+        failure_reasons.append("missing_materialized_manifests")
+    if manifest_count and manifest_provenance_count != manifest_count:
+        failure_reasons.append("missing_materialized_manifest_provenance")
+    if manifest_count and manifest_accounting_count != manifest_count:
+        failure_reasons.append("missing_materialized_manifest_accounting")
+    if manifest_count and manifest_integrity_count != manifest_count:
+        failure_reasons.append("materialized_manifest_integrity_mismatch")
+    if manifest_count and manifest_token_accounting_count != manifest_count:
+        failure_reasons.append("materialized_manifest_token_accounting_mismatch")
+
+    return {
+        "run_dir": str(run_dir),
+        "run_id": run_manifest.get("run_id", run_dir.name),
+        "control_name": run_manifest.get(
+            "control_name", config.get("control_name", "")
+        ),
+        "experiment": config.get("name", run_manifest.get("task_name", run_dir.name)),
+        "dataset": run_manifest.get("dataset", config.get("dataset", "")),
+        "dataset_subset": run_manifest.get("dataset_subset", ""),
+        "student_model": run_manifest.get("student_model", config.get("student", "")),
+        "student_type": run_manifest.get(
+            "student_type", config.get("student_type", "")
+        ),
+        "seed": run_manifest.get("seed", config.get("seed", "")),
+        "token_budget": run_manifest.get("token_budget", config.get("token_budget")),
+        "policy_name": run_manifest.get("policy_name", config.get("policy_name", "")),
+        "run_manifest_schema_version": run_manifest.get("schema_version", ""),
+        "has_run_reproducibility": has_reproducibility,
+        "has_source_control": has_source_control,
+        "has_runtime": has_runtime,
+        "has_hardware": has_hardware,
+        "has_config_provenance": has_config_provenance,
+        "has_config_run_copy_sha256": has_config_run_copy_sha256,
+        "config_hash_matches": config_hash_matches,
+        "config_run_copy_sha256_matches": config_run_copy_sha256_matches,
+        "has_dataset_source": has_dataset_source,
+        "has_models": has_models,
+        "package_head_sha": package_head_sha,
+        "workspace_head_sha": workspace_head_sha,
+        "pyproject_sha256": pyproject_sha256,
+        "uv_lock_sha256": uv_lock_sha256,
+        "package_git_dirty": package_git_dirty,
+        "workspace_git_dirty": workspace_git_dirty,
+        "materialized_data_file_count": len(data_files),
+        "materialized_manifest_count": manifest_count,
+        "missing_materialized_manifest_count": len(missing_manifests),
+        "materialized_manifest_provenance_count": manifest_provenance_count,
+        "materialized_manifest_accounting_count": manifest_accounting_count,
+        "materialized_manifest_integrity_count": manifest_integrity_count,
+        "materialized_manifest_token_accounting_count": (
+            manifest_token_accounting_count
+        ),
+        "provenance_passed": not failure_reasons,
+        "failure_reasons": ";".join(failure_reasons),
+        "missing_materialized_manifests": ";".join(missing_manifests),
     }
 
 
@@ -1407,6 +1695,7 @@ def write_audit_csvs(
         row for run_dir in run_dirs for row in summarize_teacher_calibration(run_dir)
     ]
     certificate_rows = [summarize_budget_feasibility(run_dir) for run_dir in run_dirs]
+    provenance_rows = [summarize_provenance_audit(run_dir) for run_dir in run_dirs]
     oracle_rows = summarize_oracle_frontier(rows)
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1415,6 +1704,7 @@ def write_audit_csvs(
         "teacher_calibration": output_dir / "teacher_calibration.csv",
         "budget_feasibility_certificate": output_dir
         / "budget_feasibility_certificate.csv",
+        "provenance_audit": output_dir / "provenance_audit.csv",
         "oracle_frontier": output_dir / "oracle_frontier.csv",
     }
     _write_rows_csv(policy_rows, paths["policy_actions"], POLICY_BEHAVIOR_FIELDS)
@@ -1427,6 +1717,11 @@ def write_audit_csvs(
         certificate_rows,
         paths["budget_feasibility_certificate"],
         BUDGET_FEASIBILITY_FIELDS,
+    )
+    _write_rows_csv(
+        provenance_rows,
+        paths["provenance_audit"],
+        PROVENANCE_AUDIT_FIELDS,
     )
     _write_rows_csv(oracle_rows, paths["oracle_frontier"], ORACLE_FRONTIER_FIELDS)
     return paths
@@ -2400,6 +2695,7 @@ def write_paper_report(
         "audit_budget_feasibility_certificate": audit_paths[
             "budget_feasibility_certificate"
         ],
+        "audit_provenance": audit_paths["provenance_audit"],
         "audit_oracle_frontier": audit_paths["oracle_frontier"],
         "paper_main_results": output_dir / "paper_main_results.csv",
         "paper_pairwise_deltas": output_dir / "paper_pairwise_deltas.csv",
@@ -2708,6 +3004,7 @@ def validate_paper_gate(
         "budget_feasibility_certificate": report_dir
         / "audit"
         / "budget_feasibility_certificate.csv",
+        "provenance_audit": report_dir / "audit" / "provenance_audit.csv",
     }
     if require_figures:
         paths["paper_figures_manifest"] = (
@@ -2729,6 +3026,7 @@ def validate_paper_gate(
     summary_rows = _read_csv_rows(paths["paper_pairwise_summary"])
     budget_rows = _read_csv_rows(paths["paper_budget_audit"])
     certificate_rows = _read_csv_rows(paths["budget_feasibility_certificate"])
+    provenance_rows = _read_csv_rows(paths["provenance_audit"])
 
     checks.append(
         _gate_check(
@@ -2847,6 +3145,45 @@ def validate_paper_gate(
             bool(budget_rows) and not budget_failures,
             budget_row_count=len(budget_rows),
             failures=budget_failures,
+        )
+    )
+
+    provenance_failures = [
+        {
+            "run_id": row.get("run_id"),
+            "policy_name": row.get("policy_name"),
+            "failure_reasons": row.get("failure_reasons"),
+            "missing_materialized_manifests": row.get(
+                "missing_materialized_manifests"
+            ),
+        }
+        for row in provenance_rows
+        if not _truthy(row.get("provenance_passed"))
+    ]
+    checks.append(
+        _gate_check(
+            "paper_provenance_audit_passes",
+            bool(provenance_rows) and not provenance_failures,
+            provenance_row_count=len(provenance_rows),
+            failures=provenance_failures,
+        )
+    )
+    provenance_consistency_failures = {}
+    for field in (
+        "package_head_sha",
+        "workspace_head_sha",
+        "pyproject_sha256",
+        "uv_lock_sha256",
+    ):
+        values = sorted({str(row.get(field) or "") for row in provenance_rows})
+        nonempty_values = [value for value in values if value]
+        if len(nonempty_values) > 1:
+            provenance_consistency_failures[field] = nonempty_values
+    checks.append(
+        _gate_check(
+            "paper_provenance_consistent_across_runs",
+            bool(provenance_rows) and not provenance_consistency_failures,
+            failures=provenance_consistency_failures,
         )
     )
 

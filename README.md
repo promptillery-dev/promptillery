@@ -384,6 +384,10 @@ by default; pass `--allow-partial` only when a budget-truncated dataset is the
 intended artifact. Teacher/gold agreement and disagreement counts are reported
 in the manifest so noisy teacher seed labels stay auditable instead of being
 silently filtered.
+Paper reports also write `audit/provenance_audit.csv`, and `paper-gate` rejects
+reports with missing run provenance, dirty captured Git state, or missing
+materialized seed manifests. The audit re-hashes copied configs and
+materialized JSONL files before treating them as paper-ready.
 
 ## Advanced Configuration
 

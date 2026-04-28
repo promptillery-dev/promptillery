@@ -1,5 +1,6 @@
 import csv
 import json
+from hashlib import sha256
 from pathlib import Path
 
 import yaml
@@ -38,14 +39,39 @@ def _write_run(
     canonical_label_count: int | None = None,
     observed_gold_label_count: int | None = None,
     heldout_observed_gold_label_count: int | None = None,
+    include_reproducibility: bool = True,
 ) -> None:
     run_dir = root / name
     run_dir.mkdir(parents=True)
+    config_data = {
+        "name": name,
+        "policy_name": policy_name,
+        "seed": seed,
+        "token_budget": token_budget,
+        "control_name": control_name or "",
+        "synthetic_record_budget": synthetic_record_budget or "",
+    }
+    config_data.update(config_extra or {})
+    config_path = run_dir / "experiment_config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config_data, sort_keys=False),
+        encoding="utf-8",
+    )
+    config_hash = sha256(
+        json.dumps(config_data, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    config_copy_sha256 = sha256(config_path.read_bytes()).hexdigest()
     run_manifest = {
+        "schema_version": 3,
         "run_id": name,
         "status": status,
         "selection_split": "validation",
         "paper_mode": paper_mode,
+        "dataset": "fixture_dataset",
+        "dataset_subset": "",
+        "student_model": "fixture/student",
+        "student_type": "causal_lm_sft",
+        "config_hash": config_hash,
         "policy_name": policy_name,
         "control_name": control_name,
         "seed": seed,
@@ -59,22 +85,27 @@ def _write_run(
             else manifest_final_synthetic_count
         ),
     }
+    if include_reproducibility:
+        run_manifest["reproducibility"] = {
+            "source_control": {
+                "package": {"head_sha": "package-sha", "is_dirty": False},
+                "workspace": {"head_sha": "workspace-sha", "is_dirty": False},
+            },
+            "runtime": {
+                "python": {"version": "test"},
+                "lockfiles": {
+                    "pyproject.toml": "pyproject-sha",
+                    "uv.lock": "uv-lock-sha",
+                },
+            },
+            "hardware": {"cpu_count": 1},
+            "config_provenance": {"run_copy_sha256": config_copy_sha256},
+            "dataset_source": {"dataset": "fixture_dataset"},
+            "models": {"student": {"name": "fixture/student"}},
+        }
     if expected_cycles is not None:
         run_manifest["expected_cycles"] = expected_cycles
     (run_dir / "run_manifest.json").write_text(json.dumps(run_manifest))
-    config_data = {
-        "name": name,
-        "policy_name": policy_name,
-        "seed": seed,
-        "token_budget": token_budget,
-        "control_name": control_name or "",
-        "synthetic_record_budget": synthetic_record_budget or "",
-    }
-    config_data.update(config_extra or {})
-    (run_dir / "experiment_config.yaml").write_text(
-        yaml.safe_dump(config_data, sort_keys=False),
-        encoding="utf-8",
-    )
     final_metrics = {"macro_f1": final_metric}
     if canonical_label_count is not None:
         final_metrics["canonical_label_count"] = canonical_label_count
@@ -475,6 +506,266 @@ def test_paper_gate_rejects_missing_baseline_and_failed_certificate(tmp_path):
     assert not checks["paper_budget_audit_passes"]["passed"]
 
 
+def test_paper_gate_rejects_missing_run_provenance(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+        include_reproducibility=False,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.3,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        require_figures=False,
+    )
+
+    assert not report["passed"]
+    checks = {check["name"]: check for check in report["checks"]}
+    provenance_check = checks["paper_provenance_audit_passes"]
+    assert not provenance_check["passed"]
+    assert "missing_run_reproducibility" in str(provenance_check["failures"])
+
+
+def test_paper_gate_rejects_tampered_config_provenance(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    (tmp_path / "frugal" / "experiment_config.yaml").write_text(
+        yaml.safe_dump({"name": "tampered", "policy_name": "frugalkd_p"}),
+        encoding="utf-8",
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.3,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        require_figures=False,
+    )
+
+    assert not report["passed"]
+    checks = {check["name"]: check for check in report["checks"]}
+    provenance_check = checks["paper_provenance_audit_passes"]
+    assert "config_hash_mismatch" in str(provenance_check["failures"])
+    assert "config_run_copy_sha256_mismatch" in str(provenance_check["failures"])
+
+
+def test_paper_gate_rejects_missing_materialized_manifest(tmp_path):
+    data_path = tmp_path / "materialized" / "train.jsonl"
+    data_path.parent.mkdir()
+    data_path.write_text("{}\n", encoding="utf-8")
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+        config_extra={
+            "dataset_kwargs": {"data_files": {"train": str(data_path)}},
+        },
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.3,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        require_figures=False,
+    )
+
+    assert not report["passed"]
+    checks = {check["name"]: check for check in report["checks"]}
+    provenance_check = checks["paper_provenance_audit_passes"]
+    assert not provenance_check["passed"]
+    assert "missing_materialized_manifests" in str(provenance_check["failures"])
+
+
+def test_paper_gate_rejects_tampered_materialized_seed_file(tmp_path):
+    data_path = tmp_path / "materialized" / "train.jsonl"
+    data_path.parent.mkdir()
+    row = {
+        "teacher_input_tokens": 4,
+        "teacher_output_tokens": 1,
+        "teacher_total_tokens": 5,
+        "teacher_response": "alpha",
+        "gold_answer": "alpha",
+    }
+    line = json.dumps(row, sort_keys=True)
+    data_path.write_text(line + "\n", encoding="utf-8")
+    manifest = {
+        "records": 1,
+        "attempted_records": 1,
+        "accepted_records": 1,
+        "rejected_records": 0,
+        "teacher_input_tokens": 4,
+        "teacher_output_tokens": 1,
+        "teacher_total_tokens": 5,
+        "teacher_gold_agreement_records": 1,
+        "teacher_gold_disagreement_records": 0,
+        "teacher_gold_disagreement_rate": 0.0,
+        "records_sha256": [sha256(line.encode("utf-8")).hexdigest()],
+        "artifact_sha256": sha256(data_path.read_bytes()).hexdigest(),
+        "reproducibility": {
+            "source_control": {"package": {"head_sha": "package-sha"}},
+            "runtime": {"python": {"version": "test"}},
+            "hardware": {"cpu_count": 1},
+            "config_provenance": {"resolved_sha256": "manifest-config"},
+            "dataset_source": {"dataset": "fixture"},
+            "models": {"student": {"name": "fixture/student"}},
+        },
+    }
+    (tmp_path / "materialized" / "train.jsonl.manifest.json").write_text(
+        json.dumps(manifest),
+        encoding="utf-8",
+    )
+    data_path.write_text(
+        json.dumps({**row, "teacher_total_tokens": 6}, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+        config_extra={
+            "dataset_kwargs": {"data_files": {"train": str(data_path)}},
+        },
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.3,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        require_figures=False,
+    )
+
+    assert not report["passed"]
+    checks = {check["name"]: check for check in report["checks"]}
+    provenance_check = checks["paper_provenance_audit_passes"]
+    assert "materialized_manifest_integrity_mismatch" in str(
+        provenance_check["failures"]
+    )
+    assert "materialized_manifest_token_accounting_mismatch" in str(
+        provenance_check["failures"]
+    )
+
+
+def test_paper_gate_rejects_mixed_code_provenance(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.3,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    manifest_path = tmp_path / "heuristic" / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["reproducibility"]["source_control"]["package"][
+        "head_sha"
+    ] = "different-package-sha"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        require_figures=False,
+    )
+
+    assert not report["passed"]
+    checks = {check["name"]: check for check in report["checks"]}
+    consistency_check = checks["paper_provenance_consistent_across_runs"]
+    assert not consistency_check["passed"]
+    assert "package_head_sha" in consistency_check["failures"]
+
+
 def test_paper_report_combines_control_roots(tmp_path):
     core_root = tmp_path / "core"
     control_root = tmp_path / "active_control"
@@ -873,7 +1164,17 @@ def test_pilot_gate_rejects_main_action_space_mismatch(tmp_path):
     assert not report["passed"]
     assert check["failures"] == [
         {
-            "key": ["", "", "", "", "13", "25000", "validation", "macro_f1", "max"],
+            "key": [
+                "fixture_dataset",
+                "",
+                "fixture/student",
+                "causal_lm_sft",
+                "13",
+                "25000",
+                "validation",
+                "macro_f1",
+                "max",
+            ],
             "action_space_ids": ["frugal-actions", "heuristic-actions"],
             "run_ids": ["frugal", "heuristic"],
         }
