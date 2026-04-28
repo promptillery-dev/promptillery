@@ -2522,12 +2522,12 @@ def summarize_paper_pairwise_deltas(
         if not success:
             continue
         mode = str(success.get("mode") or baseline.get("mode") or "max")
-        auc_delta = _improvement_delta(
+        online_auc_delta = _improvement_delta(
             success.get("cycle_quality_cost_auc"),
             baseline.get("cycle_quality_cost_auc"),
             mode,
         )
-        online_auc_delta = _improvement_delta(
+        online_acquisition_auc_delta = _improvement_delta(
             success.get("online_acquisition_quality_cost_auc"),
             baseline.get("online_acquisition_quality_cost_auc"),
             mode,
@@ -2556,12 +2556,14 @@ def summarize_paper_pairwise_deltas(
                 "success_policy": success_policy,
                 "baseline_policy": baseline_policy,
                 "baseline_control_name": baseline.get("control_name"),
-                "delta_cycle_quality_cost_auc": auc_delta,
-                "delta_online_acquisition_quality_cost_auc": online_auc_delta,
+                "delta_cycle_quality_cost_auc": online_auc_delta,
+                "delta_online_acquisition_quality_cost_auc": (
+                    online_acquisition_auc_delta
+                ),
                 "delta_total_teacher_quality_cost_auc": total_auc_delta,
                 "delta_heldout_metric": heldout_delta,
                 "delta_final_metric": final_delta,
-                "auc_win": _win_flag(auc_delta),
+                "auc_win": _win_flag(total_auc_delta),
                 "heldout_win": _win_flag(heldout_delta),
                 "final_win": _win_flag(final_delta),
             }
@@ -2710,7 +2712,7 @@ def summarize_paper_pairwise_summary(
             baseline_policy,
             baseline_control_name,
         ) = key
-        auc = _paired_delta_stats(group, "delta_cycle_quality_cost_auc")
+        auc = _paired_delta_stats(group, "delta_total_teacher_quality_cost_auc")
         heldout = _paired_delta_stats(group, "delta_heldout_metric")
         final = _paired_delta_stats(group, "delta_final_metric")
         summary_rows.append(
@@ -3345,7 +3347,11 @@ def _write_paper_report_markdown(
         f"- Paired comparisons found: {len(delta_rows)}",
         f"- Pairwise summary rows: {len(delta_summary_rows)}",
         f"- Quality-cost points: {len(point_rows)}",
-        f"- AUC win rate: {auc_win_rate if auc_win_rate is not None else 'n/a'}",
+        (
+            f"- Total teacher-token AUC win rate: {auc_win_rate}"
+            if auc_win_rate is not None
+            else "- Total teacher-token AUC win rate: n/a"
+        ),
         (
             f"- Held-out win rate: {heldout_win_rate}"
             if heldout_win_rate is not None
@@ -3380,7 +3386,9 @@ def _write_paper_report_markdown(
             "`audit/synthetic_label_distribution.csv`, and "
             "`audit/same_count_distribution.csv` audit generated-row quality. "
             "`audit/budget_feasibility_certificate.csv` is the theorem-facing "
-            "ledger certificate.",
+            "ledger certificate. Generic paper-gate AUC checks use "
+            "`delta_total_teacher_quality_cost_auc`; online-acquisition AUC is "
+            "reported as a mechanism audit.",
             "",
         ]
     )
@@ -4733,7 +4741,7 @@ def validate_pilot_gate(
                     name="success_policy_beats_baselines_auc",
                     success_policy=success_policy,
                     baseline_rows=baseline_rows,
-                    value_key="cycle_quality_cost_auc",
+                    value_key="total_teacher_quality_cost_auc",
                     min_win_rate=min_auc_win_rate,
                     min_delta=min_auc_delta,
                 )
@@ -5054,7 +5062,7 @@ def validate_pilot_gate(
                         name="success_policy_beats_same_count_auc",
                         success_policy=success_policy,
                         baseline_rows=same_count_rows,
-                        value_key="cycle_quality_cost_auc",
+                        value_key="total_teacher_quality_cost_auc",
                         min_win_rate=min_auc_win_rate,
                         min_delta=min_auc_delta,
                     )
