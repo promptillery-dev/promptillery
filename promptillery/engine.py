@@ -2028,11 +2028,17 @@ class DistillationEngine:
                                         "all_predicted_costs": all_predicted_costs,
                                     }
                                     if choice.action.is_stop:
-                                        action_name = "STOP"
-                                        policy_stopped = True
-                                        decision_metadata["acquisition_outcome"] = (
-                                            "policy_stop"
-                                        )
+                                        if choice.policy_name == "student_only":
+                                            action_name = "student_only_skip"
+                                            decision_metadata[
+                                                "acquisition_outcome"
+                                            ] = "student_only_no_acquisition"
+                                        else:
+                                            action_name = "STOP"
+                                            policy_stopped = True
+                                            decision_metadata[
+                                                "acquisition_outcome"
+                                            ] = "policy_stop"
                                     else:
                                         outcome = await self._augment(
                                             model,

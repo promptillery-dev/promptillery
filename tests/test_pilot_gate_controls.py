@@ -1,12 +1,15 @@
+import csv
 import json
 from pathlib import Path
 
 import yaml
 
 from promptillery.analyze import (
+    analyze_runs,
     plan_same_count_control_configs,
     summarize_run,
     validate_pilot_gate,
+    write_paper_report,
 )
 
 
@@ -150,6 +153,47 @@ def test_pilot_gate_requires_same_count_control(tmp_path):
         and not check["passed"]
         for check in missing["checks"]
     )
+
+
+def test_paper_report_writes_reviewer_tables(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+        final_synthetic_count=4,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.4,
+        final_metric=0.6,
+        heldout_metric=0.55,
+        final_synthetic_count=4,
+    )
+
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    paths = write_paper_report(
+        tmp_path,
+        rows,
+        tmp_path / "paper_report",
+        baseline_policies=["cost_heuristic"],
+    )
+
+    assert paths["paper_readiness_report"].exists()
+    assert paths["paper_main_results"].exists()
+    assert paths["paper_budget_audit"].exists()
+    with paths["paper_pairwise_deltas"].open(newline="", encoding="utf-8") as f:
+        delta_rows = list(csv.DictReader(f))
+
+    assert len(delta_rows) == 1
+    assert delta_rows[0]["success_policy"] == "frugalkd_p"
+    assert delta_rows[0]["baseline_policy"] == "cost_heuristic"
+    assert float(delta_rows[0]["delta_final_metric"]) > 0
+    assert delta_rows[0]["final_win"] == "True"
 
 
 def test_pilot_gate_requires_paper_mode_when_requested(tmp_path):

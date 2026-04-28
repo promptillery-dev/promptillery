@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import csv
 import json
+import statistics
+from collections import defaultdict
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
@@ -132,6 +134,82 @@ ORACLE_FRONTIER_FIELDS = [
     "oracle_auc",
     "oracle_auc_policy",
     "distance_to_oracle_auc",
+]
+PAPER_MAIN_RESULT_FIELDS = [
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "metric",
+    "mode",
+    "token_budget",
+    "policy_name",
+    "control_name",
+    "seeds",
+    "run_count",
+    "mean_cycle_quality_cost_auc",
+    "std_cycle_quality_cost_auc",
+    "mean_heldout_metric",
+    "std_heldout_metric",
+    "mean_final_metric",
+    "std_final_metric",
+    "mean_online_teacher_total_tokens",
+    "mean_total_teacher_total_tokens",
+    "mean_final_synthetic_count",
+]
+PAPER_PAIRWISE_DELTA_FIELDS = [
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "metric",
+    "mode",
+    "seed",
+    "token_budget",
+    "success_policy",
+    "baseline_policy",
+    "baseline_control_name",
+    "delta_cycle_quality_cost_auc",
+    "delta_heldout_metric",
+    "delta_final_metric",
+    "auc_win",
+    "heldout_win",
+    "final_win",
+]
+PAPER_ACTION_FREQUENCY_FIELDS = [
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "token_budget",
+    "policy_name",
+    "control_name",
+    "action_name",
+    "prompt_operator",
+    "teacher_tier",
+    "batch_size",
+    "count",
+    "share",
+]
+PAPER_BUDGET_AUDIT_FIELDS = [
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "metric",
+    "mode",
+    "token_budget",
+    "policy_name",
+    "control_name",
+    "run_count",
+    "max_token_budget_overage",
+    "max_realized_over_predicted",
+    "missing_provider_usage_rows",
+    "over_preflight_bound_rows",
+    "over_remaining_budget_rows",
+    "failed_attempt_rows",
+    "mean_online_teacher_total_tokens",
+    "mean_total_teacher_total_tokens",
 ]
 
 
@@ -994,6 +1072,511 @@ def write_audit_csvs(
         TEACHER_CALIBRATION_FIELDS,
     )
     _write_rows_csv(oracle_rows, paths["oracle_frontier"], ORACLE_FRONTIER_FIELDS)
+    return paths
+
+
+def _mean_std(values: Iterable[Any]) -> tuple[float | None, float | None]:
+    """Return mean and sample std for present numeric values."""
+    numeric = [
+        converted
+        for value in values
+        if (converted := _safe_float(value)) is not None
+    ]
+    if not numeric:
+        return None, None
+    if len(numeric) == 1:
+        return numeric[0], 0.0
+    return statistics.fmean(numeric), statistics.stdev(numeric)
+
+
+def _paper_result_key(row: Dict[str, Any]) -> tuple[Any, ...]:
+    """Group rows by the axes used in the main paper result table."""
+    return (
+        row.get("dataset"),
+        row.get("dataset_subset"),
+        row.get("student_model"),
+        row.get("student_type"),
+        row.get("metric"),
+        row.get("mode"),
+        row.get("token_budget"),
+        row.get("policy_name"),
+        row.get("control_name"),
+    )
+
+
+def _paper_match_key(row: Dict[str, Any]) -> tuple[Any, ...]:
+    """Match success and baseline rows for paired deltas."""
+    return (
+        row.get("dataset"),
+        row.get("dataset_subset"),
+        row.get("student_model"),
+        row.get("student_type"),
+        row.get("metric"),
+        row.get("mode"),
+        row.get("seed"),
+        row.get("token_budget"),
+    )
+
+
+def _improvement_delta(success_value: Any, baseline_value: Any, mode: str) -> float | None:
+    """Return a positive-is-better paired delta."""
+    success_float = _safe_float(success_value)
+    baseline_float = _safe_float(baseline_value)
+    if success_float is None or baseline_float is None:
+        return None
+    if mode == "min":
+        return baseline_float - success_float
+    return success_float - baseline_float
+
+
+def _win_flag(delta: float | None) -> bool | None:
+    """Return a strict win flag while preserving missing comparisons."""
+    if delta is None:
+        return None
+    return delta > 0
+
+
+def summarize_paper_main_results(
+    rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Aggregate run summaries into paper-table rows."""
+    grouped: Dict[tuple[Any, ...], List[Dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[_paper_result_key(row)].append(row)
+
+    results = []
+    for key, group in sorted(grouped.items(), key=lambda item: tuple(map(str, item[0]))):
+        (
+            dataset,
+            dataset_subset,
+            student_model,
+            student_type,
+            metric,
+            mode,
+            token_budget,
+            policy_name,
+            control_name,
+        ) = key
+        auc_mean, auc_std = _mean_std(
+            row.get("cycle_quality_cost_auc") for row in group
+        )
+        heldout_mean, heldout_std = _mean_std(row.get("heldout_metric") for row in group)
+        final_mean, final_std = _mean_std(row.get("final_metric") for row in group)
+        online_mean, _ = _mean_std(
+            row.get("online_teacher_total_tokens") for row in group
+        )
+        total_mean, _ = _mean_std(
+            row.get("total_teacher_total_tokens") for row in group
+        )
+        synthetic_mean, _ = _mean_std(
+            row.get("final_synthetic_count") for row in group
+        )
+        seeds = sorted({str(row.get("seed")) for row in group if row.get("seed") != ""})
+        results.append(
+            {
+                "dataset": dataset,
+                "dataset_subset": dataset_subset,
+                "student_model": student_model,
+                "student_type": student_type,
+                "metric": metric,
+                "mode": mode,
+                "token_budget": token_budget,
+                "policy_name": policy_name,
+                "control_name": control_name,
+                "seeds": ",".join(seeds),
+                "run_count": len(group),
+                "mean_cycle_quality_cost_auc": auc_mean,
+                "std_cycle_quality_cost_auc": auc_std,
+                "mean_heldout_metric": heldout_mean,
+                "std_heldout_metric": heldout_std,
+                "mean_final_metric": final_mean,
+                "std_final_metric": final_std,
+                "mean_online_teacher_total_tokens": online_mean,
+                "mean_total_teacher_total_tokens": total_mean,
+                "mean_final_synthetic_count": synthetic_mean,
+            }
+        )
+    return results
+
+
+def summarize_paper_pairwise_deltas(
+    rows: List[Dict[str, Any]],
+    *,
+    success_policy: str,
+    baseline_policies: List[str],
+) -> List[Dict[str, Any]]:
+    """Return paired success-policy deltas against named baselines."""
+    if not success_policy or not baseline_policies:
+        return []
+    success_by_key = {
+        _paper_match_key(row): row
+        for row in rows
+        if str(row.get("policy_name") or "") == success_policy
+        and not _is_same_count_control(row)
+    }
+    baseline_set = set(baseline_policies)
+    delta_rows = []
+    for baseline in rows:
+        baseline_policy = str(baseline.get("policy_name") or "")
+        if baseline_policy not in baseline_set:
+            continue
+        success = success_by_key.get(_paper_match_key(baseline))
+        if not success:
+            continue
+        mode = str(success.get("mode") or baseline.get("mode") or "max")
+        auc_delta = _improvement_delta(
+            success.get("cycle_quality_cost_auc"),
+            baseline.get("cycle_quality_cost_auc"),
+            mode,
+        )
+        heldout_delta = _improvement_delta(
+            success.get("heldout_metric"), baseline.get("heldout_metric"), mode
+        )
+        final_delta = _improvement_delta(
+            success.get("final_metric"), baseline.get("final_metric"), mode
+        )
+        delta_rows.append(
+            {
+                "dataset": success.get("dataset"),
+                "dataset_subset": success.get("dataset_subset"),
+                "student_model": success.get("student_model"),
+                "student_type": success.get("student_type"),
+                "metric": success.get("metric"),
+                "mode": mode,
+                "seed": success.get("seed"),
+                "token_budget": success.get("token_budget"),
+                "success_policy": success_policy,
+                "baseline_policy": baseline_policy,
+                "baseline_control_name": baseline.get("control_name"),
+                "delta_cycle_quality_cost_auc": auc_delta,
+                "delta_heldout_metric": heldout_delta,
+                "delta_final_metric": final_delta,
+                "auc_win": _win_flag(auc_delta),
+                "heldout_win": _win_flag(heldout_delta),
+                "final_win": _win_flag(final_delta),
+            }
+        )
+    return sorted(
+        delta_rows,
+        key=lambda row: (
+            str(row["dataset"]),
+            str(row["token_budget"]),
+            str(row["seed"]),
+            str(row["baseline_policy"]),
+            str(row["baseline_control_name"]),
+        ),
+    )
+
+
+def summarize_paper_action_frequencies(
+    policy_rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Aggregate policy decision logs for action-frequency figures."""
+    group_totals: Dict[tuple[Any, ...], int] = defaultdict(int)
+    counts: Dict[tuple[Any, ...], int] = defaultdict(int)
+    for row in policy_rows:
+        group_key = (
+            row.get("dataset"),
+            row.get("dataset_subset"),
+            row.get("student_model"),
+            row.get("student_type"),
+            row.get("token_budget"),
+            row.get("policy_name"),
+            row.get("control_name"),
+        )
+        action_key = group_key + (
+            row.get("action_name"),
+            row.get("prompt_operator"),
+            row.get("teacher_tier"),
+            row.get("batch_size"),
+        )
+        group_totals[group_key] += 1
+        counts[action_key] += 1
+
+    frequency_rows = []
+    for key, count in sorted(counts.items(), key=lambda item: tuple(map(str, item[0]))):
+        group_key = key[:7]
+        total = group_totals[group_key]
+        frequency_rows.append(
+            {
+                "dataset": key[0],
+                "dataset_subset": key[1],
+                "student_model": key[2],
+                "student_type": key[3],
+                "token_budget": key[4],
+                "policy_name": key[5],
+                "control_name": key[6],
+                "action_name": key[7],
+                "prompt_operator": key[8],
+                "teacher_tier": key[9],
+                "batch_size": key[10],
+                "count": count,
+                "share": count / total if total else None,
+            }
+        )
+    return frequency_rows
+
+
+def summarize_paper_budget_audit(
+    rows: List[Dict[str, Any]],
+    calibration_rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Aggregate budget-accounting checks for paper audit tables."""
+    calibration_by_run: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for row in calibration_rows:
+        calibration_by_run[str(row.get("run_id") or "")].append(row)
+
+    grouped: Dict[tuple[Any, ...], List[Dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[_paper_result_key(row)].append(row)
+
+    audit_rows = []
+    for key, group in sorted(grouped.items(), key=lambda item: tuple(map(str, item[0]))):
+        (
+            dataset,
+            dataset_subset,
+            student_model,
+            student_type,
+            metric,
+            mode,
+            token_budget,
+            policy_name,
+            control_name,
+        ) = key
+        group_calibration = [
+            attempt
+            for row in group
+            for attempt in calibration_by_run.get(str(row.get("run_id") or ""), [])
+        ]
+        overage_values = [
+            row.get("token_budget_overage")
+            for row in group
+            if _safe_int(row.get("token_budget_overage")) is not None
+        ]
+        realized_ratios = [
+            attempt.get("realized_over_predicted") for attempt in group_calibration
+        ]
+        online_mean, _ = _mean_std(
+            row.get("online_teacher_total_tokens") for row in group
+        )
+        total_mean, _ = _mean_std(
+            row.get("total_teacher_total_tokens") for row in group
+        )
+        audit_rows.append(
+            {
+                "dataset": dataset,
+                "dataset_subset": dataset_subset,
+                "student_model": student_model,
+                "student_type": student_type,
+                "metric": metric,
+                "mode": mode,
+                "token_budget": token_budget,
+                "policy_name": policy_name,
+                "control_name": control_name,
+                "run_count": len(group),
+                "max_token_budget_overage": max(overage_values, default=0),
+                "max_realized_over_predicted": max(
+                    (
+                        value
+                        for value in (
+                            _safe_float(ratio) for ratio in realized_ratios
+                        )
+                        if value is not None
+                    ),
+                    default=None,
+                ),
+                "missing_provider_usage_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if not _truthy(attempt.get("provider_reported_present"))
+                ),
+                "over_preflight_bound_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if _truthy(attempt.get("over_preflight_bound"))
+                ),
+                "over_remaining_budget_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if _truthy(attempt.get("over_remaining_budget"))
+                ),
+                "failed_attempt_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if str(attempt.get("status") or "") not in {"", "success"}
+                ),
+                "mean_online_teacher_total_tokens": online_mean,
+                "mean_total_teacher_total_tokens": total_mean,
+            }
+        )
+    return audit_rows
+
+
+def _win_rate(rows: List[Dict[str, Any]], key: str) -> float | None:
+    present = [row[key] for row in rows if row.get(key) is not None]
+    if not present:
+        return None
+    return sum(1 for value in present if value) / len(present)
+
+
+def _write_paper_report_markdown(
+    *,
+    source_path: Path,
+    output_path: Path,
+    rows: List[Dict[str, Any]],
+    main_rows: List[Dict[str, Any]],
+    delta_rows: List[Dict[str, Any]],
+    budget_rows: List[Dict[str, Any]],
+    paths: Dict[str, Path],
+    success_policy: str,
+    baseline_policies: List[str],
+) -> None:
+    """Write a compact report pointing reviewers to generated tables."""
+    policies = sorted({str(row.get("policy_name") or "") for row in rows})
+    datasets = sorted({str(row.get("dataset") or "") for row in rows})
+    budgets = sorted({str(row.get("token_budget") or "") for row in rows})
+    auc_win_rate = _win_rate(delta_rows, "auc_win")
+    heldout_win_rate = _win_rate(delta_rows, "heldout_win")
+    max_overage = max(
+        (_safe_int(row.get("max_token_budget_overage")) or 0 for row in budget_rows),
+        default=0,
+    )
+    missing_usage = sum(
+        _safe_int(row.get("missing_provider_usage_rows")) or 0
+        for row in budget_rows
+    )
+    over_preflight = sum(
+        _safe_int(row.get("over_preflight_bound_rows")) or 0 for row in budget_rows
+    )
+    lines = [
+        "# Paper Readiness Report",
+        "",
+        f"Source run root: `{source_path}`",
+        "",
+        "## Coverage",
+        "",
+        f"- Runs summarized: {len(rows)}",
+        f"- Main-result rows: {len(main_rows)}",
+        f"- Datasets: {', '.join(datasets) if datasets else 'none'}",
+        f"- Budgets: {', '.join(budgets) if budgets else 'none'}",
+        f"- Policies: {', '.join(policies) if policies else 'none'}",
+        "",
+        "## Paired Success Screen",
+        "",
+        f"- Success policy: `{success_policy}`",
+        f"- Baselines: {', '.join(f'`{name}`' for name in baseline_policies)}",
+        f"- Paired comparisons found: {len(delta_rows)}",
+        f"- AUC win rate: {auc_win_rate if auc_win_rate is not None else 'n/a'}",
+        (
+            f"- Held-out win rate: {heldout_win_rate}"
+            if heldout_win_rate is not None
+            else "- Held-out win rate: n/a"
+        ),
+        "",
+        "## Budget Audit Screen",
+        "",
+        f"- Max token-budget overage: {max_overage}",
+        f"- Missing provider-usage attempt rows: {missing_usage}",
+        f"- Over-preflight attempt rows: {over_preflight}",
+        "",
+        "## Generated Tables",
+        "",
+    ]
+    for name, path in sorted(paths.items()):
+        lines.append(f"- `{name}`: `{path}`")
+    lines.extend(
+        [
+            "",
+            "## Reviewer Use",
+            "",
+            "Use `paper_main_results.csv` for the main table, "
+            "`paper_pairwise_deltas.csv` for paired seed/budget deltas, "
+            "`paper_budget_audit.csv` for the accounting table, and "
+            "`paper_action_frequencies.csv` for policy-behavior figures.",
+            "",
+        ]
+    )
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_paper_report(
+    path: Path,
+    rows: List[Dict[str, Any]],
+    output_dir: Path,
+    *,
+    success_policy: str = "frugalkd_p",
+    baseline_policies: List[str] | None = None,
+) -> Dict[str, Path]:
+    """Write paper-facing tables and a compact readiness report."""
+    baseline_policies = baseline_policies or ["cost_heuristic", "random_feasible"]
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    summary_path = output_dir / "summary.csv"
+    write_summary_csv(rows, summary_path)
+    audit_paths = write_audit_csvs(path, rows, output_dir / "audit")
+
+    run_dirs = _run_dirs(path)
+    policy_rows = [
+        row
+        for run_dir in run_dirs
+        for row in summarize_policy_behavior(run_dir)
+    ]
+    calibration_rows = [
+        row
+        for run_dir in run_dirs
+        for row in summarize_teacher_calibration(run_dir)
+    ]
+    main_rows = summarize_paper_main_results(rows)
+    delta_rows = summarize_paper_pairwise_deltas(
+        rows,
+        success_policy=success_policy,
+        baseline_policies=baseline_policies,
+    )
+    action_rows = summarize_paper_action_frequencies(policy_rows)
+    budget_rows = summarize_paper_budget_audit(rows, calibration_rows)
+
+    paths = {
+        "summary": summary_path,
+        "audit_policy_actions": audit_paths["policy_actions"],
+        "audit_teacher_calibration": audit_paths["teacher_calibration"],
+        "audit_oracle_frontier": audit_paths["oracle_frontier"],
+        "paper_main_results": output_dir / "paper_main_results.csv",
+        "paper_pairwise_deltas": output_dir / "paper_pairwise_deltas.csv",
+        "paper_action_frequencies": output_dir / "paper_action_frequencies.csv",
+        "paper_budget_audit": output_dir / "paper_budget_audit.csv",
+        "paper_readiness_report": output_dir / "paper_readiness_report.md",
+    }
+    _write_rows_csv(
+        main_rows,
+        paths["paper_main_results"],
+        PAPER_MAIN_RESULT_FIELDS,
+    )
+    _write_rows_csv(
+        delta_rows,
+        paths["paper_pairwise_deltas"],
+        PAPER_PAIRWISE_DELTA_FIELDS,
+    )
+    _write_rows_csv(
+        action_rows,
+        paths["paper_action_frequencies"],
+        PAPER_ACTION_FREQUENCY_FIELDS,
+    )
+    _write_rows_csv(
+        budget_rows,
+        paths["paper_budget_audit"],
+        PAPER_BUDGET_AUDIT_FIELDS,
+    )
+    _write_paper_report_markdown(
+        source_path=path,
+        output_path=paths["paper_readiness_report"],
+        rows=rows,
+        main_rows=main_rows,
+        delta_rows=delta_rows,
+        budget_rows=budget_rows,
+        paths=paths,
+        success_policy=success_policy,
+        baseline_policies=baseline_policies,
+    )
     return paths
 
 

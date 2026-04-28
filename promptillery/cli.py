@@ -16,6 +16,7 @@ from .analyze import (
     plan_same_count_control_configs,
     validate_pilot_gate,
     write_audit_csvs,
+    write_paper_report,
     write_summary_csv,
 )
 from .config import ExperimentConfig
@@ -251,6 +252,67 @@ def analyze(
     writer = csv.DictWriter(sys.stdout, fieldnames=list(rows[0].keys()))
     writer.writeheader()
     writer.writerows(rows)
+
+
+@app.command("paper-report")
+def paper_report(
+    path: str,
+    output_dir: str = typer.Option(
+        "paper_report",
+        "--output-dir",
+        "-o",
+        help="Directory for reviewer-facing tables and report",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to summarize; defaults to the first recognized run metric",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+    success_policy: str = typer.Option(
+        "frugalkd_p",
+        "--success-policy",
+        help="Policy to compare against paired baselines",
+    ),
+    success_baselines: str = typer.Option(
+        "cost_heuristic,random_feasible",
+        "--success-baselines",
+        help="Comma-separated baseline policy_name values for paired deltas",
+    ),
+) -> None:
+    """Write paper-facing result, delta, budget, and behavior tables."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        rows = analyze_runs(Path(path), metric=metric, mode=mode)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+    if not rows:
+        typer.echo(f"Error: no run artifacts found under {path}", err=True)
+        raise typer.Exit(code=1)
+    if metric and not any(row["metric"] == metric for row in rows):
+        typer.echo(f"Error: metric '{metric}' was not found in any run", err=True)
+        raise typer.Exit(code=1)
+
+    paths = write_paper_report(
+        Path(path),
+        rows,
+        Path(output_dir),
+        success_policy=success_policy,
+        baseline_policies=_csv_option_values(success_baselines),
+    )
+    typer.echo(
+        "Wrote paper report tables to "
+        + ", ".join(str(value) for value in paths.values())
+    )
 
 
 @app.command("pilot-gate")
