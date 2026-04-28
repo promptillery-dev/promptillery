@@ -476,6 +476,30 @@ class DistillationEngine:
             seed=self.cfg.seed,
         )
 
+    def _policy_controller_manifest(self) -> Dict[str, Any]:
+        """Return auditable controller details for the run manifest."""
+        if self.policy_controller is None:
+            return {
+                "policy_name": self.cfg.policy_name,
+                "controller_type": "legacy_fixed_promptillery",
+            }
+
+        policy_name = str(self.policy_controller.policy_name)
+        controller_type = (
+            "fixed_linear_acquisition_scorer"
+            if policy_name in {"frugalkd_p", "linear_frugalkd_p"}
+            else "deterministic_baseline"
+        )
+        payload: Dict[str, Any] = {
+            "policy_name": policy_name,
+            "controller_type": controller_type,
+            "lambda_cost": self.policy_controller.lambda_cost,
+            "exploration_bonus": self.policy_controller.exploration_bonus,
+        }
+        if controller_type == "fixed_linear_acquisition_scorer":
+            payload["linear_weights"] = dict(self.policy_controller.linear_weights)
+        return payload
+
     def _build_action_space(self) -> List[PolicyAction]:
         """Build the finite action class for acquisition policies."""
         teacher_tiers = list(self.cfg.policy_teacher_tiers.keys()) or ["cheap", "strong"]
@@ -1854,6 +1878,7 @@ class DistillationEngine:
                         if self.policy_controller is None
                         else "policy_controller"
                     ),
+                    "policy_controller": self._policy_controller_manifest(),
                     "expected_cycles": self.cfg.cycles,
                     "cycles_completed": self.token_tracker.summary.cycles_completed,
                     "selection_split": eval_split,

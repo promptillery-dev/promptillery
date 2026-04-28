@@ -7,7 +7,7 @@ from datasets import ClassLabel, Dataset, DatasetDict, Features, Value
 from jinja2 import Template
 
 from promptillery.engine import DistillationEngine
-from promptillery.policy_controller import PolicyAction
+from promptillery.policy_controller import PolicyAction, PolicyController
 from promptillery.sft_materialize import _write_canonical_labels_artifact
 from promptillery.token_tracker import TokenTracker
 from promptillery.trainers.causal_lm_sft_trainer import CausalLMSFTTrainer
@@ -179,6 +179,24 @@ def test_sft_detailed_predictions_feed_policy_prompt_context(tmp_path):
     assert high_entropy[0]["text"] == "deposit cash"
     assert "invalid_label_rate: 0.5000" in report
     assert "canonical_label_count: 2" in report
+
+
+def test_policy_controller_manifest_exposes_fixed_linear_weights():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(policy_name="frugalkd_p")
+    engine.policy_controller = PolicyController(
+        "frugalkd_p",
+        lambda_cost=0.25,
+        exploration_bonus=0.5,
+        seed=13,
+    )
+
+    manifest = engine._policy_controller_manifest()
+
+    assert manifest["controller_type"] == "fixed_linear_acquisition_scorer"
+    assert manifest["lambda_cost"] == 0.25
+    assert manifest["exploration_bonus"] == 0.5
+    assert "eval_error_rate" in manifest["linear_weights"]
 
 
 def test_materialize_writes_canonical_label_artifact(tmp_path):

@@ -216,12 +216,12 @@ class ExperimentConfig(BaseModel):
     policy_lambda_cost: float = Field(
         default=1e-4,
         ge=0.0,
-        description="Cost penalty used by the linear FrugalKD-P controller.",
+        description="Cost penalty used by the fixed linear FrugalKD-P scorer.",
     )
     policy_exploration_bonus: float = Field(
         default=0.0,
         ge=0.0,
-        description="Exploration bonus used by the linear FrugalKD-P controller.",
+        description="Exploration bonus used by the fixed linear FrugalKD-P scorer.",
     )
 
     # Budget control
