@@ -7,6 +7,7 @@ import yaml
 from promptillery.analyze import (
     analyze_runs,
     plan_same_count_control_configs,
+    summarize_budget_feasibility,
     summarize_run,
     validate_pilot_gate,
     write_paper_report,
@@ -262,6 +263,7 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert paths["paper_readiness_report"].exists()
     assert paths["paper_main_results"].exists()
     assert paths["paper_budget_audit"].exists()
+    assert paths["audit_budget_feasibility_certificate"].exists()
     assert paths["paper_pairwise_summary"].exists()
     assert paths["paper_quality_cost_points"].exists()
     assert paths["paper_action_cycle_frequencies"].exists()
@@ -271,6 +273,10 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
         summary_rows = list(csv.DictReader(f))
     with paths["paper_budget_audit"].open(newline="", encoding="utf-8") as f:
         budget_rows = list(csv.DictReader(f))
+    with paths["audit_budget_feasibility_certificate"].open(
+        newline="", encoding="utf-8"
+    ) as f:
+        certificate_rows = list(csv.DictReader(f))
     with paths["paper_quality_cost_points"].open(newline="", encoding="utf-8") as f:
         point_rows = list(csv.DictReader(f))
     with paths["paper_action_cycle_frequencies"].open(
@@ -320,6 +326,12 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert frugal_budget["strong_teacher_input_tokens"] == "3"
     assert frugal_budget["strong_teacher_output_tokens"] == "2"
     assert frugal_budget["strong_teacher_total_tokens"] == "5"
+    frugal_certificate = next(
+        row for row in certificate_rows if row["policy_name"] == "frugalkd_p"
+    )
+    assert frugal_certificate["certificate_passed"] == "False"
+    assert frugal_certificate["over_preflight_attempt_ids"] == "frugal:a2"
+    assert frugal_certificate["over_remaining_attempt_ids"] == "frugal:a2"
     frugal_points = [row for row in point_rows if row["run_id"] == "frugal"]
     assert [row["split"] for row in frugal_points] == [
         "validation",
@@ -332,6 +344,45 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
         row["cycle"] == "1" and row["action_name"] == "final_cycle"
         for row in action_cycle_rows
     )
+
+
+def test_budget_feasibility_certificate_flags_ledger_violations(tmp_path):
+    _write_run(tmp_path, name="violating", policy_name="frugalkd_p", token_budget=10)
+    run_dir = tmp_path / "violating"
+    (run_dir / "teacher_attempts.jsonl").write_text(
+        json.dumps(
+            {
+                "cycle": 0,
+                "attempt_id": "violating:a0",
+                "decision_id": "violating:d1",
+                "run_id": "violating",
+                "status": "success",
+                "failure_type": "",
+                "predicted_cost": {"total_tokens": 6},
+                "provider_reported_cost": {"total_tokens": 8},
+                "ledger_debit_cost": {"total_tokens": 7},
+                "realized_cost": {"total_tokens": 8},
+                "ledger_debit_source": "provider_reported",
+                "budget_before": {"tokens_remaining": 6},
+                "budget_after": {"tokens_remaining": -1},
+                "metadata": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    certificate = summarize_budget_feasibility(run_dir)
+
+    assert certificate["certificate_passed"] is False
+    assert certificate["ledger_debit_total_tokens"] == 7.0
+    assert certificate["provider_reported_total_tokens"] == 8.0
+    assert certificate["over_preflight_attempt_ids"] == "violating:a0"
+    assert certificate["over_remaining_attempt_ids"] == "violating:a0"
+    assert certificate["provider_over_ledger_attempt_ids"] == "violating:a0"
+    assert certificate["negative_remaining_attempt_ids"] == "violating:a0"
+    assert "ledger_exceeds_preflight" in certificate["failure_reasons"]
+    assert "provider_exceeds_ledger" in certificate["failure_reasons"]
 
 
 def test_paper_report_combines_control_roots(tmp_path):

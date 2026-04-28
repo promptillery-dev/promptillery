@@ -112,6 +112,46 @@ TEACHER_CALIBRATION_FIELDS = [
     "tokens_remaining_before",
     "tokens_remaining_after",
 ]
+BUDGET_FEASIBILITY_FIELDS = [
+    "run_dir",
+    "run_id",
+    "control_name",
+    "experiment",
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "seed",
+    "token_budget",
+    "synthetic_record_budget",
+    "policy_name",
+    "action_space_id",
+    "attempt_rows",
+    "dispatched_attempt_rows",
+    "masked_attempt_rows",
+    "ledger_debit_total_tokens",
+    "provider_reported_total_tokens",
+    "over_preflight_attempt_rows",
+    "over_remaining_attempt_rows",
+    "provider_over_ledger_attempt_rows",
+    "missing_preflight_attempt_rows",
+    "missing_ledger_attempt_rows",
+    "remaining_mismatch_attempt_rows",
+    "negative_remaining_attempt_rows",
+    "ledger_within_token_budget",
+    "preflight_bounds_ledger",
+    "provider_bounded_by_ledger",
+    "remaining_ledger_consistent",
+    "certificate_passed",
+    "failure_reasons",
+    "over_preflight_attempt_ids",
+    "over_remaining_attempt_ids",
+    "provider_over_ledger_attempt_ids",
+    "missing_preflight_attempt_ids",
+    "missing_ledger_attempt_ids",
+    "remaining_mismatch_attempt_ids",
+    "negative_remaining_attempt_ids",
+]
 ORACLE_FRONTIER_FIELDS = [
     "run_dir",
     "run_id",
@@ -855,6 +895,142 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
     return rows
 
 
+def summarize_budget_feasibility(run_dir: Path) -> Dict[str, Any]:
+    """Return one theorem-facing budget certificate row for a run."""
+    context = _run_context(run_dir)
+    attempt_rows = summarize_teacher_calibration(run_dir)
+    token_budget = _safe_float(context.get("token_budget"))
+    epsilon = 1e-9
+
+    ledger_total = 0.0
+    provider_total = 0.0
+    dispatched_rows = 0
+    masked_rows = 0
+    over_preflight_ids: list[str] = []
+    over_remaining_ids: list[str] = []
+    provider_over_ledger_ids: list[str] = []
+    missing_preflight_ids: list[str] = []
+    missing_ledger_ids: list[str] = []
+    remaining_mismatch_ids: list[str] = []
+    negative_remaining_ids: list[str] = []
+
+    for row in attempt_rows:
+        attempt_id = str(row.get("attempt_id") or "")
+        status = str(row.get("status") or "")
+        if status == "masked":
+            masked_rows += 1
+        else:
+            dispatched_rows += 1
+
+        predicted = _safe_float(row.get("predicted_total_tokens"))
+        ledger = _safe_float(row.get("ledger_debit_total_tokens"))
+        provider = _safe_float(row.get("provider_reported_total_tokens"))
+        before = _safe_float(row.get("tokens_remaining_before"))
+        after = _safe_float(row.get("tokens_remaining_after"))
+
+        if ledger is None:
+            if status != "masked":
+                missing_ledger_ids.append(attempt_id)
+            ledger = 0.0
+        if provider is not None:
+            provider_total += provider
+
+        ledger_total += ledger
+        if predicted is None and ledger > epsilon:
+            missing_preflight_ids.append(attempt_id)
+        if predicted is not None and ledger > predicted + epsilon:
+            over_preflight_ids.append(attempt_id)
+        if before is not None and ledger > before + epsilon:
+            over_remaining_ids.append(attempt_id)
+        if provider is not None and provider > ledger + epsilon:
+            provider_over_ledger_ids.append(attempt_id)
+        if before is not None and after is not None:
+            expected_after = before - ledger
+            if abs(after - expected_after) > epsilon:
+                remaining_mismatch_ids.append(attempt_id)
+            if after < -epsilon:
+                negative_remaining_ids.append(attempt_id)
+
+    failure_reasons: list[str] = []
+    ledger_within_budget = True
+    if token_budget is not None:
+        ledger_within_budget = ledger_total <= token_budget + epsilon
+        if not ledger_within_budget:
+            failure_reasons.append("ledger_exceeds_token_budget")
+    elif ledger_total > epsilon:
+        ledger_within_budget = False
+        failure_reasons.append("missing_token_budget")
+
+    checks = [
+        (not over_preflight_ids, "ledger_exceeds_preflight"),
+        (not over_remaining_ids, "ledger_exceeds_remaining_budget"),
+        (not provider_over_ledger_ids, "provider_exceeds_ledger"),
+        (not missing_preflight_ids, "missing_preflight_bound"),
+        (not missing_ledger_ids, "missing_ledger_debit"),
+        (not remaining_mismatch_ids, "remaining_budget_mismatch"),
+        (not negative_remaining_ids, "negative_remaining_budget"),
+    ]
+    for passed, reason in checks:
+        if not passed:
+            failure_reasons.append(reason)
+
+    preflight_bounds_ledger = not over_preflight_ids and not missing_preflight_ids
+    provider_bounded_by_ledger = not provider_over_ledger_ids
+    remaining_consistent = (
+        not over_remaining_ids
+        and not remaining_mismatch_ids
+        and not negative_remaining_ids
+    )
+    certificate_passed = (
+        ledger_within_budget
+        and preflight_bounds_ledger
+        and provider_bounded_by_ledger
+        and not missing_ledger_ids
+        and remaining_consistent
+    )
+
+    return {
+        "run_dir": context["run_dir"],
+        "run_id": context["run_id"],
+        "control_name": context["control_name"],
+        "experiment": context["experiment"],
+        "dataset": context["dataset"],
+        "dataset_subset": context["dataset_subset"],
+        "student_model": context["student_model"],
+        "student_type": context["student_type"],
+        "seed": context["seed"],
+        "token_budget": context["token_budget"],
+        "synthetic_record_budget": context["synthetic_record_budget"],
+        "policy_name": context["policy_name"],
+        "action_space_id": context["action_space_id"],
+        "attempt_rows": len(attempt_rows),
+        "dispatched_attempt_rows": dispatched_rows,
+        "masked_attempt_rows": masked_rows,
+        "ledger_debit_total_tokens": ledger_total,
+        "provider_reported_total_tokens": provider_total,
+        "over_preflight_attempt_rows": len(over_preflight_ids),
+        "over_remaining_attempt_rows": len(over_remaining_ids),
+        "provider_over_ledger_attempt_rows": len(provider_over_ledger_ids),
+        "missing_preflight_attempt_rows": len(missing_preflight_ids),
+        "missing_ledger_attempt_rows": len(missing_ledger_ids),
+        "remaining_mismatch_attempt_rows": len(remaining_mismatch_ids),
+        "negative_remaining_attempt_rows": len(negative_remaining_ids),
+        "ledger_within_token_budget": ledger_within_budget,
+        "preflight_bounds_ledger": preflight_bounds_ledger,
+        "provider_bounded_by_ledger": provider_bounded_by_ledger,
+        "remaining_ledger_consistent": remaining_consistent,
+        "certificate_passed": certificate_passed,
+        "failure_reasons": ",".join(sorted(set(failure_reasons))),
+        "over_preflight_attempt_ids": ",".join(over_preflight_ids),
+        "over_remaining_attempt_ids": ",".join(over_remaining_ids),
+        "provider_over_ledger_attempt_ids": ",".join(provider_over_ledger_ids),
+        "missing_preflight_attempt_ids": ",".join(missing_preflight_ids),
+        "missing_ledger_attempt_ids": ",".join(missing_ledger_ids),
+        "remaining_mismatch_attempt_ids": ",".join(remaining_mismatch_ids),
+        "negative_remaining_attempt_ids": ",".join(negative_remaining_ids),
+    }
+
+
 def _is_fixed_policy(row: Dict[str, Any]) -> bool:
     if _is_same_count_control(row):
         return False
@@ -1230,12 +1406,15 @@ def write_audit_csvs(
     calibration_rows = [
         row for run_dir in run_dirs for row in summarize_teacher_calibration(run_dir)
     ]
+    certificate_rows = [summarize_budget_feasibility(run_dir) for run_dir in run_dirs]
     oracle_rows = summarize_oracle_frontier(rows)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {
         "policy_actions": output_dir / "policy_actions.csv",
         "teacher_calibration": output_dir / "teacher_calibration.csv",
+        "budget_feasibility_certificate": output_dir
+        / "budget_feasibility_certificate.csv",
         "oracle_frontier": output_dir / "oracle_frontier.csv",
     }
     _write_rows_csv(policy_rows, paths["policy_actions"], POLICY_BEHAVIOR_FIELDS)
@@ -1243,6 +1422,11 @@ def write_audit_csvs(
         calibration_rows,
         paths["teacher_calibration"],
         TEACHER_CALIBRATION_FIELDS,
+    )
+    _write_rows_csv(
+        certificate_rows,
+        paths["budget_feasibility_certificate"],
+        BUDGET_FEASIBILITY_FIELDS,
     )
     _write_rows_csv(oracle_rows, paths["oracle_frontier"], ORACLE_FRONTIER_FIELDS)
     return paths
@@ -2164,7 +2348,9 @@ def _write_paper_report_markdown(
             "`paper_quality_cost_points.csv` for quality-cost curves, "
             "`paper_budget_audit.csv` for the accounting table, and "
             "`paper_action_frequencies.csv` plus "
-            "`paper_action_cycle_frequencies.csv` for policy-behavior figures.",
+            "`paper_action_cycle_frequencies.csv` for policy-behavior figures. "
+            "`audit/budget_feasibility_certificate.csv` is the theorem-facing "
+            "ledger certificate.",
             "",
         ]
     )
@@ -2211,6 +2397,9 @@ def write_paper_report(
         "summary": summary_path,
         "audit_policy_actions": audit_paths["policy_actions"],
         "audit_teacher_calibration": audit_paths["teacher_calibration"],
+        "audit_budget_feasibility_certificate": audit_paths[
+            "budget_feasibility_certificate"
+        ],
         "audit_oracle_frontier": audit_paths["oracle_frontier"],
         "paper_main_results": output_dir / "paper_main_results.csv",
         "paper_pairwise_deltas": output_dir / "paper_pairwise_deltas.csv",
@@ -2609,6 +2798,7 @@ def validate_pilot_gate(
     calibration_rows = [
         row for run_dir in run_dirs for row in summarize_teacher_calibration(run_dir)
     ]
+    certificate_rows = [summarize_budget_feasibility(run_dir) for run_dir in run_dirs]
     frontier_rows = summarize_oracle_frontier(rows)
 
     policies_found = _normalize_set(row.get("policy_name") for row in rows)
@@ -2957,6 +3147,30 @@ def validate_pilot_gate(
             ],
             over_remaining_attempt_ids=[
                 row.get("attempt_id") for row in remaining_violations
+            ],
+        )
+    )
+
+    failed_certificates = [
+        row for row in certificate_rows if not _truthy(row.get("certificate_passed"))
+    ]
+    checks.append(
+        _gate_check(
+            "budget_feasibility_certificate",
+            not failed_certificates,
+            failing_run_ids=[row.get("run_id") for row in failed_certificates],
+            failures=[
+                {
+                    "run_id": row.get("run_id"),
+                    "failure_reasons": row.get("failure_reasons"),
+                    "over_preflight_attempt_ids": row.get("over_preflight_attempt_ids"),
+                    "over_remaining_attempt_ids": row.get("over_remaining_attempt_ids"),
+                    "missing_preflight_attempt_ids": row.get(
+                        "missing_preflight_attempt_ids"
+                    ),
+                    "missing_ledger_attempt_ids": row.get("missing_ledger_attempt_ids"),
+                }
+                for row in failed_certificates
             ],
         )
     )
