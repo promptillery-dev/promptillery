@@ -186,14 +186,22 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert paths["paper_readiness_report"].exists()
     assert paths["paper_main_results"].exists()
     assert paths["paper_budget_audit"].exists()
+    assert paths["paper_pairwise_summary"].exists()
     with paths["paper_pairwise_deltas"].open(newline="", encoding="utf-8") as f:
         delta_rows = list(csv.DictReader(f))
+    with paths["paper_pairwise_summary"].open(newline="", encoding="utf-8") as f:
+        summary_rows = list(csv.DictReader(f))
 
     assert len(delta_rows) == 1
     assert delta_rows[0]["success_policy"] == "frugalkd_p"
     assert delta_rows[0]["baseline_policy"] == "cost_heuristic"
     assert float(delta_rows[0]["delta_final_metric"]) > 0
     assert delta_rows[0]["final_win"] == "True"
+    assert len(summary_rows) == 1
+    assert summary_rows[0]["final_wins"] == "1"
+    assert summary_rows[0]["final_losses"] == "0"
+    assert summary_rows[0]["final_win_rate"] == "1.0"
+    assert summary_rows[0]["final_sign_test_p"] == "1.0"
 
 
 def test_pilot_gate_requires_paper_mode_when_requested(tmp_path):

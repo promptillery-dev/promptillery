@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import statistics
 from collections import defaultdict
 from hashlib import sha256
@@ -175,6 +176,39 @@ PAPER_PAIRWISE_DELTA_FIELDS = [
     "auc_win",
     "heldout_win",
     "final_win",
+]
+PAPER_PAIRWISE_SUMMARY_FIELDS = [
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "metric",
+    "mode",
+    "token_budget",
+    "success_policy",
+    "baseline_policy",
+    "baseline_control_name",
+    "auc_n",
+    "auc_wins",
+    "auc_losses",
+    "auc_ties",
+    "auc_win_rate",
+    "auc_mean_delta",
+    "auc_sign_test_p",
+    "heldout_n",
+    "heldout_wins",
+    "heldout_losses",
+    "heldout_ties",
+    "heldout_win_rate",
+    "heldout_mean_delta",
+    "heldout_sign_test_p",
+    "final_n",
+    "final_wins",
+    "final_losses",
+    "final_ties",
+    "final_win_rate",
+    "final_mean_delta",
+    "final_sign_test_p",
 ]
 PAPER_ACTION_FREQUENCY_FIELDS = [
     "dataset",
@@ -1268,6 +1302,120 @@ def summarize_paper_pairwise_deltas(
     )
 
 
+def _paper_pairwise_summary_key(row: Dict[str, Any]) -> tuple[Any, ...]:
+    """Group paired deltas by axes used for statistical summaries."""
+    return (
+        row.get("dataset"),
+        row.get("dataset_subset"),
+        row.get("student_model"),
+        row.get("student_type"),
+        row.get("metric"),
+        row.get("mode"),
+        row.get("token_budget"),
+        row.get("success_policy"),
+        row.get("baseline_policy"),
+        row.get("baseline_control_name"),
+    )
+
+
+def _exact_two_sided_sign_test_p(wins: int, losses: int) -> float | None:
+    """Return an exact two-sided binomial sign-test p-value."""
+    n = wins + losses
+    if n == 0:
+        return None
+    tail = min(wins, losses)
+    probability = sum(math.comb(n, k) for k in range(tail + 1)) / (2**n)
+    return min(1.0, 2 * probability)
+
+
+def _paired_delta_stats(
+    rows: List[Dict[str, Any]],
+    delta_key: str,
+) -> Dict[str, Any]:
+    """Summarize one paired delta column with ties separated from sign tests."""
+    deltas = [
+        converted
+        for row in rows
+        if (converted := _safe_float(row.get(delta_key))) is not None
+    ]
+    wins = sum(1 for value in deltas if value > 0)
+    losses = sum(1 for value in deltas if value < 0)
+    ties = sum(1 for value in deltas if value == 0)
+    mean_delta, _ = _mean_std(deltas)
+    return {
+        "n": len(deltas),
+        "wins": wins,
+        "losses": losses,
+        "ties": ties,
+        "win_rate": wins / len(deltas) if deltas else None,
+        "mean_delta": mean_delta,
+        "sign_test_p": _exact_two_sided_sign_test_p(wins, losses),
+    }
+
+
+def summarize_paper_pairwise_summary(
+    delta_rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Aggregate paired deltas into reviewer-facing win-rate summaries."""
+    grouped: Dict[tuple[Any, ...], List[Dict[str, Any]]] = defaultdict(list)
+    for row in delta_rows:
+        grouped[_paper_pairwise_summary_key(row)].append(row)
+
+    summary_rows = []
+    for key, group in sorted(grouped.items(), key=lambda item: tuple(map(str, item[0]))):
+        (
+            dataset,
+            dataset_subset,
+            student_model,
+            student_type,
+            metric,
+            mode,
+            token_budget,
+            success_policy,
+            baseline_policy,
+            baseline_control_name,
+        ) = key
+        auc = _paired_delta_stats(group, "delta_cycle_quality_cost_auc")
+        heldout = _paired_delta_stats(group, "delta_heldout_metric")
+        final = _paired_delta_stats(group, "delta_final_metric")
+        summary_rows.append(
+            {
+                "dataset": dataset,
+                "dataset_subset": dataset_subset,
+                "student_model": student_model,
+                "student_type": student_type,
+                "metric": metric,
+                "mode": mode,
+                "token_budget": token_budget,
+                "success_policy": success_policy,
+                "baseline_policy": baseline_policy,
+                "baseline_control_name": baseline_control_name,
+                "auc_n": auc["n"],
+                "auc_wins": auc["wins"],
+                "auc_losses": auc["losses"],
+                "auc_ties": auc["ties"],
+                "auc_win_rate": auc["win_rate"],
+                "auc_mean_delta": auc["mean_delta"],
+                "auc_sign_test_p": auc["sign_test_p"],
+                "heldout_n": heldout["n"],
+                "heldout_wins": heldout["wins"],
+                "heldout_losses": heldout["losses"],
+                "heldout_ties": heldout["ties"],
+                "heldout_win_rate": heldout["win_rate"],
+                "heldout_mean_delta": heldout["mean_delta"],
+                "heldout_sign_test_p": heldout["sign_test_p"],
+                "final_n": final["n"],
+                "final_wins": final["wins"],
+                "final_losses": final["losses"],
+                "final_ties": final["ties"],
+                "final_win_rate": final["win_rate"],
+                "final_mean_delta": final["mean_delta"],
+                "final_sign_test_p": final["sign_test_p"],
+            }
+        )
+    return summary_rows
+
+
 def summarize_paper_action_frequencies(
     policy_rows: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
@@ -1426,6 +1574,7 @@ def _write_paper_report_markdown(
     rows: List[Dict[str, Any]],
     main_rows: List[Dict[str, Any]],
     delta_rows: List[Dict[str, Any]],
+    delta_summary_rows: List[Dict[str, Any]],
     budget_rows: List[Dict[str, Any]],
     paths: Dict[str, Path],
     success_policy: str,
@@ -1466,6 +1615,7 @@ def _write_paper_report_markdown(
         f"- Success policy: `{success_policy}`",
         f"- Baselines: {', '.join(f'`{name}`' for name in baseline_policies)}",
         f"- Paired comparisons found: {len(delta_rows)}",
+        f"- Pairwise summary rows: {len(delta_summary_rows)}",
         f"- AUC win rate: {auc_win_rate if auc_win_rate is not None else 'n/a'}",
         (
             f"- Held-out win rate: {heldout_win_rate}"
@@ -1491,6 +1641,7 @@ def _write_paper_report_markdown(
             "",
             "Use `paper_main_results.csv` for the main table, "
             "`paper_pairwise_deltas.csv` for paired seed/budget deltas, "
+            "`paper_pairwise_summary.csv` for win rates and sign tests, "
             "`paper_budget_audit.csv` for the accounting table, and "
             "`paper_action_frequencies.csv` for policy-behavior figures.",
             "",
@@ -1532,6 +1683,7 @@ def write_paper_report(
         success_policy=success_policy,
         baseline_policies=baseline_policies,
     )
+    delta_summary_rows = summarize_paper_pairwise_summary(delta_rows)
     action_rows = summarize_paper_action_frequencies(policy_rows)
     budget_rows = summarize_paper_budget_audit(rows, calibration_rows)
 
@@ -1542,6 +1694,7 @@ def write_paper_report(
         "audit_oracle_frontier": audit_paths["oracle_frontier"],
         "paper_main_results": output_dir / "paper_main_results.csv",
         "paper_pairwise_deltas": output_dir / "paper_pairwise_deltas.csv",
+        "paper_pairwise_summary": output_dir / "paper_pairwise_summary.csv",
         "paper_action_frequencies": output_dir / "paper_action_frequencies.csv",
         "paper_budget_audit": output_dir / "paper_budget_audit.csv",
         "paper_readiness_report": output_dir / "paper_readiness_report.md",
@@ -1555,6 +1708,11 @@ def write_paper_report(
         delta_rows,
         paths["paper_pairwise_deltas"],
         PAPER_PAIRWISE_DELTA_FIELDS,
+    )
+    _write_rows_csv(
+        delta_summary_rows,
+        paths["paper_pairwise_summary"],
+        PAPER_PAIRWISE_SUMMARY_FIELDS,
     )
     _write_rows_csv(
         action_rows,
@@ -1572,6 +1730,7 @@ def write_paper_report(
         rows=rows,
         main_rows=main_rows,
         delta_rows=delta_rows,
+        delta_summary_rows=delta_summary_rows,
         budget_rows=budget_rows,
         paths=paths,
         success_policy=success_policy,
