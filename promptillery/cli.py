@@ -304,6 +304,11 @@ def pilot_gate(
         "--require-held-out/--no-require-held-out",
         help="Require final held-out test metrics for every summarized run",
     ),
+    require_full_label_coverage: bool = typer.Option(
+        False,
+        "--require-full-label-coverage/--no-require-full-label-coverage",
+        help="Require observed gold labels to cover every canonical label",
+    ),
     require_same_count_control: bool = typer.Option(
         False,
         "--require-same-count-controls/--no-require-same-count-controls",
@@ -332,6 +337,7 @@ def pilot_gate(
             require_teacher_attempts=require_teacher_attempts,
             require_frontier=require_frontier,
             require_heldout=require_heldout,
+            require_full_label_coverage=require_full_label_coverage,
             require_same_count_control=require_same_count_control,
             same_count_source_policy=same_count_source_policy,
         )

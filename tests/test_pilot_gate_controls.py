@@ -22,6 +22,9 @@ def _write_run(
     final_synthetic_count: int = 0,
     manifest_final_synthetic_count: int | None = None,
     heldout_metric: float | None = None,
+    canonical_label_count: int | None = None,
+    observed_gold_label_count: int | None = None,
+    heldout_observed_gold_label_count: int | None = None,
 ) -> None:
     run_dir = root / name
     run_dir.mkdir(parents=True)
@@ -53,7 +56,12 @@ def _write_run(
             ]
         )
     )
-    metrics = {"0": {"macro_f1": 0.1}, "1": {"macro_f1": 0.2}}
+    final_metrics = {"macro_f1": 0.2}
+    if canonical_label_count is not None:
+        final_metrics["canonical_label_count"] = canonical_label_count
+    if observed_gold_label_count is not None:
+        final_metrics["observed_gold_label_count"] = observed_gold_label_count
+    metrics = {"0": {"macro_f1": 0.1}, "1": final_metrics}
     if heldout_metric is not None:
         metrics["heldout_test"] = {
             "macro_f1": heldout_metric,
@@ -61,6 +69,12 @@ def _write_run(
             "_selection_split": "validation",
             "_selected_cycle": 1,
         }
+        if canonical_label_count is not None:
+            metrics["heldout_test"]["canonical_label_count"] = canonical_label_count
+        if heldout_observed_gold_label_count is not None:
+            metrics["heldout_test"][
+                "observed_gold_label_count"
+            ] = heldout_observed_gold_label_count
     (run_dir / "metrics.json").write_text(json.dumps(metrics))
     (run_dir / "token_usage.json").write_text(
         json.dumps(
@@ -283,6 +297,71 @@ def test_pilot_gate_accepts_heldout_test_metric(tmp_path):
         require_teacher_attempts=False,
         require_frontier=False,
         require_heldout=True,
+    )
+
+    assert report["passed"]
+
+
+def test_pilot_gate_requires_full_canonical_label_coverage(tmp_path):
+    _write_run(
+        tmp_path,
+        name="partial_labels",
+        policy_name="frugalkd_p",
+        heldout_metric=0.17,
+        canonical_label_count=77,
+        observed_gold_label_count=76,
+        heldout_observed_gold_label_count=77,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_heldout=True,
+        require_full_label_coverage=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "full_canonical_label_coverage"
+    )
+    assert not report["passed"]
+    assert check["failures"] == [
+        {
+            "run_id": "partial_labels",
+            "split": "validation",
+            "observed_gold_label_count": 76,
+            "canonical_label_count": 77,
+        }
+    ]
+
+
+def test_pilot_gate_accepts_full_canonical_label_coverage(tmp_path):
+    _write_run(
+        tmp_path,
+        name="full_labels",
+        policy_name="frugalkd_p",
+        heldout_metric=0.17,
+        canonical_label_count=77,
+        observed_gold_label_count=77,
+        heldout_observed_gold_label_count=77,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_heldout=True,
+        require_full_label_coverage=True,
     )
 
     assert report["passed"]

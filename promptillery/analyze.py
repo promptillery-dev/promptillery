@@ -760,6 +760,7 @@ def summarize_run(
     )
     heldout_split = heldout.get("_heldout_split", "") if heldout else ""
     heldout_metric_name = metric_name if heldout_value is not None else ""
+    final_cycle_metrics = dict(cycles).get(final_cycle, {}) if final_cycle is not None else {}
 
     grand_total = token_usage.get("grand_total", {})
     token_budget = run_manifest.get("token_budget", config.get("token_budget"))
@@ -793,6 +794,18 @@ def summarize_run(
         "heldout_split": heldout_split,
         "heldout_metric_name": heldout_metric_name,
         "heldout_metric": heldout_value,
+        "canonical_label_count": _safe_int(
+            final_cycle_metrics.get("canonical_label_count")
+        ),
+        "observed_gold_label_count": _safe_int(
+            final_cycle_metrics.get("observed_gold_label_count")
+        ),
+        "heldout_canonical_label_count": _safe_int(
+            heldout.get("canonical_label_count") if heldout else None
+        ),
+        "heldout_observed_gold_label_count": _safe_int(
+            heldout.get("observed_gold_label_count") if heldout else None
+        ),
         "cycle_quality_cost_auc": _cycle_auc(points),
         "token_budget": token_budget,
         "synthetic_record_budget": run_manifest.get(
@@ -854,6 +867,10 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "heldout_split",
         "heldout_metric_name",
         "heldout_metric",
+        "canonical_label_count",
+        "observed_gold_label_count",
+        "heldout_canonical_label_count",
+        "heldout_observed_gold_label_count",
         "cycle_quality_cost_auc",
         "token_budget",
         "synthetic_record_budget",
@@ -1079,6 +1096,7 @@ def validate_pilot_gate(
     require_teacher_attempts: bool = True,
     require_frontier: bool = True,
     require_heldout: bool = False,
+    require_full_label_coverage: bool = False,
     require_same_count_control: bool = False,
     same_count_source_policy: str = "frugalkd_p",
 ) -> Dict[str, Any]:
@@ -1321,6 +1339,48 @@ def validate_pilot_gate(
                 "heldout_test_metrics_present",
                 not missing_heldout,
                 violating_run_ids=[row.get("run_id") for row in missing_heldout],
+            )
+        )
+
+    if require_full_label_coverage:
+        missing_label_coverage = []
+        for row in rows:
+            canonical_count = _safe_int(row.get("canonical_label_count"))
+            observed_count = _safe_int(row.get("observed_gold_label_count"))
+            if canonical_count is not None and observed_count != canonical_count:
+                missing_label_coverage.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "split": row.get("selection_split"),
+                        "observed_gold_label_count": observed_count,
+                        "canonical_label_count": canonical_count,
+                    }
+                )
+
+            heldout_canonical_count = _safe_int(
+                row.get("heldout_canonical_label_count")
+            )
+            heldout_observed_count = _safe_int(
+                row.get("heldout_observed_gold_label_count")
+            )
+            if (
+                heldout_canonical_count is not None
+                and heldout_observed_count != heldout_canonical_count
+            ):
+                missing_label_coverage.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "split": row.get("heldout_split"),
+                        "observed_gold_label_count": heldout_observed_count,
+                        "canonical_label_count": heldout_canonical_count,
+                    }
+                )
+
+        checks.append(
+            _gate_check(
+                "full_canonical_label_coverage",
+                not missing_label_coverage,
+                failures=missing_label_coverage,
             )
         )
 
