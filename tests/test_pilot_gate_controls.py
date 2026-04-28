@@ -13,9 +13,9 @@ from promptillery.analyze import (
     summarize_run,
     validate_paper_gate,
     validate_pilot_gate,
+    write_audit_csvs,
     write_paper_report,
 )
-
 
 def _write_run(
     root: Path,
@@ -162,6 +162,21 @@ def _write_run(
     )
 
 
+def _write_dataset_cycle(
+    root: Path,
+    name: str,
+    records: list[dict],
+    *,
+    cycle: int = 1,
+) -> None:
+    datasets = pytest.importorskip("datasets")
+    columns = sorted({field for record in records for field in record})
+    data = {column: [record.get(column) for record in records] for column in columns}
+    datasets.DatasetDict({"train": datasets.Dataset.from_dict(data)}).save_to_disk(
+        str(root / name / f"dataset_cycle_{cycle}")
+    )
+
+
 def test_pilot_gate_requires_same_count_control(tmp_path):
     _write_run(
         tmp_path,
@@ -302,6 +317,9 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert paths["paper_main_results"].exists()
     assert paths["paper_budget_audit"].exists()
     assert paths["audit_budget_feasibility_certificate"].exists()
+    assert paths["audit_synthetic_quality"].exists()
+    assert paths["audit_synthetic_label_distribution"].exists()
+    assert paths["audit_same_count_distribution"].exists()
     assert paths["paper_pairwise_summary"].exists()
     assert paths["paper_quality_cost_points"].exists()
     assert paths["paper_action_cycle_frequencies"].exists()
@@ -394,6 +412,247 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
         row["cycle"] == "1" and row["action_name"] == "final_cycle"
         for row in action_cycle_rows
     )
+
+
+def test_audit_csvs_report_synthetic_quality_and_same_count_shift(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        final_synthetic_count=3,
+    )
+    (tmp_path / "frugal" / "teacher_attempts.jsonl").write_text(
+        "\n".join(
+            json.dumps(attempt)
+            for attempt in [
+                {
+                    "cycle": 0,
+                    "attempt_id": "frugal:a0",
+                    "decision_id": "frugal:d0",
+                    "run_id": "frugal",
+                    "status": "success",
+                    "failure_type": "",
+                    "predicted_cost": {"total_tokens": 24},
+                    "provider_reported_cost": {"total_tokens": 20},
+                    "ledger_debit_cost": {"total_tokens": 20},
+                    "realized_cost": {"total_tokens": 20},
+                    "ledger_debit_source": "provider_reported",
+                    "budget_before": {"tokens_remaining": 100},
+                    "budget_after": {"tokens_remaining": 80},
+                    "metadata": {
+                        "records_requested": 3,
+                        "records_parsed": 3,
+                        "records_accepted": 3,
+                    },
+                },
+                {
+                    "cycle": 1,
+                    "attempt_id": "frugal:a1",
+                    "decision_id": "frugal:d1",
+                    "run_id": "frugal",
+                    "status": "failed",
+                    "failure_type": "ValueError",
+                    "predicted_cost": {"total_tokens": 8},
+                    "provider_reported_cost": {"total_tokens": 5},
+                    "ledger_debit_cost": {"total_tokens": 5},
+                    "realized_cost": {"total_tokens": 5},
+                    "ledger_debit_source": "provider_reported",
+                    "budget_before": {"tokens_remaining": 80},
+                    "budget_after": {"tokens_remaining": 75},
+                    "metadata": {
+                        "records_requested": 1,
+                        "error": "non-canonical teacher_response",
+                    },
+                },
+                {
+                    "cycle": 1,
+                    "attempt_id": "frugal:a2",
+                    "decision_id": "frugal:d2",
+                    "run_id": "frugal",
+                    "status": "empty_response",
+                    "failure_type": "no_records_parsed",
+                    "predicted_cost": {"total_tokens": 4},
+                    "ledger_debit_cost": {"total_tokens": 4},
+                    "realized_cost": {"total_tokens": 4},
+                    "ledger_debit_source": "reserved_bound",
+                    "budget_before": {"tokens_remaining": 75},
+                    "budget_after": {"tokens_remaining": 71},
+                    "metadata": {
+                        "records_requested": 1,
+                        "records_parsed": 0,
+                        "records_accepted": 0,
+                    },
+                },
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_dataset_cycle(
+        tmp_path,
+        "frugal",
+        [
+            {
+                "id": "seed/0",
+                "student_prompt": "base balance check",
+                "teacher_response": "alpha",
+                "gold_answer": "alpha",
+                "source_split": "train",
+                "source_idx": 0,
+                "origin_cycle": 0,
+            },
+            {
+                "id": "seed/1",
+                "student_prompt": "transfer help",
+                "teacher_response": "beta",
+                "gold_answer": "beta",
+                "source_split": "train",
+                "source_idx": 1,
+                "origin_cycle": 0,
+            },
+            {
+                "id": "frugal/augmented/1/0",
+                "student_prompt": "cancel my card now",
+                "teacher_response": "alpha",
+                "gold_answer": "alpha",
+                "source_split": "augmented",
+                "source_idx": -1,
+                "origin_cycle": 1,
+            },
+            {
+                "id": "frugal/augmented/1/1",
+                "student_prompt": "cancel my card now",
+                "teacher_response": "beta",
+                "gold_answer": "beta",
+                "source_split": "augmented",
+                "source_idx": -1,
+                "origin_cycle": 1,
+            },
+            {
+                "id": "frugal/augmented/2/0",
+                "student_prompt": "base balance check",
+                "teacher_response": "alpha",
+                "gold_answer": "alpha",
+                "source_split": "augmented",
+                "source_idx": -1,
+                "origin_cycle": 2,
+            },
+        ],
+    )
+    _write_run(
+        tmp_path,
+        name="same_count_control",
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        cycle0_metric=0.4,
+        final_metric=0.7,
+        final_synthetic_count=3,
+    )
+    _write_dataset_cycle(
+        tmp_path,
+        "same_count_control",
+        [
+            {
+                "id": "seed/0",
+                "student_prompt": "base balance check",
+                "teacher_response": "alpha",
+                "gold_answer": "alpha",
+                "source_split": "train",
+                "source_idx": 0,
+                "origin_cycle": 0,
+            },
+            {
+                "id": "seed/1",
+                "student_prompt": "transfer help",
+                "teacher_response": "beta",
+                "gold_answer": "beta",
+                "source_split": "train",
+                "source_idx": 1,
+                "origin_cycle": 0,
+            },
+            {
+                "id": "same/augmented/1/0",
+                "student_prompt": "new card question",
+                "teacher_response": "beta",
+                "gold_answer": "beta",
+                "source_split": "augmented",
+                "source_idx": -1,
+                "origin_cycle": 1,
+            },
+            {
+                "id": "same/augmented/1/1",
+                "student_prompt": "lost debit card",
+                "teacher_response": "beta",
+                "gold_answer": "beta",
+                "source_split": "augmented",
+                "source_idx": -1,
+                "origin_cycle": 1,
+            },
+            {
+                "id": "same/augmented/1/2",
+                "student_prompt": "cash withdrawal issue",
+                "teacher_response": "gamma",
+                "gold_answer": "gamma",
+                "source_split": "augmented",
+                "source_idx": -1,
+                "origin_cycle": 1,
+            },
+        ],
+    )
+
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    paths = write_audit_csvs(tmp_path, rows, tmp_path / "audit")
+
+    with paths["synthetic_quality"].open(newline="", encoding="utf-8") as f:
+        quality_rows = list(csv.DictReader(f))
+    with paths["synthetic_label_distribution"].open(
+        newline="", encoding="utf-8"
+    ) as f:
+        label_rows = list(csv.DictReader(f))
+    with paths["same_count_distribution"].open(newline="", encoding="utf-8") as f:
+        same_count_rows = list(csv.DictReader(f))
+
+    frugal_quality = next(row for row in quality_rows if row["run_id"] == "frugal")
+    assert frugal_quality["dataset_persisted"] == "True"
+    assert frugal_quality["dataset_cycle"] == "1"
+    assert frugal_quality["seed_rows"] == "2"
+    assert frugal_quality["synthetic_rows"] == "3"
+    assert frugal_quality["records_requested"] == "5"
+    assert frugal_quality["records_parsed"] == "3"
+    assert frugal_quality["records_accepted"] == "3"
+    assert float(frugal_quality["parse_success_rate"]) == pytest.approx(0.6)
+    assert float(frugal_quality["accepted_per_1k_online_tokens"]) == pytest.approx(
+        3000 / 29
+    )
+    assert frugal_quality["invalid_label_attempt_rows"] == "1"
+    assert frugal_quality["parse_failure_attempt_rows"] == "1"
+    assert float(frugal_quality["exact_duplicate_rate"]) == pytest.approx(1 / 3)
+    assert float(frugal_quality["near_duplicate_rate"]) == pytest.approx(2 / 3)
+    assert float(frugal_quality["duplicate_vs_seed_rate"]) == pytest.approx(1 / 3)
+
+    frugal_alpha = next(
+        row
+        for row in label_rows
+        if row["run_id"] == "frugal"
+        and row["origin"] == "synthetic"
+        and row["cycle"] == "all"
+        and row["label"] == "alpha"
+    )
+    assert frugal_alpha["count"] == "2"
+    assert float(frugal_alpha["share"]) == pytest.approx(2 / 3)
+
+    assert len(same_count_rows) == 1
+    same_count = same_count_rows[0]
+    assert same_count["source_run_id"] == "frugal"
+    assert same_count["control_run_id"] == "same_count_control"
+    assert same_count["source_synthetic_count"] == "3"
+    assert same_count["control_synthetic_count"] == "3"
+    assert float(same_count["label_tvd"]) == pytest.approx(2 / 3)
+    assert same_count["max_abs_count_delta"] == "2"
+    assert same_count["missing_control_labels"] == "alpha"
+    assert same_count["extra_control_labels"] == "gamma"
 
 
 def test_budget_feasibility_certificate_flags_ledger_violations(tmp_path):

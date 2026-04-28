@@ -7,6 +7,7 @@ import itertools
 import json
 import math
 import random
+import re
 import statistics
 from collections import defaultdict
 from hashlib import sha256
@@ -425,6 +426,81 @@ PROVENANCE_AUDIT_FIELDS = [
     "provenance_passed",
     "failure_reasons",
     "missing_materialized_manifests",
+]
+SYNTHETIC_QUALITY_FIELDS = [
+    "run_dir",
+    "run_id",
+    "control_name",
+    "experiment",
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "seed",
+    "token_budget",
+    "synthetic_record_budget",
+    "policy_name",
+    "action_space_id",
+    "dataset_persisted",
+    "dataset_cycle",
+    "dataset_cycle_path",
+    "dataset_load_error",
+    "all_rows",
+    "seed_rows",
+    "synthetic_rows",
+    "records_requested",
+    "records_parsed",
+    "records_accepted",
+    "parse_success_rate",
+    "accept_rate",
+    "accepted_per_1k_online_tokens",
+    "invalid_label_attempt_rows",
+    "parse_failure_attempt_rows",
+    "exact_duplicate_rate",
+    "near_duplicate_rate",
+    "duplicate_vs_seed_rate",
+]
+SYNTHETIC_LABEL_DISTRIBUTION_FIELDS = [
+    "run_dir",
+    "run_id",
+    "control_name",
+    "experiment",
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "seed",
+    "token_budget",
+    "synthetic_record_budget",
+    "policy_name",
+    "action_space_id",
+    "origin",
+    "cycle",
+    "label",
+    "count",
+    "share",
+]
+SAME_COUNT_DISTRIBUTION_FIELDS = [
+    "source_run_id",
+    "control_run_id",
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "seed",
+    "token_budget",
+    "metric",
+    "mode",
+    "source_policy_name",
+    "control_policy_name",
+    "control_name",
+    "source_synthetic_count",
+    "control_synthetic_count",
+    "label_tvd",
+    "max_abs_count_delta",
+    "max_abs_share_delta",
+    "missing_control_labels",
+    "extra_control_labels",
 ]
 
 
@@ -1211,6 +1287,484 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
     return rows
 
 
+def _dataset_cycle_number(path: Path) -> int | None:
+    """Return the numeric suffix from a persisted dataset_cycle directory."""
+    prefix = "dataset_cycle_"
+    if not path.name.startswith(prefix):
+        return None
+    return _safe_int(path.name[len(prefix) :])
+
+
+def _latest_dataset_cycle_path(run_dir: Path) -> tuple[Path | None, int | None]:
+    """Find the latest persisted dataset snapshot for a run."""
+    candidates = []
+    if not run_dir.exists():
+        return None, None
+    for child in run_dir.iterdir():
+        if not child.is_dir():
+            continue
+        cycle = _dataset_cycle_number(child)
+        if cycle is not None:
+            candidates.append((cycle, child))
+    if not candidates:
+        return None, None
+    cycle, path = max(candidates, key=lambda item: item[0])
+    return path, cycle
+
+
+def _load_final_train_records(
+    run_dir: Path,
+) -> tuple[Path | None, int | None, List[Dict[str, Any]], str]:
+    """Load the final persisted train dataset for audit-only summaries."""
+    dataset_path, cycle = _latest_dataset_cycle_path(run_dir)
+    if dataset_path is None:
+        return None, None, [], "missing_dataset_cycle"
+    try:
+        from datasets import load_from_disk
+    except ImportError as exc:
+        return dataset_path, cycle, [], f"datasets_import_error: {exc}"
+    try:
+        dataset = load_from_disk(str(dataset_path))
+        train = (
+            dataset["train"]
+            if hasattr(dataset, "keys") and "train" in dataset
+            else dataset
+        )
+        return dataset_path, cycle, [dict(row) for row in train], ""
+    except Exception as exc:
+        return dataset_path, cycle, [], f"dataset_load_error: {exc}"
+
+
+def _load_experiment_config(run_dir: Path) -> Dict[str, Any]:
+    """Load an experiment config copy if present."""
+    config_path = run_dir / "experiment_config.yaml"
+    if not config_path.exists():
+        return {}
+    try:
+        import yaml
+
+        with config_path.open("r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+
+
+def _first_existing_field(
+    rows: Sequence[Dict[str, Any]],
+    candidates: Sequence[Any],
+) -> str | None:
+    """Return the first candidate field present in the rows."""
+    fields = {field for row in rows for field in row.keys()}
+    for candidate in candidates:
+        if isinstance(candidate, str) and candidate in fields:
+            return candidate
+    return None
+
+
+def _infer_dataset_text_label_fields(
+    rows: Sequence[Dict[str, Any]],
+    config: Dict[str, Any],
+) -> tuple[str | None, str | None]:
+    """Infer text and label fields from the run config and persisted rows."""
+    dataset_config = config.get("dataset_config") or {}
+    trainer_config = config.get("trainer_config") or {}
+    text_field = _first_existing_field(
+        rows,
+        [
+            trainer_config.get("prompt_field"),
+            dataset_config.get("text_field"),
+            "student_prompt",
+            "text",
+            "sentence",
+            "query",
+        ],
+    )
+    label_field = _first_existing_field(
+        rows,
+        [
+            trainer_config.get("gold_answer_field"),
+            dataset_config.get("label_field"),
+            trainer_config.get("response_field"),
+            "gold_answer",
+            "label",
+            "teacher_response",
+        ],
+    )
+    return text_field, label_field
+
+
+def _normalize_audit_text(value: Any) -> str:
+    """Normalize generated text for exact and shingled duplicate checks."""
+    tokens = re.findall(r"[a-z0-9]+", str(value or "").lower())
+    return " ".join(tokens)
+
+
+def _normalize_audit_label(value: Any) -> str:
+    """Normalize labels without losing the canonical label spelling."""
+    return str(value or "").strip()
+
+
+def _is_synthetic_dataset_row(row: Dict[str, Any]) -> bool:
+    """Return whether a persisted train row came from online augmentation."""
+    source_split = str(row.get("source_split") or "").strip().lower()
+    if source_split in {"augmented", "synthetic", "online_augmented"}:
+        return True
+    if source_split:
+        return False
+    origin_cycle = _safe_int(row.get("origin_cycle"))
+    return bool(origin_cycle and origin_cycle > 0)
+
+
+def _text_shingles(text: str, width: int = 5) -> set[str]:
+    """Return word shingles for near-duplicate checks."""
+    tokens = text.split()
+    if len(tokens) <= width:
+        return set(tokens)
+    return {
+        " ".join(tokens[index : index + width])
+        for index in range(len(tokens) - width + 1)
+    }
+
+
+def _jaccard(left: set[str], right: set[str]) -> float:
+    """Return Jaccard similarity, treating two empty sets as dissimilar."""
+    if not left or not right:
+        return 0.0
+    return len(left & right) / len(left | right)
+
+
+def _duplicate_rates(
+    synthetic_texts: Sequence[str],
+    seed_texts: Sequence[str],
+    *,
+    near_threshold: float = 0.85,
+) -> tuple[float | None, float | None, float | None]:
+    """Return exact, near, and seed-duplicate rates for synthetic text."""
+    if not synthetic_texts:
+        return None, None, None
+
+    seen_synthetic: set[str] = set()
+    exact_duplicates = 0
+    for text in synthetic_texts:
+        if text and text in seen_synthetic:
+            exact_duplicates += 1
+        if text:
+            seen_synthetic.add(text)
+
+    seed_set = {text for text in seed_texts if text}
+    duplicate_vs_seed = sum(1 for text in synthetic_texts if text and text in seed_set)
+
+    reference_shingles = [_text_shingles(text) for text in seed_texts if text]
+    previous_synthetic: list[set[str]] = []
+    near_duplicates = 0
+    for text in synthetic_texts:
+        shingles = _text_shingles(text)
+        references = reference_shingles + previous_synthetic
+        if shingles and any(
+            _jaccard(shingles, reference) >= near_threshold for reference in references
+        ):
+            near_duplicates += 1
+        if shingles:
+            previous_synthetic.append(shingles)
+
+    total = len(synthetic_texts)
+    return (
+        exact_duplicates / total,
+        near_duplicates / total,
+        duplicate_vs_seed / total,
+    )
+
+
+def _attempt_token_total(attempt: Dict[str, Any]) -> float:
+    """Return the audited online-token debit for one teacher attempt."""
+    for key in ("provider_reported_cost", "ledger_debit_cost", "realized_cost"):
+        total = _safe_float((attempt.get(key) or {}).get("total_tokens"))
+        if total is not None:
+            return total
+    return 0.0
+
+
+def _attempt_is_invalid_label(attempt: Dict[str, Any]) -> bool:
+    """Return whether an attempt failed label validity checks."""
+    metadata = attempt.get("metadata") or {}
+    error = str(metadata.get("error") or "").lower()
+    return "non-canonical" in error or "mismatched labels" in error
+
+
+def _attempt_is_parse_failure(attempt: Dict[str, Any]) -> bool:
+    """Return whether an attempt failed before yielding accepted records."""
+    failure_type = str(attempt.get("failure_type") or "").lower()
+    status = str(attempt.get("status") or "").lower()
+    metadata = attempt.get("metadata") or {}
+    parsed = _safe_int(metadata.get("records_parsed"))
+    accepted = _safe_int(metadata.get("records_accepted"))
+    parse_failure_types = {
+        "invalid_json",
+        "no_records_parsed",
+        "no_records_accepted",
+    }
+    return (
+        failure_type in parse_failure_types
+        or status == "empty_response"
+        or (parsed == 0 and (accepted is None or accepted == 0))
+    )
+
+
+def summarize_synthetic_quality(run_dir: Path) -> List[Dict[str, Any]]:
+    """Return one audit row for generated-data quality in a run."""
+    context = _run_context(run_dir)
+    config = _load_experiment_config(run_dir)
+    dataset_path, cycle, records, load_error = _load_final_train_records(run_dir)
+    attempts = _load_jsonl(run_dir / "teacher_attempts.jsonl")
+    records_requested = sum(
+        _safe_int((attempt.get("metadata") or {}).get("records_requested")) or 0
+        for attempt in attempts
+    )
+    records_parsed = sum(
+        _safe_int((attempt.get("metadata") or {}).get("records_parsed")) or 0
+        for attempt in attempts
+    )
+    records_accepted = sum(
+        _safe_int((attempt.get("metadata") or {}).get("records_accepted")) or 0
+        for attempt in attempts
+    )
+    online_tokens = sum(_attempt_token_total(attempt) for attempt in attempts)
+    synthetic_rows = [row for row in records if _is_synthetic_dataset_row(row)]
+    seed_rows = [row for row in records if not _is_synthetic_dataset_row(row)]
+    text_field, _ = _infer_dataset_text_label_fields(records, config)
+    synthetic_texts = [
+        _normalize_audit_text(row.get(text_field)) for row in synthetic_rows
+    ] if text_field else []
+    seed_texts = [
+        _normalize_audit_text(row.get(text_field)) for row in seed_rows
+    ] if text_field else []
+    exact_rate, near_rate, seed_duplicate_rate = _duplicate_rates(
+        synthetic_texts,
+        seed_texts,
+    )
+    return [
+        {
+            **context,
+            "dataset_persisted": bool(dataset_path and not load_error),
+            "dataset_cycle": cycle,
+            "dataset_cycle_path": str(dataset_path) if dataset_path else "",
+            "dataset_load_error": load_error,
+            "all_rows": len(records),
+            "seed_rows": len(seed_rows),
+            "synthetic_rows": len(synthetic_rows),
+            "records_requested": records_requested,
+            "records_parsed": records_parsed,
+            "records_accepted": records_accepted,
+            "parse_success_rate": (
+                records_parsed / records_requested if records_requested else None
+            ),
+            "accept_rate": (
+                records_accepted / records_parsed if records_parsed else None
+            ),
+            "accepted_per_1k_online_tokens": (
+                records_accepted / online_tokens * 1000 if online_tokens else None
+            ),
+            "invalid_label_attempt_rows": sum(
+                1 for attempt in attempts if _attempt_is_invalid_label(attempt)
+            ),
+            "parse_failure_attempt_rows": sum(
+                1
+                for attempt in attempts
+                if _attempt_is_parse_failure(attempt)
+                and not _attempt_is_invalid_label(attempt)
+            ),
+            "exact_duplicate_rate": exact_rate,
+            "near_duplicate_rate": near_rate,
+            "duplicate_vs_seed_rate": seed_duplicate_rate,
+        }
+    ]
+
+
+def _histogram_rows(
+    context: Dict[str, Any],
+    rows: Sequence[Dict[str, Any]],
+    *,
+    label_field: str | None,
+    origin: str,
+    cycle: Any,
+) -> List[Dict[str, Any]]:
+    """Return CSV rows for a label histogram."""
+    if not label_field or not rows:
+        return []
+    counts: Dict[str, int] = defaultdict(int)
+    for row in rows:
+        label = _normalize_audit_label(row.get(label_field))
+        if label:
+            counts[label] += 1
+    total = sum(counts.values())
+    if total <= 0:
+        return []
+    return [
+        {
+            **context,
+            "origin": origin,
+            "cycle": cycle,
+            "label": label,
+            "count": count,
+            "share": count / total,
+        }
+        for label, count in sorted(counts.items())
+    ]
+
+
+def summarize_synthetic_label_distribution(run_dir: Path) -> List[Dict[str, Any]]:
+    """Return label-distribution audit rows for final persisted train data."""
+    context = _run_context(run_dir)
+    config = _load_experiment_config(run_dir)
+    _, _, records, load_error = _load_final_train_records(run_dir)
+    if load_error or not records:
+        return []
+    _, label_field = _infer_dataset_text_label_fields(records, config)
+    synthetic_rows = [row for row in records if _is_synthetic_dataset_row(row)]
+    seed_rows = [row for row in records if not _is_synthetic_dataset_row(row)]
+    label_rows = []
+    label_rows.extend(
+        _histogram_rows(
+            context,
+            seed_rows,
+            label_field=label_field,
+            origin="seed",
+            cycle="all",
+        )
+    )
+    label_rows.extend(
+        _histogram_rows(
+            context,
+            synthetic_rows,
+            label_field=label_field,
+            origin="synthetic",
+            cycle="all",
+        )
+    )
+    label_rows.extend(
+        _histogram_rows(
+            context,
+            records,
+            label_field=label_field,
+            origin="all",
+            cycle="all",
+        )
+    )
+    synthetic_by_cycle: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for row in synthetic_rows:
+        synthetic_by_cycle[str(row.get("origin_cycle") or "")].append(row)
+    for cycle, group in sorted(synthetic_by_cycle.items()):
+        label_rows.extend(
+            _histogram_rows(
+                context,
+                group,
+                label_field=label_field,
+                origin="synthetic",
+                cycle=cycle,
+            )
+        )
+    return label_rows
+
+
+def _synthetic_label_histograms(
+    label_rows: Sequence[Dict[str, Any]],
+) -> Dict[str, Dict[str, int]]:
+    """Return synthetic all-cycle label counts keyed by run_id."""
+    histograms: Dict[str, Dict[str, int]] = defaultdict(dict)
+    for row in label_rows:
+        if row.get("origin") != "synthetic" or str(row.get("cycle")) != "all":
+            continue
+        run_id = str(row.get("run_id") or "")
+        label = str(row.get("label") or "")
+        count = _safe_int(row.get("count")) or 0
+        if run_id and label:
+            histograms[run_id][label] = count
+    return histograms
+
+
+def _share(count: int, total: int) -> float:
+    """Return a label share, preserving zero when no rows are present."""
+    return count / total if total else 0.0
+
+
+def summarize_same_count_distribution(
+    rows: List[Dict[str, Any]],
+    label_rows: List[Dict[str, Any]],
+    *,
+    source_policy: str = "frugalkd_p",
+) -> List[Dict[str, Any]]:
+    """Compare synthetic label distributions for same-count controls."""
+    histograms = _synthetic_label_histograms(label_rows)
+    source_by_key = {
+        _same_count_match_key(row): row
+        for row in rows
+        if str(row.get("policy_name") or "") == source_policy
+        and not _is_same_count_control(row)
+    }
+    distribution_rows = []
+    for control in rows:
+        if not _is_same_count_control(control):
+            continue
+        source = source_by_key.get(_same_count_match_key(control))
+        if not source:
+            continue
+        source_run_id = str(source.get("run_id") or "")
+        control_run_id = str(control.get("run_id") or "")
+        source_counts = histograms.get(source_run_id, {})
+        control_counts = histograms.get(control_run_id, {})
+        if not source_counts and not control_counts:
+            continue
+        source_total = sum(source_counts.values())
+        control_total = sum(control_counts.values())
+        labels = sorted(set(source_counts) | set(control_counts))
+        count_deltas = [
+            abs(source_counts.get(label, 0) - control_counts.get(label, 0))
+            for label in labels
+        ]
+        share_deltas = [
+            abs(
+                _share(source_counts.get(label, 0), source_total)
+                - _share(control_counts.get(label, 0), control_total)
+            )
+            for label in labels
+        ]
+        distribution_rows.append(
+            {
+                "source_run_id": source_run_id,
+                "control_run_id": control_run_id,
+                "dataset": source.get("dataset"),
+                "dataset_subset": source.get("dataset_subset"),
+                "student_model": source.get("student_model"),
+                "student_type": source.get("student_type"),
+                "seed": source.get("seed"),
+                "token_budget": source.get("token_budget"),
+                "metric": source.get("metric"),
+                "mode": source.get("mode"),
+                "source_policy_name": source.get("policy_name"),
+                "control_policy_name": control.get("policy_name"),
+                "control_name": control.get("control_name"),
+                "source_synthetic_count": source_total,
+                "control_synthetic_count": control_total,
+                "label_tvd": 0.5 * sum(share_deltas),
+                "max_abs_count_delta": max(count_deltas, default=0),
+                "max_abs_share_delta": max(share_deltas, default=0.0),
+                "missing_control_labels": ",".join(
+                    label
+                    for label in labels
+                    if source_counts.get(label, 0) > 0
+                    and control_counts.get(label, 0) == 0
+                ),
+                "extra_control_labels": ",".join(
+                    label
+                    for label in labels
+                    if control_counts.get(label, 0) > 0
+                    and source_counts.get(label, 0) == 0
+                ),
+            }
+        )
+    return distribution_rows
+
+
 def summarize_budget_feasibility(run_dir: Path) -> Dict[str, Any]:
     """Return one theorem-facing budget certificate row for a run."""
     context = _run_context(run_dir)
@@ -1746,6 +2300,18 @@ def write_audit_csvs(
     certificate_rows = [summarize_budget_feasibility(run_dir) for run_dir in run_dirs]
     provenance_rows = [summarize_provenance_audit(run_dir) for run_dir in run_dirs]
     oracle_rows = summarize_oracle_frontier(rows)
+    synthetic_quality_rows = [
+        row for run_dir in run_dirs for row in summarize_synthetic_quality(run_dir)
+    ]
+    synthetic_label_rows = [
+        row
+        for run_dir in run_dirs
+        for row in summarize_synthetic_label_distribution(run_dir)
+    ]
+    same_count_distribution_rows = summarize_same_count_distribution(
+        rows,
+        synthetic_label_rows,
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {
@@ -1755,6 +2321,10 @@ def write_audit_csvs(
         / "budget_feasibility_certificate.csv",
         "provenance_audit": output_dir / "provenance_audit.csv",
         "oracle_frontier": output_dir / "oracle_frontier.csv",
+        "synthetic_quality": output_dir / "synthetic_quality.csv",
+        "synthetic_label_distribution": output_dir
+        / "synthetic_label_distribution.csv",
+        "same_count_distribution": output_dir / "same_count_distribution.csv",
     }
     _write_rows_csv(policy_rows, paths["policy_actions"], POLICY_BEHAVIOR_FIELDS)
     _write_rows_csv(
@@ -1773,6 +2343,21 @@ def write_audit_csvs(
         PROVENANCE_AUDIT_FIELDS,
     )
     _write_rows_csv(oracle_rows, paths["oracle_frontier"], ORACLE_FRONTIER_FIELDS)
+    _write_rows_csv(
+        synthetic_quality_rows,
+        paths["synthetic_quality"],
+        SYNTHETIC_QUALITY_FIELDS,
+    )
+    _write_rows_csv(
+        synthetic_label_rows,
+        paths["synthetic_label_distribution"],
+        SYNTHETIC_LABEL_DISTRIBUTION_FIELDS,
+    )
+    _write_rows_csv(
+        same_count_distribution_rows,
+        paths["same_count_distribution"],
+        SAME_COUNT_DISTRIBUTION_FIELDS,
+    )
     return paths
 
 
@@ -2791,6 +3376,9 @@ def _write_paper_report_markdown(
             "`paper_budget_audit.csv` for the accounting table, and "
             "`paper_action_frequencies.csv` plus "
             "`paper_action_cycle_frequencies.csv` for policy-behavior figures. "
+            "`audit/synthetic_quality.csv`, "
+            "`audit/synthetic_label_distribution.csv`, and "
+            "`audit/same_count_distribution.csv` audit generated-row quality. "
             "`audit/budget_feasibility_certificate.csv` is the theorem-facing "
             "ledger certificate.",
             "",
@@ -2844,6 +3432,11 @@ def write_paper_report(
         ],
         "audit_provenance": audit_paths["provenance_audit"],
         "audit_oracle_frontier": audit_paths["oracle_frontier"],
+        "audit_synthetic_quality": audit_paths["synthetic_quality"],
+        "audit_synthetic_label_distribution": audit_paths[
+            "synthetic_label_distribution"
+        ],
+        "audit_same_count_distribution": audit_paths["same_count_distribution"],
         "paper_main_results": output_dir / "paper_main_results.csv",
         "paper_pairwise_deltas": output_dir / "paper_pairwise_deltas.csv",
         "paper_pairwise_summary": output_dir / "paper_pairwise_summary.csv",
