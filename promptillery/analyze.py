@@ -210,6 +210,32 @@ PAPER_PAIRWISE_SUMMARY_FIELDS = [
     "final_mean_delta",
     "final_sign_test_p",
 ]
+PAPER_QUALITY_COST_POINT_FIELDS = [
+    "run_dir",
+    "run_id",
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "seed",
+    "token_budget",
+    "synthetic_record_budget",
+    "policy_name",
+    "control_name",
+    "experiment",
+    "action_space_id",
+    "metric",
+    "mode",
+    "split",
+    "cycle",
+    "is_final_cycle",
+    "metric_value",
+    "cumulative_online_teacher_input_tokens",
+    "cumulative_online_teacher_output_tokens",
+    "cumulative_online_teacher_total_tokens",
+    "seed_teacher_total_tokens",
+    "cumulative_total_teacher_total_tokens",
+]
 PAPER_ACTION_FREQUENCY_FIELDS = [
     "dataset",
     "dataset_subset",
@@ -314,9 +340,7 @@ def _rank_score(
             runner_up = score
             break
     margin = (
-        selected - runner_up
-        if selected is not None and runner_up is not None
-        else None
+        selected - runner_up if selected is not None and runner_up is not None else None
     )
     return rank, margin
 
@@ -374,14 +398,39 @@ def _resolve_mode(metric_name: str, mode: str) -> str:
 
 
 def _cycle_token_totals(token_usage: Dict[str, Any]) -> Dict[int, int]:
+    return {
+        cycle: int(usage.get("total_tokens", 0) or 0)
+        for cycle, usage in _cycle_token_cumulative_usage(token_usage).items()
+    }
+
+
+def _cycle_token_cumulative_usage(
+    token_usage: Dict[str, Any],
+) -> Dict[int, Dict[str, int]]:
+    """Return cumulative teacher-token usage at the end of each cycle."""
     totals = {}
-    cumulative = 0
+    cumulative = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
     for row in token_usage.get("per_cycle", []):
         cycle = int(row.get("cycle", len(totals)))
         cycle_total = row.get("cycle_total", {})
-        cumulative += int(cycle_total.get("total_tokens", 0) or 0)
-        totals[cycle] = cumulative
+        for key in cumulative:
+            cumulative[key] += int(cycle_total.get(key, 0) or 0)
+        totals[cycle] = dict(cumulative)
     return totals
+
+
+def _charged_seed_usage(token_usage: Dict[str, Any]) -> Dict[str, int]:
+    """Return SFT seed tokens debited into token_usage, when present."""
+    sft_usage = (token_usage.get("totals") or {}).get("sft_data", {})
+    return {
+        "input_tokens": int(sft_usage.get("input_tokens", 0) or 0),
+        "output_tokens": int(sft_usage.get("output_tokens", 0) or 0),
+        "total_tokens": int(sft_usage.get("total_tokens", 0) or 0),
+    }
+
+
+def _charged_seed_total(token_usage: Dict[str, Any]) -> int:
+    return _charged_seed_usage(token_usage)["total_tokens"]
 
 
 def _configured_data_files(config: Dict[str, Any]) -> List[str]:
@@ -442,8 +491,7 @@ def _seed_materialization_summary(
         seed_total += int(payload.get("teacher_total_tokens", 0) or 0)
         estimated_records += int(payload.get("usage_estimated_records", 0) or 0)
 
-    sft_usage = (token_usage.get("totals") or {}).get("sft_data", {})
-    charged_seed_total = int(sft_usage.get("total_tokens", 0) or 0)
+    charged_seed_total = _charged_seed_total(token_usage)
     if seed_total <= 0:
         seed_total = charged_seed_total
 
@@ -583,9 +631,7 @@ def _run_context(run_dir: Path) -> Dict[str, Any]:
         "synthetic_record_budget": run_manifest.get(
             "synthetic_record_budget", config.get("synthetic_record_budget", "")
         ),
-        "policy_name": run_manifest.get(
-            "policy_name", config.get("policy_name", "")
-        ),
+        "policy_name": run_manifest.get("policy_name", config.get("policy_name", "")),
         "action_space_id": run_manifest.get("action_space", {}).get(
             "action_space_id", ""
         ),
@@ -625,9 +671,7 @@ def summarize_policy_behavior(run_dir: Path) -> List[Dict[str, Any]]:
                 "predicted_total_tokens": predicted.get("total_tokens"),
                 "feasible_action_count": len(metadata.get("feasible_actions", [])),
                 "action_score_count": len(action_scores),
-                "acquisition_outcome": metadata.get(
-                    "acquisition_outcome", action_name
-                ),
+                "acquisition_outcome": metadata.get("acquisition_outcome", action_name),
                 "synthetic_count_before": state.get("synthetic_count"),
                 "tokens_remaining_before": budget_before.get("tokens_remaining"),
                 "tokens_remaining_after": budget_after.get("tokens_remaining"),
@@ -645,9 +689,7 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
         metadata = attempt.get("metadata", {}) or {}
         predicted = attempt.get("predicted_cost", {}) or {}
         provider_reported_raw = attempt.get("provider_reported_cost") or {}
-        provider_reported = (
-            provider_reported_raw or attempt.get("realized_cost", {})
-        )
+        provider_reported = provider_reported_raw or attempt.get("realized_cost", {})
         ledger_debit = attempt.get("ledger_debit_cost") or attempt.get(
             "realized_cost", {}
         )
@@ -677,7 +719,8 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
                 "status": attempt.get("status"),
                 "failure_type": attempt.get("failure_type"),
                 "teacher_model": metadata.get(
-                    "teacher_model", metadata.get("teacher", predicted.get("teacher_model"))
+                    "teacher_model",
+                    metadata.get("teacher", predicted.get("teacher_model")),
                 ),
                 "teacher_tier": metadata.get("teacher_tier"),
                 "prompt_operator": metadata.get("prompt_operator"),
@@ -692,9 +735,7 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
                 "predicted_input_tokens": predicted.get("input_tokens"),
                 "predicted_max_output_tokens": predicted.get("max_output_tokens"),
                 "predicted_total_tokens": predicted_total,
-                "provider_reported_input_tokens": provider_reported.get(
-                    "input_tokens"
-                ),
+                "provider_reported_input_tokens": provider_reported.get("input_tokens"),
                 "provider_reported_output_tokens": provider_reported.get(
                     "output_tokens"
                 ),
@@ -748,7 +789,9 @@ def _oracle_group_key(row: Dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
-def _best_row(rows: List[Dict[str, Any]], value_key: str, mode: str) -> Dict[str, Any] | None:
+def _best_row(
+    rows: List[Dict[str, Any]], value_key: str, mode: str
+) -> Dict[str, Any] | None:
     candidates = [row for row in rows if _safe_float(row.get(value_key)) is not None]
     if not candidates:
         return None
@@ -829,9 +872,7 @@ def summarize_run(
 ) -> Dict[str, Any]:
     """Summarize one Promptillery run directory."""
     missing = [
-        filename
-        for filename in REQUIRED_RUN_FILES
-        if not (run_dir / filename).exists()
+        filename for filename in REQUIRED_RUN_FILES if not (run_dir / filename).exists()
     ]
     if missing:
         missing_list = ", ".join(missing)
@@ -910,7 +951,9 @@ def summarize_run(
     )
     heldout_split = heldout.get("_heldout_split", "") if heldout else ""
     heldout_metric_name = metric_name if heldout_value is not None else ""
-    final_cycle_metrics = dict(cycles).get(final_cycle, {}) if final_cycle is not None else {}
+    final_cycle_metrics = (
+        dict(cycles).get(final_cycle, {}) if final_cycle is not None else {}
+    )
 
     grand_total = token_usage.get("grand_total", {})
     token_budget = run_manifest.get("token_budget", config.get("token_budget"))
@@ -921,12 +964,16 @@ def summarize_run(
             "cycles_completed", run_manifest.get("cycles_completed", len(cycles))
         )
     )
-    expected_cycles = _safe_int(run_manifest.get("expected_cycles", config.get("cycles")))
+    expected_cycles = _safe_int(
+        run_manifest.get("expected_cycles", config.get("cycles"))
+    )
     return {
         "run_dir": str(run_dir),
         "run_id": run_manifest.get("run_id", ""),
         "run_status": run_manifest.get("status", ""),
-        "control_name": run_manifest.get("control_name", config.get("control_name", "")),
+        "control_name": run_manifest.get(
+            "control_name", config.get("control_name", "")
+        ),
         "selection_split": run_manifest.get("selection_split", ""),
         "paper_mode": run_manifest.get("paper_mode", ""),
         "task_name": run_manifest.get("task_name", config.get("name", run_dir.name)),
@@ -995,7 +1042,9 @@ def analyze_runs(
     path: Path, metric: str | None = None, mode: str = "auto"
 ) -> List[Dict[str, Any]]:
     """Analyze all run directories under path."""
-    return [summarize_run(run_dir, metric=metric, mode=mode) for run_dir in _run_dirs(path)]
+    return [
+        summarize_run(run_dir, metric=metric, mode=mode) for run_dir in _run_dirs(path)
+    ]
 
 
 def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
@@ -1082,14 +1131,10 @@ def write_audit_csvs(
     """Write reviewer-facing audit CSVs from existing run artifacts."""
     run_dirs = _run_dirs(path)
     policy_rows = [
-        row
-        for run_dir in run_dirs
-        for row in summarize_policy_behavior(run_dir)
+        row for run_dir in run_dirs for row in summarize_policy_behavior(run_dir)
     ]
     calibration_rows = [
-        row
-        for run_dir in run_dirs
-        for row in summarize_teacher_calibration(run_dir)
+        row for run_dir in run_dirs for row in summarize_teacher_calibration(run_dir)
     ]
     oracle_rows = summarize_oracle_frontier(rows)
 
@@ -1112,9 +1157,7 @@ def write_audit_csvs(
 def _mean_std(values: Iterable[Any]) -> tuple[float | None, float | None]:
     """Return mean and sample std for present numeric values."""
     numeric = [
-        converted
-        for value in values
-        if (converted := _safe_float(value)) is not None
+        converted for value in values if (converted := _safe_float(value)) is not None
     ]
     if not numeric:
         return None, None
@@ -1152,7 +1195,9 @@ def _paper_match_key(row: Dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
-def _improvement_delta(success_value: Any, baseline_value: Any, mode: str) -> float | None:
+def _improvement_delta(
+    success_value: Any, baseline_value: Any, mode: str
+) -> float | None:
     """Return a positive-is-better paired delta."""
     success_float = _safe_float(success_value)
     baseline_float = _safe_float(baseline_value)
@@ -1179,7 +1224,9 @@ def summarize_paper_main_results(
         grouped[_paper_result_key(row)].append(row)
 
     results = []
-    for key, group in sorted(grouped.items(), key=lambda item: tuple(map(str, item[0]))):
+    for key, group in sorted(
+        grouped.items(), key=lambda item: tuple(map(str, item[0]))
+    ):
         (
             dataset,
             dataset_subset,
@@ -1194,7 +1241,9 @@ def summarize_paper_main_results(
         auc_mean, auc_std = _mean_std(
             row.get("cycle_quality_cost_auc") for row in group
         )
-        heldout_mean, heldout_std = _mean_std(row.get("heldout_metric") for row in group)
+        heldout_mean, heldout_std = _mean_std(
+            row.get("heldout_metric") for row in group
+        )
         final_mean, final_std = _mean_std(row.get("final_metric") for row in group)
         online_mean, _ = _mean_std(
             row.get("online_teacher_total_tokens") for row in group
@@ -1202,9 +1251,7 @@ def summarize_paper_main_results(
         total_mean, _ = _mean_std(
             row.get("total_teacher_total_tokens") for row in group
         )
-        synthetic_mean, _ = _mean_std(
-            row.get("final_synthetic_count") for row in group
-        )
+        synthetic_mean, _ = _mean_std(row.get("final_synthetic_count") for row in group)
         seeds = sorted({str(row.get("seed")) for row in group if row.get("seed") != ""})
         results.append(
             {
@@ -1362,7 +1409,9 @@ def summarize_paper_pairwise_summary(
         grouped[_paper_pairwise_summary_key(row)].append(row)
 
     summary_rows = []
-    for key, group in sorted(grouped.items(), key=lambda item: tuple(map(str, item[0]))):
+    for key, group in sorted(
+        grouped.items(), key=lambda item: tuple(map(str, item[0]))
+    ):
         (
             dataset,
             dataset_subset,
@@ -1414,6 +1463,157 @@ def summarize_paper_pairwise_summary(
             }
         )
     return summary_rows
+
+
+def _load_run_config(run_dir: Path) -> Dict[str, Any]:
+    """Load the copied experiment config for one completed run."""
+    if not (run_dir / "experiment_config.yaml").exists():
+        return {}
+    try:
+        import yaml
+
+        with (run_dir / "experiment_config.yaml").open("r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+
+
+def _metric_token_at_eval(
+    values_for_cycle: Dict[str, Any],
+    cumulative_usage: Dict[str, int],
+    key: str,
+    metric_key: str,
+) -> float:
+    value = _safe_float(values_for_cycle.get(metric_key))
+    if value is not None:
+        return value
+    return float(cumulative_usage.get(key, 0) or 0)
+
+
+def summarize_paper_quality_cost_points(
+    run_dirs: List[Path],
+    rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Return per-cycle quality-cost points for paper figures."""
+    summary_by_dir = {str(row.get("run_dir")): row for row in rows}
+    point_rows = []
+    for run_dir in run_dirs:
+        summary = summary_by_dir.get(str(run_dir))
+        if not summary:
+            continue
+        metric_name = str(summary.get("metric") or "")
+        if not metric_name:
+            continue
+        metrics = _load_json(run_dir / "metrics.json")
+        token_usage = _load_json(run_dir / "token_usage.json")
+        config = _load_run_config(run_dir)
+        seed_summary = _seed_materialization_summary(run_dir, config, token_usage)
+        seed_total = _safe_int(seed_summary.get("seed_teacher_total_tokens")) or 0
+        charged_seed = _charged_seed_usage(token_usage)
+        cumulative_by_cycle = _cycle_token_cumulative_usage(token_usage)
+        context = _run_context(run_dir)
+        final_cycle = _safe_int(summary.get("final_cycle"))
+
+        def make_point(
+            *,
+            split: str,
+            cycle: int | None,
+            metric_value: Any,
+            cumulative_usage: Dict[str, Any],
+        ) -> Dict[str, Any]:
+            online_input = max(
+                0,
+                int(cumulative_usage.get("input_tokens", 0) or 0)
+                - charged_seed["input_tokens"],
+            )
+            online_output = max(
+                0,
+                int(cumulative_usage.get("output_tokens", 0) or 0)
+                - charged_seed["output_tokens"],
+            )
+            online_total = max(
+                0,
+                int(cumulative_usage.get("total_tokens", 0) or 0)
+                - charged_seed["total_tokens"],
+            )
+            return {
+                **context,
+                "metric": metric_name,
+                "mode": summary.get("mode"),
+                "split": split,
+                "cycle": cycle,
+                "is_final_cycle": cycle == final_cycle,
+                "metric_value": metric_value,
+                "cumulative_online_teacher_input_tokens": online_input,
+                "cumulative_online_teacher_output_tokens": online_output,
+                "cumulative_online_teacher_total_tokens": online_total,
+                "seed_teacher_total_tokens": seed_total,
+                "cumulative_total_teacher_total_tokens": seed_total + online_total,
+            }
+
+        for cycle, values_for_cycle in _cycle_metrics(metrics):
+            if metric_name not in values_for_cycle:
+                continue
+            cumulative_usage = cumulative_by_cycle.get(cycle, {})
+            metric_usage = {
+                "input_tokens": _metric_token_at_eval(
+                    values_for_cycle,
+                    cumulative_usage,
+                    "input_tokens",
+                    "_teacher_input_tokens_at_eval",
+                ),
+                "output_tokens": _metric_token_at_eval(
+                    values_for_cycle,
+                    cumulative_usage,
+                    "output_tokens",
+                    "_teacher_output_tokens_at_eval",
+                ),
+                "total_tokens": _metric_token_at_eval(
+                    values_for_cycle,
+                    cumulative_usage,
+                    "total_tokens",
+                    "_teacher_tokens_at_eval",
+                ),
+            }
+            point_rows.append(
+                make_point(
+                    split=str(summary.get("selection_split") or "validation"),
+                    cycle=cycle,
+                    metric_value=values_for_cycle.get(metric_name),
+                    cumulative_usage=metric_usage,
+                )
+            )
+
+        heldout = _heldout_test_metrics(metrics)
+        heldout_value = heldout.get(metric_name)
+        if heldout_value is not None:
+            grand_total = token_usage.get("grand_total", {})
+            point_rows.append(
+                make_point(
+                    split=str(
+                        heldout.get("_heldout_split")
+                        or summary.get("heldout_split")
+                        or "heldout"
+                    ),
+                    cycle=final_cycle,
+                    metric_value=heldout_value,
+                    cumulative_usage=grand_total,
+                )
+            )
+
+    return sorted(
+        point_rows,
+        key=lambda row: (
+            str(row.get("dataset")),
+            str(row.get("token_budget")),
+            str(row.get("seed")),
+            str(row.get("policy_name")),
+            str(row.get("control_name")),
+            _safe_int(row.get("cycle")) if row.get("cycle") is not None else -1,
+            0 if str(row.get("split") or "") in {"validation", "dev"} else 1,
+            str(row.get("split")),
+        ),
+    )
 
 
 def summarize_paper_action_frequencies(
@@ -1479,7 +1679,9 @@ def summarize_paper_budget_audit(
         grouped[_paper_result_key(row)].append(row)
 
     audit_rows = []
-    for key, group in sorted(grouped.items(), key=lambda item: tuple(map(str, item[0]))):
+    for key, group in sorted(
+        grouped.items(), key=lambda item: tuple(map(str, item[0]))
+    ):
         (
             dataset,
             dataset_subset,
@@ -1526,9 +1728,7 @@ def summarize_paper_budget_audit(
                 "max_realized_over_predicted": max(
                     (
                         value
-                        for value in (
-                            _safe_float(ratio) for ratio in realized_ratios
-                        )
+                        for value in (_safe_float(ratio) for ratio in realized_ratios)
                         if value is not None
                     ),
                     default=None,
@@ -1576,6 +1776,7 @@ def _write_paper_report_markdown(
     delta_rows: List[Dict[str, Any]],
     delta_summary_rows: List[Dict[str, Any]],
     budget_rows: List[Dict[str, Any]],
+    point_rows: List[Dict[str, Any]],
     paths: Dict[str, Path],
     success_policy: str,
     baseline_policies: List[str],
@@ -1591,8 +1792,7 @@ def _write_paper_report_markdown(
         default=0,
     )
     missing_usage = sum(
-        _safe_int(row.get("missing_provider_usage_rows")) or 0
-        for row in budget_rows
+        _safe_int(row.get("missing_provider_usage_rows")) or 0 for row in budget_rows
     )
     over_preflight = sum(
         _safe_int(row.get("over_preflight_bound_rows")) or 0 for row in budget_rows
@@ -1616,6 +1816,7 @@ def _write_paper_report_markdown(
         f"- Baselines: {', '.join(f'`{name}`' for name in baseline_policies)}",
         f"- Paired comparisons found: {len(delta_rows)}",
         f"- Pairwise summary rows: {len(delta_summary_rows)}",
+        f"- Quality-cost points: {len(point_rows)}",
         f"- AUC win rate: {auc_win_rate if auc_win_rate is not None else 'n/a'}",
         (
             f"- Held-out win rate: {heldout_win_rate}"
@@ -1642,6 +1843,7 @@ def _write_paper_report_markdown(
             "Use `paper_main_results.csv` for the main table, "
             "`paper_pairwise_deltas.csv` for paired seed/budget deltas, "
             "`paper_pairwise_summary.csv` for win rates and sign tests, "
+            "`paper_quality_cost_points.csv` for quality-cost curves, "
             "`paper_budget_audit.csv` for the accounting table, and "
             "`paper_action_frequencies.csv` for policy-behavior figures.",
             "",
@@ -1668,14 +1870,10 @@ def write_paper_report(
 
     run_dirs = _run_dirs(path)
     policy_rows = [
-        row
-        for run_dir in run_dirs
-        for row in summarize_policy_behavior(run_dir)
+        row for run_dir in run_dirs for row in summarize_policy_behavior(run_dir)
     ]
     calibration_rows = [
-        row
-        for run_dir in run_dirs
-        for row in summarize_teacher_calibration(run_dir)
+        row for run_dir in run_dirs for row in summarize_teacher_calibration(run_dir)
     ]
     main_rows = summarize_paper_main_results(rows)
     delta_rows = summarize_paper_pairwise_deltas(
@@ -1684,6 +1882,7 @@ def write_paper_report(
         baseline_policies=baseline_policies,
     )
     delta_summary_rows = summarize_paper_pairwise_summary(delta_rows)
+    point_rows = summarize_paper_quality_cost_points(run_dirs, rows)
     action_rows = summarize_paper_action_frequencies(policy_rows)
     budget_rows = summarize_paper_budget_audit(rows, calibration_rows)
 
@@ -1695,6 +1894,7 @@ def write_paper_report(
         "paper_main_results": output_dir / "paper_main_results.csv",
         "paper_pairwise_deltas": output_dir / "paper_pairwise_deltas.csv",
         "paper_pairwise_summary": output_dir / "paper_pairwise_summary.csv",
+        "paper_quality_cost_points": output_dir / "paper_quality_cost_points.csv",
         "paper_action_frequencies": output_dir / "paper_action_frequencies.csv",
         "paper_budget_audit": output_dir / "paper_budget_audit.csv",
         "paper_readiness_report": output_dir / "paper_readiness_report.md",
@@ -1715,6 +1915,11 @@ def write_paper_report(
         PAPER_PAIRWISE_SUMMARY_FIELDS,
     )
     _write_rows_csv(
+        point_rows,
+        paths["paper_quality_cost_points"],
+        PAPER_QUALITY_COST_POINT_FIELDS,
+    )
+    _write_rows_csv(
         action_rows,
         paths["paper_action_frequencies"],
         PAPER_ACTION_FREQUENCY_FIELDS,
@@ -1732,6 +1937,7 @@ def write_paper_report(
         delta_rows=delta_rows,
         delta_summary_rows=delta_summary_rows,
         budget_rows=budget_rows,
+        point_rows=point_rows,
         paths=paths,
         success_policy=success_policy,
         baseline_policies=baseline_policies,
@@ -1765,8 +1971,7 @@ def _same_count_config_fingerprint(config: Dict[str, Any]) -> str:
 def _safe_slug(value: Any) -> str:
     """Return a conservative filename slug for generated config paths."""
     return "".join(
-        char if char.isalnum() or char in {"-", "_"} else "_"
-        for char in str(value)
+        char if char.isalnum() or char in {"-", "_"} else "_" for char in str(value)
     ).strip("_")
 
 
@@ -1831,9 +2036,9 @@ def plan_same_count_control_configs(
 
         source_config_path = Path(str(row.get("run_dir"))) / "experiment_config.yaml"
         if source_config_path.exists():
-            config_data = yaml.safe_load(
-                source_config_path.read_text(encoding="utf-8")
-            ) or {}
+            config_data = (
+                yaml.safe_load(source_config_path.read_text(encoding="utf-8")) or {}
+            )
         else:
             config_data = dict(base_config)
         config_name = (
@@ -1920,7 +2125,11 @@ def _comparison_delta(
     """Return positive values when the policy beats the baseline."""
     if policy_value is None or baseline_value is None:
         return None
-    return baseline_value - policy_value if mode == "min" else policy_value - baseline_value
+    return (
+        baseline_value - policy_value
+        if mode == "min"
+        else policy_value - baseline_value
+    )
 
 
 def _paired_success_check(
@@ -1999,9 +2208,7 @@ def _paired_success_check(
         ]
         wins_for_baseline = sum(1 for row in valid_for_baseline if row["won"])
         win_rate_for_baseline = (
-            wins_for_baseline / len(valid_for_baseline)
-            if valid_for_baseline
-            else 0.0
+            wins_for_baseline / len(valid_for_baseline) if valid_for_baseline else 0.0
         )
         per_baseline.append(
             {
@@ -2034,11 +2241,7 @@ def _paired_success_check(
         win_rate=win_rate,
         per_baseline=per_baseline,
         missing_pairs=missing_pairs,
-        failures=[
-            row
-            for row in comparisons
-            if row["delta"] is None or not row["won"]
-        ],
+        failures=[row for row in comparisons if row["delta"] is None or not row["won"]],
     )
 
 
@@ -2073,14 +2276,10 @@ def validate_pilot_gate(
     rows = analyze_runs(path, metric=metric, mode=mode)
     run_dirs = _run_dirs(path)
     policy_rows = [
-        row
-        for run_dir in run_dirs
-        for row in summarize_policy_behavior(run_dir)
+        row for run_dir in run_dirs for row in summarize_policy_behavior(run_dir)
     ]
     calibration_rows = [
-        row
-        for run_dir in run_dirs
-        for row in summarize_teacher_calibration(run_dir)
+        row for run_dir in run_dirs for row in summarize_teacher_calibration(run_dir)
     ]
     frontier_rows = summarize_oracle_frontier(rows)
 
@@ -2155,7 +2354,9 @@ def validate_pilot_gate(
                 expected_combos == found_combos and not duplicate_combos,
                 expected_count=len(expected_combos),
                 found_count=sum(len(group) for group in combo_rows.values()),
-                missing=[list(combo) for combo in sorted(expected_combos - found_combos)],
+                missing=[
+                    list(combo) for combo in sorted(expected_combos - found_combos)
+                ],
                 unexpected=[
                     list(combo) for combo in sorted(found_combos - expected_combos)
                 ],
@@ -2325,7 +2526,8 @@ def validate_pilot_gate(
         operators = {
             str(row.get("prompt_operator"))
             for row in policy_rows
-            if row.get("policy_name") == policy_name and row.get("action_name") != "STOP"
+            if row.get("policy_name") == policy_name
+            and row.get("action_name") != "STOP"
         }
         if expected_operator not in operators:
             unexpected_operators = sorted(operators - {expected_operator})
@@ -2355,9 +2557,7 @@ def validate_pilot_gate(
     )
 
     decision_ids = {
-        str(row.get("decision_id"))
-        for row in policy_rows
-        if row.get("decision_id")
+        str(row.get("decision_id")) for row in policy_rows if row.get("decision_id")
     }
     orphan_attempts = [
         row
@@ -2568,9 +2768,7 @@ def validate_pilot_gate(
             )
 
     if require_same_count_control:
-        same_count_rows = [
-            row for row in rows if _is_same_count_control(row)
-        ]
+        same_count_rows = [row for row in rows if _is_same_count_control(row)]
         non_control_rows = [row for row in rows if not _is_same_count_control(row)]
         target_seeds = expected_seed_set or _normalize_set(
             row.get("seed") for row in non_control_rows

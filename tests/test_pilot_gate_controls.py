@@ -89,9 +89,9 @@ def _write_run(
         if canonical_label_count is not None:
             metrics["heldout_test"]["canonical_label_count"] = canonical_label_count
         if heldout_observed_gold_label_count is not None:
-            metrics["heldout_test"][
-                "observed_gold_label_count"
-            ] = heldout_observed_gold_label_count
+            metrics["heldout_test"]["observed_gold_label_count"] = (
+                heldout_observed_gold_label_count
+            )
     (run_dir / "metrics.json").write_text(json.dumps(metrics))
     (run_dir / "token_usage.json").write_text(
         json.dumps(
@@ -149,8 +149,7 @@ def test_pilot_gate_requires_same_count_control(tmp_path):
 
     assert not missing["passed"]
     assert any(
-        check["name"] == "same_count_controls_present"
-        and not check["passed"]
+        check["name"] == "same_count_controls_present" and not check["passed"]
         for check in missing["checks"]
     )
 
@@ -187,10 +186,13 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert paths["paper_main_results"].exists()
     assert paths["paper_budget_audit"].exists()
     assert paths["paper_pairwise_summary"].exists()
+    assert paths["paper_quality_cost_points"].exists()
     with paths["paper_pairwise_deltas"].open(newline="", encoding="utf-8") as f:
         delta_rows = list(csv.DictReader(f))
     with paths["paper_pairwise_summary"].open(newline="", encoding="utf-8") as f:
         summary_rows = list(csv.DictReader(f))
+    with paths["paper_quality_cost_points"].open(newline="", encoding="utf-8") as f:
+        point_rows = list(csv.DictReader(f))
 
     assert len(delta_rows) == 1
     assert delta_rows[0]["success_policy"] == "frugalkd_p"
@@ -202,6 +204,14 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert summary_rows[0]["final_losses"] == "0"
     assert summary_rows[0]["final_win_rate"] == "1.0"
     assert summary_rows[0]["final_sign_test_p"] == "1.0"
+    frugal_points = [row for row in point_rows if row["run_id"] == "frugal"]
+    assert [row["split"] for row in frugal_points] == [
+        "validation",
+        "validation",
+        "test",
+    ]
+    assert frugal_points[-1]["metric_value"] == "0.75"
+    assert frugal_points[-1]["cumulative_online_teacher_total_tokens"] == "15"
 
 
 def test_pilot_gate_requires_paper_mode_when_requested(tmp_path):
@@ -796,8 +806,7 @@ def test_pilot_gate_requires_heldout_test_metric(tmp_path):
 
     assert not missing["passed"]
     assert any(
-        check["name"] == "heldout_test_metrics_present"
-        and not check["passed"]
+        check["name"] == "heldout_test_metrics_present" and not check["passed"]
         for check in missing["checks"]
     )
 
