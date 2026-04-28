@@ -527,6 +527,16 @@ def pilot_gate(
         "--require-same-count-control/--no-require-same-count-control",
         help="Require same_count control rows for every seed/budget pair",
     ),
+    require_same_count_plan: bool = typer.Option(
+        False,
+        "--require-same-count-plan/--no-require-same-count-plan",
+        help="Require same_count controls to match same_count_plan.json",
+    ),
+    same_count_plan: str | None = typer.Option(
+        None,
+        "--same-count-plan",
+        help="Optional path to same_count_plan.json",
+    ),
     same_count_source_policy: str = typer.Option(
         "frugalkd_p",
         "--same-count-source-policy",
@@ -611,6 +621,8 @@ def pilot_gate(
             require_heldout=require_heldout,
             require_full_label_coverage=require_full_label_coverage,
             require_same_count_control=require_same_count_control,
+            require_same_count_plan=require_same_count_plan,
+            same_count_plan_path=Path(same_count_plan) if same_count_plan else None,
             same_count_source_policy=same_count_source_policy,
             same_count_control_policy=same_count_control_policy,
             require_paper_mode=require_paper_mode,

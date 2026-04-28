@@ -3,6 +3,7 @@ import json
 from hashlib import sha256
 from pathlib import Path
 
+import pytest
 import yaml
 
 from promptillery.analyze import (
@@ -1176,6 +1177,135 @@ def test_pilot_gate_accepts_valid_same_count_control(tmp_path):
     assert report["passed"]
 
 
+def test_pilot_gate_rejects_missing_same_count_plan(tmp_path):
+    _write_run(
+        tmp_path,
+        name="main",
+        policy_name="frugalkd_p",
+        final_synthetic_count=3,
+    )
+    _write_run(
+        tmp_path,
+        name="same_count",
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_same_count_control=True,
+        require_same_count_plan=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "same_count_controls_present"
+    )
+    assert not report["passed"]
+    assert check["same_count_plan_failures"] == [
+        {
+            "reason": "missing_same_count_plan",
+            "path": str(tmp_path / "same_count_configs" / "same_count_plan.json"),
+        }
+    ]
+
+
+def test_pilot_gate_accepts_planned_same_count_control(tmp_path):
+    _write_run(
+        tmp_path,
+        name="main",
+        policy_name="frugalkd_p",
+        final_synthetic_count=3,
+    )
+    base_config = tmp_path / "base.yaml"
+    base_config.write_text("name: base\n", encoding="utf-8")
+    plan = plan_same_count_control_configs(
+        tmp_path,
+        base_config,
+        tmp_path / "same_count_configs",
+        metric="macro_f1",
+    )
+    _write_run(
+        tmp_path,
+        name=plan[0]["control_experiment_name"],
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_same_count_control=True,
+        require_same_count_plan=True,
+    )
+
+    assert report["passed"]
+
+
+def test_pilot_gate_rejects_unplanned_same_count_control(tmp_path):
+    _write_run(
+        tmp_path,
+        name="main",
+        policy_name="frugalkd_p",
+        final_synthetic_count=3,
+    )
+    base_config = tmp_path / "base.yaml"
+    base_config.write_text("name: base\n", encoding="utf-8")
+    plan_same_count_control_configs(
+        tmp_path,
+        base_config,
+        tmp_path / "same_count_configs",
+        metric="macro_f1",
+    )
+    _write_run(
+        tmp_path,
+        name="handwritten_same_count",
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_same_count_control=True,
+        require_same_count_plan=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "same_count_controls_present"
+    )
+    assert not report["passed"]
+    assert check["plan_control_mismatches"][0]["run_id"] == "handwritten_same_count"
+    assert check["plan_control_mismatches"][0][
+        "planned_control_experiment_names"
+    ] == ["main_same_count_cost_heuristic_s13_b25000"]
+
+
 def test_pilot_gate_rejects_same_count_action_space_mismatch(tmp_path):
     _write_run(
         tmp_path,
@@ -2038,3 +2168,40 @@ def test_plan_same_count_control_configs_from_source_runs(tmp_path):
         (tmp_path / "same_count_configs" / "same_count_plan.json").read_text()
     )
     assert len(manifest) == 2
+    assert manifest[0]["control_experiment_name"].startswith(
+        "source_25k_same_count_cost_heuristic"
+    )
+    assert manifest[0]["match_key"]["dataset"] == "fixture_dataset"
+    assert manifest[0]["match_key"]["student_model"] == "fixture/student"
+    assert manifest[0]["source_action_space_id"] == "action-space-a"
+    assert manifest[0]["source_config_hash"]
+
+
+def test_plan_same_count_control_configs_rejects_duplicate_match_key(tmp_path):
+    runs_dir = tmp_path / "runs"
+    _write_run(
+        runs_dir,
+        name="source_a",
+        policy_name="frugalkd_p",
+        seed=13,
+        token_budget=25000,
+        final_synthetic_count=7,
+    )
+    _write_run(
+        runs_dir,
+        name="source_b",
+        policy_name="frugalkd_p",
+        seed=13,
+        token_budget=25000,
+        final_synthetic_count=11,
+    )
+    base_config = tmp_path / "base.yaml"
+    base_config.write_text("name: base\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate source rows"):
+        plan_same_count_control_configs(
+            runs_dir,
+            base_config,
+            tmp_path / "same_count_configs",
+            metric="macro_f1",
+        )

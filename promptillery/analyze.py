@@ -31,6 +31,17 @@ SAME_COUNT_CONFIG_IGNORED_KEYS = {
     "policy_name",
     "synthetic_record_budget",
 }
+SAME_COUNT_MATCH_FIELDS = (
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "seed",
+    "token_budget",
+    "selection_split",
+    "metric",
+    "mode",
+)
 REQUIRED_RUN_FILES = (
     "run_manifest.json",
     "experiment_config.yaml",
@@ -2796,6 +2807,24 @@ def _sort_scalar(value: Any) -> tuple[int, Any]:
     return (1, str(coerced))
 
 
+def _same_count_match_key(row: Dict[str, Any]) -> tuple[str, ...]:
+    """Return the full scientific key used to match same-count controls."""
+    return tuple(str(row.get(field) or "") for field in SAME_COUNT_MATCH_FIELDS)
+
+
+def _same_count_match_dict(row: Dict[str, Any]) -> Dict[str, str]:
+    """Return a JSON-friendly same-count match key."""
+    return {
+        field: str(row.get(field) or "")
+        for field in SAME_COUNT_MATCH_FIELDS
+    }
+
+
+def _same_count_key_dict(key: tuple[str, ...]) -> Dict[str, str]:
+    """Return a JSON-friendly same-count match key from a tuple key."""
+    return dict(zip(SAME_COUNT_MATCH_FIELDS, key))
+
+
 def plan_same_count_control_configs(
     pilot_dir: Path,
     base_config_path: Path,
@@ -2824,21 +2853,27 @@ def plan_same_count_control_configs(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     planned = []
-    seen_pairs: set[tuple[str, str]] = set()
+    seen_keys: Dict[tuple[str, ...], str] = {}
     for row in sorted(
         source_rows,
         key=lambda item: (
             _sort_scalar(item.get("seed")),
             _sort_scalar(item.get("token_budget")),
+            tuple(_same_count_match_key(item)),
             str(item.get("run_id")),
         ),
     ):
         seed = str(row.get("seed"))
         token_budget = str(row.get("token_budget"))
-        pair = (seed, token_budget)
-        if pair in seen_pairs:
-            continue
-        seen_pairs.add(pair)
+        match_key = _same_count_match_key(row)
+        if match_key in seen_keys:
+            raise ValueError(
+                "duplicate source rows for same_count full match key: "
+                f"existing_run_id={seen_keys[match_key]}, "
+                f"run_id={row.get('run_id')}, "
+                f"match_key={_same_count_key_dict(match_key)}"
+            )
+        seen_keys[match_key] = str(row.get("run_id") or "")
 
         synthetic_count = _safe_int(row.get("final_synthetic_count"))
         if synthetic_count is None:
@@ -2880,9 +2915,14 @@ def plan_same_count_control_configs(
         planned.append(
             {
                 "config_path": str(config_path),
+                "control_experiment_name": config_name,
                 "source_run_id": row.get("run_id"),
+                "source_run_dir": row.get("run_dir"),
                 "source_policy_name": source_policy,
+                "source_action_space_id": row.get("action_space_id"),
+                "source_config_hash": row.get("same_count_config_hash"),
                 "control_policy_name": control_policy,
+                "match_key": _same_count_match_dict(row),
                 "seed": seed,
                 "token_budget": token_budget,
                 "synthetic_record_budget": synthetic_count,
@@ -3254,17 +3294,7 @@ def validate_paper_gate(
     }
 
 
-SUCCESS_MATCH_FIELDS = (
-    "dataset",
-    "dataset_subset",
-    "student_model",
-    "student_type",
-    "seed",
-    "token_budget",
-    "selection_split",
-    "metric",
-    "mode",
-)
+SUCCESS_MATCH_FIELDS = SAME_COUNT_MATCH_FIELDS
 
 
 def _success_match_key(row: Dict[str, Any]) -> tuple[str, ...]:
@@ -3400,6 +3430,14 @@ def _paired_success_check(
     )
 
 
+def _same_count_plan_key(item: Dict[str, Any]) -> tuple[str, ...] | None:
+    """Return the match key encoded in a same-count plan item."""
+    match = item.get("match_key")
+    if not isinstance(match, dict):
+        return None
+    return tuple(str(match.get(field) or "") for field in SAME_COUNT_MATCH_FIELDS)
+
+
 def validate_pilot_gate(
     path: Path,
     *,
@@ -3413,6 +3451,8 @@ def validate_pilot_gate(
     require_heldout: bool = False,
     require_full_label_coverage: bool = False,
     require_same_count_control: bool = False,
+    require_same_count_plan: bool = False,
+    same_count_plan_path: Path | None = None,
     same_count_source_policy: str = "frugalkd_p",
     same_count_control_policy: str | None = None,
     require_paper_mode: bool = False,
@@ -3950,6 +3990,62 @@ def validate_pilot_gate(
     if require_same_count_control:
         same_count_rows = [row for row in rows if _is_same_count_control(row)]
         non_control_rows = [row for row in rows if not _is_same_count_control(row)]
+        planned_by_key: Dict[tuple[str, ...], List[Dict[str, Any]]] = {}
+        same_count_plan_failures = []
+        resolved_plan_path = (
+            Path(same_count_plan_path)
+            if same_count_plan_path
+            else Path(path) / "same_count_configs" / "same_count_plan.json"
+        )
+        if require_same_count_plan:
+            if not resolved_plan_path.exists():
+                same_count_plan_failures.append(
+                    {
+                        "reason": "missing_same_count_plan",
+                        "path": str(resolved_plan_path),
+                    }
+                )
+            else:
+                try:
+                    plan_payload = _load_json(resolved_plan_path)
+                except json.JSONDecodeError as exc:
+                    plan_payload = []
+                    same_count_plan_failures.append(
+                        {
+                            "reason": "invalid_same_count_plan_json",
+                            "path": str(resolved_plan_path),
+                            "error": str(exc),
+                        }
+                    )
+                if not isinstance(plan_payload, list):
+                    plan_payload = []
+                    same_count_plan_failures.append(
+                        {
+                            "reason": "invalid_same_count_plan_shape",
+                            "path": str(resolved_plan_path),
+                        }
+                    )
+                for item in plan_payload:
+                    if not isinstance(item, dict):
+                        same_count_plan_failures.append(
+                            {
+                                "reason": "invalid_same_count_plan_item",
+                                "path": str(resolved_plan_path),
+                                "item": item,
+                            }
+                        )
+                        continue
+                    key = _same_count_plan_key(item)
+                    if key is None:
+                        same_count_plan_failures.append(
+                            {
+                                "reason": "missing_same_count_match_key",
+                                "path": str(resolved_plan_path),
+                                "source_run_id": item.get("source_run_id"),
+                            }
+                        )
+                        continue
+                    planned_by_key.setdefault(key, []).append(item)
         target_seeds = expected_seed_set or _normalize_set(
             row.get("seed") for row in non_control_rows
         )
@@ -3965,34 +4061,65 @@ def validate_pilot_gate(
             (str(row.get("seed")), str(row.get("token_budget")))
             for row in same_count_rows
         }
+        found_keys = {_same_count_match_key(row) for row in same_count_rows}
         source_counts = {}
         source_action_spaces = {}
         source_config_hashes = {}
+        source_pairs = set()
+        duplicate_sources = []
         for row in non_control_rows:
             if str(row.get("policy_name") or "") != same_count_source_policy:
                 continue
             pair = (str(row.get("seed")), str(row.get("token_budget")))
-            source_counts.setdefault(pair, _safe_int(row.get("final_synthetic_count")))
-            source_action_spaces.setdefault(pair, str(row.get("action_space_id") or ""))
-            source_config_hashes.setdefault(
-                pair, str(row.get("same_count_config_hash") or "")
-            )
+            key = _same_count_match_key(row)
+            if key in source_counts:
+                duplicate_sources.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "match_key": _same_count_key_dict(key),
+                    }
+                )
+                continue
+            source_pairs.add(pair)
+            source_counts[key] = _safe_int(row.get("final_synthetic_count"))
+            source_action_spaces[key] = str(row.get("action_space_id") or "")
+            source_config_hashes[key] = str(row.get("same_count_config_hash") or "")
 
         malformed_controls = []
         wrong_policy_controls = []
         action_space_mismatches = []
         config_mismatches = []
-        same_count_rows_by_pair: Dict[tuple[str, str], List[Dict[str, Any]]] = {}
+        plan_control_mismatches = []
+        same_count_rows_by_key: Dict[tuple[str, ...], List[Dict[str, Any]]] = {}
         for row in same_count_rows:
             pair = (str(row.get("seed")), str(row.get("token_budget")))
-            same_count_rows_by_pair.setdefault(pair, []).append(row)
+            key = _same_count_match_key(row)
+            same_count_rows_by_key.setdefault(key, []).append(row)
             final_count = _safe_int(row.get("final_synthetic_count"))
             target_count = _safe_int(row.get("synthetic_record_budget"))
-            source_count = source_counts.get(pair)
-            source_action_space = source_action_spaces.get(pair, "")
+            source_count = source_counts.get(key)
+            source_action_space = source_action_spaces.get(key, "")
             control_action_space = str(row.get("action_space_id") or "")
-            source_config_hash = source_config_hashes.get(pair, "")
+            source_config_hash = source_config_hashes.get(key, "")
             control_config_hash = str(row.get("same_count_config_hash") or "")
+            plan_items = planned_by_key.get(key, [])
+            if require_same_count_plan and plan_items:
+                planned_names = {
+                    str(
+                        item.get("control_experiment_name")
+                        or Path(str(item.get("config_path") or "")).stem
+                    )
+                    for item in plan_items
+                }
+                if str(row.get("experiment") or "") not in planned_names:
+                    plan_control_mismatches.append(
+                        {
+                            "run_id": row.get("run_id"),
+                            "experiment": row.get("experiment"),
+                            "match_key": _same_count_key_dict(key),
+                            "planned_control_experiment_names": sorted(planned_names),
+                        }
+                    )
             if (
                 same_count_control_policy
                 and str(row.get("policy_name") or "") != same_count_control_policy
@@ -4047,41 +4174,100 @@ def validate_pilot_gate(
                         "source_config_hash": source_config_hash,
                     }
                 )
-        missing_source_pairs = target_pairs.difference(source_counts.keys())
+        target_keys = set(source_counts)
+        missing_source_pairs = target_pairs.difference(source_pairs)
+        missing_plan_keys = [
+            _same_count_key_dict(key)
+            for key in sorted(target_keys.difference(planned_by_key))
+        ] if require_same_count_plan else []
+        unplanned_control_keys = [
+            _same_count_key_dict(key)
+            for key in sorted(found_keys.difference(planned_by_key))
+        ] if require_same_count_plan else []
+        duplicate_plan_keys = [
+            {
+                "match_key": _same_count_key_dict(key),
+                "source_run_ids": [item.get("source_run_id") for item in group],
+            }
+            for key, group in sorted(planned_by_key.items())
+            if len(group) > 1
+        ]
+        plan_count_mismatches = []
+        if require_same_count_plan:
+            for key in sorted(target_keys.intersection(planned_by_key)):
+                source_count = source_counts.get(key)
+                planned_count = _safe_int(
+                    planned_by_key[key][0].get("synthetic_record_budget")
+                )
+                if planned_count != source_count:
+                    plan_count_mismatches.append(
+                        {
+                            "match_key": _same_count_key_dict(key),
+                            "planned_synthetic_record_budget": planned_count,
+                            "source_final_synthetic_count": source_count,
+                        }
+                    )
         duplicate_controls = [
             {
-                "seed": pair[0],
-                "token_budget": pair[1],
+                "seed": key[SAME_COUNT_MATCH_FIELDS.index("seed")],
+                "token_budget": key[SAME_COUNT_MATCH_FIELDS.index("token_budget")],
                 "run_ids": [row.get("run_id") for row in group],
             }
-            for pair, group in sorted(same_count_rows_by_pair.items())
+            for key, group in sorted(same_count_rows_by_key.items())
             if len(group) > 1
         ]
         checks.append(
             _gate_check(
                 "same_count_controls_present",
-                target_pairs.issubset(found_pairs)
+                target_keys.issubset(found_keys)
                 and not missing_source_pairs
+                and not duplicate_sources
                 and not wrong_policy_controls
                 and not malformed_controls
                 and not action_space_mismatches
                 and not config_mismatches
-                and not duplicate_controls,
+                and not duplicate_controls
+                and not same_count_plan_failures
+                and not missing_plan_keys
+                and not unplanned_control_keys
+                and not duplicate_plan_keys
+                and not plan_count_mismatches
+                and not plan_control_mismatches,
                 source_policy=same_count_source_policy,
                 control_policy=same_count_control_policy,
+                same_count_plan=str(resolved_plan_path)
+                if require_same_count_plan
+                else "",
                 expected_pairs=[list(pair) for pair in sorted(target_pairs)],
                 found_pairs=[list(pair) for pair in sorted(found_pairs)],
                 missing_pairs=[
                     list(pair) for pair in sorted(target_pairs - found_pairs)
                 ],
+                expected_match_keys=[
+                    _same_count_key_dict(key) for key in sorted(target_keys)
+                ],
+                found_match_keys=[
+                    _same_count_key_dict(key) for key in sorted(found_keys)
+                ],
+                missing_match_keys=[
+                    _same_count_key_dict(key)
+                    for key in sorted(target_keys - found_keys)
+                ],
                 missing_source_pairs=[
                     list(pair) for pair in sorted(missing_source_pairs)
                 ],
+                duplicate_sources=duplicate_sources,
                 malformed_controls=malformed_controls,
                 wrong_policy_controls=wrong_policy_controls,
                 action_space_mismatches=action_space_mismatches,
                 config_mismatches=config_mismatches,
                 duplicate_controls=duplicate_controls,
+                same_count_plan_failures=same_count_plan_failures,
+                missing_plan_match_keys=missing_plan_keys,
+                unplanned_control_match_keys=unplanned_control_keys,
+                duplicate_plan_match_keys=duplicate_plan_keys,
+                plan_count_mismatches=plan_count_mismatches,
+                plan_control_mismatches=plan_control_mismatches,
             )
         )
         if success_policy and require_same_count_success:
