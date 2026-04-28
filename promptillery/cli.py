@@ -21,6 +21,7 @@ from .analyze import (
 )
 from .config import ExperimentConfig
 from .engine import DistillationEngine, evaluate_model
+from .figures import write_paper_figures
 from .policy_controller import PolicyController, enumerate_actions
 from .sft_materialize import materialize_sft_records
 from .utils import setup_logging
@@ -328,6 +329,43 @@ def paper_report(
         "Wrote paper report tables to "
         + ", ".join(str(value) for value in report_paths.values())
     )
+
+
+@app.command("paper-figures")
+def paper_figures(
+    report_dir: str = typer.Argument(
+        ...,
+        help="Directory produced by `promptillery paper-report`",
+    ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Directory for figure files; defaults to REPORT_DIR/figures",
+    ),
+    fmt: str = typer.Option(
+        "pdf",
+        "--format",
+        help="Matplotlib output format, e.g. pdf, png, or svg",
+    ),
+) -> None:
+    """Write paper-facing figures from paper-report CSVs."""
+    try:
+        manifest = write_paper_figures(
+            Path(report_dir),
+            Path(output_dir) if output_dir else None,
+            fmt=fmt,
+        )
+    except RuntimeError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    created = manifest.get("created", [])
+    if created:
+        typer.echo("Wrote paper figures to " + ", ".join(created))
+    else:
+        typer.echo("No paper figures were created", err=True)
+    typer.echo(f"Figure manifest: {manifest['manifest']}")
 
 
 @app.command("pilot-gate")
