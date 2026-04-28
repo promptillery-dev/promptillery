@@ -134,7 +134,9 @@ def _write_canonical_labels_artifact(
     if not canonical_labels:
         return None
 
-    normalized_labels = [_normalize_canonical_label(label) for label in canonical_labels]
+    normalized_labels = [
+        _normalize_canonical_label(label) for label in canonical_labels
+    ]
     artifact_path = output_path.parent / "canonical_labels.json"
     temp_path = artifact_path.with_name(f".{artifact_path.name}.tmp")
     payload = {
@@ -207,8 +209,7 @@ def _select_source_examples(
         missing = sorted(label for label, indexes in buckets.items() if not indexes)
         if missing:
             raise ValueError(
-                f"Cannot cover canonical labels from '{stratify_by}': "
-                f"missing={missing}"
+                f"Cannot cover canonical labels from '{stratify_by}': missing={missing}"
             )
 
         selected: list[int] = []
@@ -374,6 +375,8 @@ async def materialize_sft_records(
     if temp_manifest_path.exists():
         temp_manifest_path.unlink()
 
+    input_tokens = 0
+    output_tokens = 0
     total_tokens = 0
     written = 0
     attempted = 0
@@ -419,7 +422,9 @@ async def materialize_sft_records(
                 usage_estimated = False
 
                 if mode == "teacher":
-                    teacher_prompt = _format_template(teacher_prompt_template, row_values)
+                    teacher_prompt = _format_template(
+                        teacher_prompt_template, row_values
+                    )
                     messages = [{"role": "user", "content": teacher_prompt}]
                     predicted_total = _estimate_input_tokens(
                         config.teacher, messages
@@ -495,6 +500,8 @@ async def materialize_sft_records(
                             f"budget={config.token_budget}"
                         )
 
+                input_tokens += usage["teacher_input_tokens"]
+                output_tokens += usage["teacher_output_tokens"]
                 total_tokens += usage["teacher_total_tokens"]
                 usage_estimated_records += int(usage_estimated)
                 record = {
@@ -567,6 +574,8 @@ async def materialize_sft_records(
             "prompt_operator": prompt_operator,
             "teacher_tier": teacher_tier,
             "token_budget": config.token_budget,
+            "teacher_input_tokens": input_tokens,
+            "teacher_output_tokens": output_tokens,
             "teacher_total_tokens": total_tokens,
             "usage_estimated_records": usage_estimated_records,
             "materialized_at": materialized_at,
@@ -598,5 +607,7 @@ async def materialize_sft_records(
         "records": written,
         "attempted_records": attempted,
         "stop_reason": stop_reason,
+        "teacher_input_tokens": input_tokens,
+        "teacher_output_tokens": output_tokens,
         "teacher_total_tokens": total_tokens,
     }

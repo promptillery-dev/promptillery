@@ -192,6 +192,8 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
         delta_rows = list(csv.DictReader(f))
     with paths["paper_pairwise_summary"].open(newline="", encoding="utf-8") as f:
         summary_rows = list(csv.DictReader(f))
+    with paths["paper_budget_audit"].open(newline="", encoding="utf-8") as f:
+        budget_rows = list(csv.DictReader(f))
     with paths["paper_quality_cost_points"].open(newline="", encoding="utf-8") as f:
         point_rows = list(csv.DictReader(f))
     with paths["paper_action_cycle_frequencies"].open(
@@ -222,6 +224,13 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     )
     assert all_budget_summary["token_budget"] == "ALL"
     assert all_budget_summary["final_n"] == "1"
+    frugal_budget = next(
+        row for row in budget_rows if row["policy_name"] == "frugalkd_p"
+    )
+    assert frugal_budget["mean_online_teacher_input_tokens"] == "10.0"
+    assert frugal_budget["mean_online_teacher_output_tokens"] == "5.0"
+    assert frugal_budget["mean_total_teacher_total_tokens"] == "15.0"
+    assert frugal_budget["estimated_or_reserved_usage_rows"] == "0"
     frugal_points = [row for row in point_rows if row["run_id"] == "frugal"]
     assert [row["split"] for row in frugal_points] == [
         "validation",

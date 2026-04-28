@@ -293,7 +293,20 @@ PAPER_BUDGET_AUDIT_FIELDS = [
     "over_preflight_bound_rows",
     "over_remaining_budget_rows",
     "failed_attempt_rows",
+    "provider_reported_attempt_rows",
+    "estimated_or_reserved_usage_rows",
+    "cheap_teacher_attempt_rows",
+    "strong_teacher_attempt_rows",
+    "mean_estimated_cost",
+    "mean_seed_usage_estimated_records",
+    "mean_seed_teacher_input_tokens",
+    "mean_seed_teacher_output_tokens",
+    "mean_seed_teacher_total_tokens",
+    "mean_online_teacher_input_tokens",
+    "mean_online_teacher_output_tokens",
     "mean_online_teacher_total_tokens",
+    "mean_total_teacher_input_tokens",
+    "mean_total_teacher_output_tokens",
     "mean_total_teacher_total_tokens",
 ]
 
@@ -530,27 +543,47 @@ def _seed_materialization_summary(
         if manifest.exists():
             manifest_paths.append(manifest)
 
+    seed_input = 0
+    seed_output = 0
     seed_total = 0
     estimated_records = 0
     for manifest_path in sorted(set(manifest_paths)):
         payload = _load_json(manifest_path)
+        seed_input += int(payload.get("teacher_input_tokens", 0) or 0)
+        seed_output += int(payload.get("teacher_output_tokens", 0) or 0)
         seed_total += int(payload.get("teacher_total_tokens", 0) or 0)
         estimated_records += int(payload.get("usage_estimated_records", 0) or 0)
 
+    charged_seed = _charged_seed_usage(token_usage)
     charged_seed_total = _charged_seed_total(token_usage)
     if seed_total <= 0:
         seed_total = charged_seed_total
+        seed_input = charged_seed["input_tokens"]
+        seed_output = charged_seed["output_tokens"]
+    elif charged_seed_total == seed_total and seed_input <= 0 and seed_output <= 0:
+        seed_input = charged_seed["input_tokens"]
+        seed_output = charged_seed["output_tokens"]
 
     grand_total = token_usage.get("grand_total", {})
+    online_input = int(grand_total.get("input_tokens", 0) or 0)
+    online_output = int(grand_total.get("output_tokens", 0) or 0)
     online_total = int(grand_total.get("total_tokens", 0) or 0)
     if charged_seed_total > 0:
+        online_input = max(0, online_input - charged_seed["input_tokens"])
+        online_output = max(0, online_output - charged_seed["output_tokens"])
         online_total = max(0, online_total - charged_seed_total)
 
     return {
         "seed_materialization_manifest_count": len(set(manifest_paths)),
         "seed_usage_estimated_records": estimated_records,
+        "seed_teacher_input_tokens": seed_input,
+        "seed_teacher_output_tokens": seed_output,
         "seed_teacher_total_tokens": seed_total,
+        "online_teacher_input_tokens": online_input,
+        "online_teacher_output_tokens": online_output,
         "online_teacher_total_tokens": online_total,
+        "total_teacher_input_tokens": seed_input + online_input,
+        "total_teacher_output_tokens": seed_output + online_output,
         "total_teacher_total_tokens": seed_total + online_total,
     }
 
@@ -1138,8 +1171,14 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "estimated_cost",
         "seed_materialization_manifest_count",
         "seed_usage_estimated_records",
+        "seed_teacher_input_tokens",
+        "seed_teacher_output_tokens",
         "seed_teacher_total_tokens",
+        "online_teacher_input_tokens",
+        "online_teacher_output_tokens",
         "online_teacher_total_tokens",
+        "total_teacher_input_tokens",
+        "total_teacher_output_tokens",
         "total_teacher_total_tokens",
         "cycles_completed",
         "expected_cycles",
@@ -1867,12 +1906,37 @@ def summarize_paper_budget_audit(
         realized_ratios = [
             attempt.get("realized_over_predicted") for attempt in group_calibration
         ]
+        seed_estimated_mean, _ = _mean_std(
+            row.get("seed_usage_estimated_records") for row in group
+        )
+        seed_input_mean, _ = _mean_std(
+            row.get("seed_teacher_input_tokens") for row in group
+        )
+        seed_output_mean, _ = _mean_std(
+            row.get("seed_teacher_output_tokens") for row in group
+        )
+        seed_total_mean, _ = _mean_std(
+            row.get("seed_teacher_total_tokens") for row in group
+        )
+        online_input_mean, _ = _mean_std(
+            row.get("online_teacher_input_tokens") for row in group
+        )
+        online_output_mean, _ = _mean_std(
+            row.get("online_teacher_output_tokens") for row in group
+        )
         online_mean, _ = _mean_std(
             row.get("online_teacher_total_tokens") for row in group
+        )
+        total_input_mean, _ = _mean_std(
+            row.get("total_teacher_input_tokens") for row in group
+        )
+        total_output_mean, _ = _mean_std(
+            row.get("total_teacher_output_tokens") for row in group
         )
         total_mean, _ = _mean_std(
             row.get("total_teacher_total_tokens") for row in group
         )
+        estimated_cost_mean, _ = _mean_std(row.get("estimated_cost") for row in group)
         audit_rows.append(
             {
                 "dataset": dataset,
@@ -1914,7 +1978,37 @@ def summarize_paper_budget_audit(
                     for attempt in group_calibration
                     if str(attempt.get("status") or "") not in {"", "success"}
                 ),
+                "provider_reported_attempt_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if _truthy(attempt.get("provider_reported_present"))
+                ),
+                "estimated_or_reserved_usage_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if str(attempt.get("ledger_debit_source") or "")
+                    not in {"", "provider_reported", "zero_no_dispatch"}
+                ),
+                "cheap_teacher_attempt_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if str(attempt.get("teacher_tier") or "") == "cheap"
+                ),
+                "strong_teacher_attempt_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if str(attempt.get("teacher_tier") or "") == "strong"
+                ),
+                "mean_estimated_cost": estimated_cost_mean,
+                "mean_seed_usage_estimated_records": seed_estimated_mean,
+                "mean_seed_teacher_input_tokens": seed_input_mean,
+                "mean_seed_teacher_output_tokens": seed_output_mean,
+                "mean_seed_teacher_total_tokens": seed_total_mean,
+                "mean_online_teacher_input_tokens": online_input_mean,
+                "mean_online_teacher_output_tokens": online_output_mean,
                 "mean_online_teacher_total_tokens": online_mean,
+                "mean_total_teacher_input_tokens": total_input_mean,
+                "mean_total_teacher_output_tokens": total_output_mean,
                 "mean_total_teacher_total_tokens": total_mean,
             }
         )
