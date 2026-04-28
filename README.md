@@ -381,7 +381,9 @@ evidence.
 stop reason, template/config hashes, estimated-usage counts, and Git, runtime,
 hardware, and lockfile provenance. Teacher-mode budget truncation is rejected
 by default; pass `--allow-partial` only when a budget-truncated dataset is the
-intended artifact.
+intended artifact. Teacher/gold agreement and disagreement counts are reported
+in the manifest so noisy teacher seed labels stay auditable instead of being
+silently filtered.
 
 ## Advanced Configuration
 

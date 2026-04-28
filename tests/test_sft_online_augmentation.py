@@ -6,11 +6,13 @@ import pytest
 from datasets import ClassLabel, Dataset, DatasetDict, Features, Value
 from jinja2 import Template
 
+from promptillery.config import ExperimentConfig
 from promptillery.engine import DistillationEngine, ensure_origin_columns
 from promptillery.policy_controller import PolicyAction, PolicyController
 from promptillery.sft_materialize import (
     _select_source_examples,
     _write_canonical_labels_artifact,
+    materialize_sft_records,
 )
 from promptillery.token_tracker import TokenTracker
 from promptillery.trainers.causal_lm_sft_trainer import CausalLMSFTTrainer
@@ -443,6 +445,73 @@ def test_materialize_writes_canonical_labels_from_field(tmp_path):
     assert artifact_path == str(tmp_path / "canonical_labels.json")
     assert payload["source"] == "dataset field label_text"
     assert payload["canonical_labels"] == ["cash_deposit", "cash_withdrawal"]
+
+
+def test_materialize_manifest_audits_teacher_gold_disagreements(
+    monkeypatch, tmp_path
+):
+    source = Dataset.from_dict(
+        {
+            "text": ["first", "second"],
+            "label_text": ["alpha", "alpha"],
+        },
+    )
+    dataset = DatasetDict({"train": source})
+    responses = iter(["alpha", "beta"])
+
+    async def fake_acompletion(**kwargs):
+        return {
+            "choices": [{"message": {"content": next(responses)}}],
+            "usage": {
+                "prompt_tokens": 4,
+                "completion_tokens": 1,
+                "total_tokens": 5,
+            },
+        }
+
+    monkeypatch.setattr(
+        "promptillery.sft_materialize.load_materialization_dataset",
+        lambda config: dataset,
+    )
+    monkeypatch.setattr("promptillery.sft_materialize.acompletion", fake_acompletion)
+
+    config = ExperimentConfig(
+        name="teacher_disagreement",
+        dataset="mock",
+        teacher="mock/teacher",
+        teacher_max_output_tokens=16,
+        paper_mode=True,
+        auto_modify_name=False,
+        dataset_config={
+            "name": "mock",
+            "num_classes": 2,
+            "text_field": "text",
+            "label_field": "label_text",
+        },
+        trainer_config={
+            "materialize_sft": {
+                "canonical_labels": ["alpha", "beta"],
+                "gold_answer_field": "label_text",
+            }
+        },
+    )
+
+    result = asyncio.run(
+        materialize_sft_records(
+            config=config,
+            output_path=tmp_path / "train.jsonl",
+            split="train",
+            mode="teacher",
+        )
+    )
+
+    manifest = json.loads((tmp_path / "train.jsonl.manifest.json").read_text())
+    assert result["records"] == 2
+    assert manifest["accepted_records"] == 2
+    assert manifest["rejected_records"] == 0
+    assert manifest["teacher_gold_agreement_records"] == 1
+    assert manifest["teacher_gold_disagreement_records"] == 1
+    assert manifest["teacher_gold_disagreement_rate"] == 0.5
 
 
 def test_select_source_examples_can_stratify_materialization_cap():

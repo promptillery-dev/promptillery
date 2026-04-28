@@ -382,6 +382,8 @@ async def materialize_sft_records(
     written = 0
     attempted = 0
     usage_estimated_records = 0
+    teacher_gold_agreement_records = 0
+    teacher_gold_disagreement_records = 0
     record_hashes: list[str] = []
     stop_reason = "completed"
     materialized_at = datetime.now(timezone.utc).isoformat()
@@ -505,6 +507,12 @@ async def materialize_sft_records(
                 output_tokens += usage["teacher_output_tokens"]
                 total_tokens += usage["teacher_total_tokens"]
                 usage_estimated_records += int(usage_estimated)
+                teacher_label = _normalize_canonical_label(teacher_response)
+                gold_label = _normalize_canonical_label(gold_answer)
+                if teacher_label and gold_label and teacher_label == gold_label:
+                    teacher_gold_agreement_records += 1
+                elif teacher_label and gold_label:
+                    teacher_gold_disagreement_records += 1
                 record = {
                     "id": f"{config.name}/{split}/{index}",
                     "task": config.name,
@@ -585,6 +593,8 @@ async def materialize_sft_records(
             },
             "source_records": len(source),
             "attempted_records": attempted,
+            "accepted_records": written,
+            "rejected_records": max(0, attempted - written),
             "records": written,
             "records_sha256": record_hashes,
             "stop_reason": stop_reason,
@@ -599,6 +609,16 @@ async def materialize_sft_records(
             "teacher_input_tokens": input_tokens,
             "teacher_output_tokens": output_tokens,
             "teacher_total_tokens": total_tokens,
+            "teacher_gold_agreement_records": teacher_gold_agreement_records,
+            "teacher_gold_disagreement_records": teacher_gold_disagreement_records,
+            "teacher_gold_disagreement_rate": (
+                teacher_gold_disagreement_records
+                / max(
+                    1,
+                    teacher_gold_agreement_records
+                    + teacher_gold_disagreement_records,
+                )
+            ),
             "usage_estimated_records": usage_estimated_records,
             "materialized_at": materialized_at,
             "reproducibility": build_reproducibility_manifest(
