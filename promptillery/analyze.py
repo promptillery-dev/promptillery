@@ -293,10 +293,19 @@ PAPER_BUDGET_AUDIT_FIELDS = [
     "over_preflight_bound_rows",
     "over_remaining_budget_rows",
     "failed_attempt_rows",
+    "masked_attempt_rows",
+    "budget_violation_attempt_rows",
+    "parse_failure_attempt_rows",
     "provider_reported_attempt_rows",
     "estimated_or_reserved_usage_rows",
     "cheap_teacher_attempt_rows",
     "strong_teacher_attempt_rows",
+    "cheap_teacher_input_tokens",
+    "cheap_teacher_output_tokens",
+    "cheap_teacher_total_tokens",
+    "strong_teacher_input_tokens",
+    "strong_teacher_output_tokens",
+    "strong_teacher_total_tokens",
     "mean_estimated_cost",
     "mean_seed_usage_estimated_records",
     "mean_seed_teacher_input_tokens",
@@ -1937,6 +1946,16 @@ def summarize_paper_budget_audit(
             row.get("total_teacher_total_tokens") for row in group
         )
         estimated_cost_mean, _ = _mean_std(row.get("estimated_cost") for row in group)
+        cheap_attempts = [
+            attempt
+            for attempt in group_calibration
+            if str(attempt.get("teacher_tier") or "") == "cheap"
+        ]
+        strong_attempts = [
+            attempt
+            for attempt in group_calibration
+            if str(attempt.get("teacher_tier") or "") == "strong"
+        ]
         audit_rows.append(
             {
                 "dataset": dataset,
@@ -1978,6 +1997,25 @@ def summarize_paper_budget_audit(
                     for attempt in group_calibration
                     if str(attempt.get("status") or "") not in {"", "success"}
                 ),
+                "masked_attempt_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if str(attempt.get("status") or "").lower() == "masked"
+                ),
+                "budget_violation_attempt_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if str(attempt.get("status") or "").lower() == "budget_violation"
+                    or "budget" in str(attempt.get("failure_type") or "").lower()
+                ),
+                "parse_failure_attempt_rows": sum(
+                    1
+                    for attempt in group_calibration
+                    if any(
+                        marker in str(attempt.get("failure_type") or "").lower()
+                        for marker in ("parse", "malformed", "invalid_json")
+                    )
+                ),
                 "provider_reported_attempt_rows": sum(
                     1
                     for attempt in group_calibration
@@ -1998,6 +2036,30 @@ def summarize_paper_budget_audit(
                     1
                     for attempt in group_calibration
                     if str(attempt.get("teacher_tier") or "") == "strong"
+                ),
+                "cheap_teacher_input_tokens": sum(
+                    _safe_int(attempt.get("realized_input_tokens")) or 0
+                    for attempt in cheap_attempts
+                ),
+                "cheap_teacher_output_tokens": sum(
+                    _safe_int(attempt.get("realized_output_tokens")) or 0
+                    for attempt in cheap_attempts
+                ),
+                "cheap_teacher_total_tokens": sum(
+                    _safe_int(attempt.get("realized_total_tokens")) or 0
+                    for attempt in cheap_attempts
+                ),
+                "strong_teacher_input_tokens": sum(
+                    _safe_int(attempt.get("realized_input_tokens")) or 0
+                    for attempt in strong_attempts
+                ),
+                "strong_teacher_output_tokens": sum(
+                    _safe_int(attempt.get("realized_output_tokens")) or 0
+                    for attempt in strong_attempts
+                ),
+                "strong_teacher_total_tokens": sum(
+                    _safe_int(attempt.get("realized_total_tokens")) or 0
+                    for attempt in strong_attempts
                 ),
                 "mean_estimated_cost": estimated_cost_mean,
                 "mean_seed_usage_estimated_records": seed_estimated_mean,

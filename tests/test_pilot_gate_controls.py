@@ -164,6 +164,83 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
         heldout_metric=0.75,
         final_synthetic_count=4,
     )
+    (tmp_path / "frugal" / "teacher_attempts.jsonl").write_text(
+        "\n".join(
+            json.dumps(attempt)
+            for attempt in [
+                {
+                    "cycle": 0,
+                    "attempt_id": "frugal:a0",
+                    "decision_id": "frugal:d0",
+                    "run_id": "frugal",
+                    "status": "success",
+                    "failure_type": "",
+                    "predicted_cost": {"total_tokens": 10},
+                    "provider_reported_cost": {
+                        "input_tokens": 7,
+                        "output_tokens": 3,
+                        "total_tokens": 10,
+                    },
+                    "ledger_debit_cost": {
+                        "input_tokens": 7,
+                        "output_tokens": 3,
+                        "total_tokens": 10,
+                    },
+                    "realized_cost": {
+                        "input_tokens": 7,
+                        "output_tokens": 3,
+                        "total_tokens": 10,
+                    },
+                    "ledger_debit_source": "provider_reported",
+                    "budget_before": {"tokens_remaining": 100},
+                    "budget_after": {"tokens_remaining": 90},
+                    "metadata": {"teacher_tier": "cheap"},
+                },
+                {
+                    "cycle": 0,
+                    "attempt_id": "frugal:a1",
+                    "decision_id": "frugal:d1",
+                    "run_id": "frugal",
+                    "status": "masked",
+                    "failure_type": "invalid_json",
+                    "predicted_cost": {"total_tokens": 4},
+                    "provider_reported_cost": {},
+                    "ledger_debit_cost": {"total_tokens": 0},
+                    "realized_cost": {"total_tokens": 0},
+                    "ledger_debit_source": "zero_no_dispatch",
+                    "budget_before": {"tokens_remaining": 90},
+                    "budget_after": {"tokens_remaining": 90},
+                    "metadata": {"teacher_tier": "strong"},
+                },
+                {
+                    "cycle": 1,
+                    "attempt_id": "frugal:a2",
+                    "decision_id": "frugal:d2",
+                    "run_id": "frugal",
+                    "status": "budget_violation",
+                    "failure_type": "budget_exhausted",
+                    "predicted_cost": {"total_tokens": 4},
+                    "provider_reported_cost": {},
+                    "ledger_debit_cost": {
+                        "input_tokens": 3,
+                        "output_tokens": 2,
+                        "total_tokens": 5,
+                    },
+                    "realized_cost": {
+                        "input_tokens": 3,
+                        "output_tokens": 2,
+                        "total_tokens": 5,
+                    },
+                    "ledger_debit_source": "reserved_bound",
+                    "budget_before": {"tokens_remaining": 4},
+                    "budget_after": {"tokens_remaining": -1},
+                    "metadata": {"teacher_tier": "strong"},
+                },
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     _write_run(
         tmp_path,
         name="heuristic",
@@ -230,7 +307,19 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert frugal_budget["mean_online_teacher_input_tokens"] == "10.0"
     assert frugal_budget["mean_online_teacher_output_tokens"] == "5.0"
     assert frugal_budget["mean_total_teacher_total_tokens"] == "15.0"
-    assert frugal_budget["estimated_or_reserved_usage_rows"] == "0"
+    assert frugal_budget["provider_reported_attempt_rows"] == "1"
+    assert frugal_budget["estimated_or_reserved_usage_rows"] == "1"
+    assert frugal_budget["masked_attempt_rows"] == "1"
+    assert frugal_budget["budget_violation_attempt_rows"] == "1"
+    assert frugal_budget["parse_failure_attempt_rows"] == "1"
+    assert frugal_budget["cheap_teacher_attempt_rows"] == "1"
+    assert frugal_budget["strong_teacher_attempt_rows"] == "2"
+    assert frugal_budget["cheap_teacher_input_tokens"] == "7"
+    assert frugal_budget["cheap_teacher_output_tokens"] == "3"
+    assert frugal_budget["cheap_teacher_total_tokens"] == "10"
+    assert frugal_budget["strong_teacher_input_tokens"] == "3"
+    assert frugal_budget["strong_teacher_output_tokens"] == "2"
+    assert frugal_budget["strong_teacher_total_tokens"] == "5"
     frugal_points = [row for row in point_rows if row["run_id"] == "frugal"]
     assert [row["split"] for row in frugal_points] == [
         "validation",
