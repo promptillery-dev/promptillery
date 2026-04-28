@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 
 import yaml
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
+
+from .reproducibility import file_sha256
 
 # Shared timestamp format constant
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
@@ -142,16 +144,38 @@ class ExperimentConfig(BaseModel):
     Values defined here are available as formatting variables in prompts.
     """
 
+    _source_path: Optional[str] = PrivateAttr(default=None)
+    _source_sha256: Optional[str] = PrivateAttr(default=None)
+
     name: str = Field(
         ...,
         description="Name of the experiment (required, alphanumeric, dashes, underscores only)",
     )
     teacher: Union[str, List[str]] = "openai/gpt-4o-mini"
     student: Union[str, List[str]] = "google-bert/bert-base-uncased"
+    teacher_revision: Optional[str] = Field(
+        default=None,
+        description="Optional provider/model revision label recorded in manifests.",
+    )
+    student_revision: Optional[str] = Field(
+        default=None,
+        description="Optional Hugging Face revision passed to student model loaders.",
+    )
+    tokenizer_revision: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional Hugging Face tokenizer revision. Defaults to student_revision "
+            "when unset."
+        ),
+    )
     student_type: str = "transformers"
 
     # Dataset configuration - can be a string (dataset name) or structured config
     dataset: Union[str, List[str]] = "tweet_eval"
+    dataset_revision: Optional[str] = Field(
+        default=None,
+        description="Optional Hugging Face dataset revision passed to load_dataset.",
+    )
     dataset_kwargs: Dict[str, Any] = Field(
         default_factory=dict,
         description="Additional keyword arguments passed to datasets.load_dataset, e.g. data_files for JSONL SFT data.",
@@ -457,9 +481,13 @@ class ExperimentConfig(BaseModel):
     @classmethod
     def from_yaml(cls, path: str) -> "ExperimentConfig":
         """Load configuration from a YAML file."""
-        with open(path, "r", encoding="utf-8") as f:
+        config_path = Path(path)
+        with config_path.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
-        return cls(**data)
+        config = cls(**(data or {}))
+        config._source_path = str(config_path)
+        config._source_sha256 = file_sha256(config_path)
+        return config
 
     def generate_ablation_configs(self) -> List["ExperimentConfig"]:
         """Generate multiple configurations from list-valued parameters."""

@@ -21,6 +21,7 @@ from transformers import (
     TrainingArguments,
 )
 
+from ..reproducibility import model_revision_kwargs, tokenizer_revision_kwargs
 from .base import BaseTrainer, PredictionResult
 
 logger = logging.getLogger(__name__)
@@ -52,10 +53,13 @@ class CausalLMSFTTrainer(BaseTrainer):
         self._canonical_labels_cache: List[str] | None = None
         self._generation_eval_cache: Dict[tuple[int, int, str, int | None], Any] = {}
         self._generation_eval_version = 0
+        tokenizer_kwargs = tokenizer_revision_kwargs(self.cfg)
+        model_kwargs = model_revision_kwargs(self.cfg)
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.cfg.student,
             trust_remote_code=self.trust_remote_code,
+            **tokenizer_kwargs,
         )
         if self.tokenizer.pad_token is None:
             if self.tokenizer.eos_token is not None:
@@ -71,6 +75,7 @@ class CausalLMSFTTrainer(BaseTrainer):
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.cfg.student,
                 trust_remote_code=self.trust_remote_code,
+                **model_kwargs,
             )
         self.model.config.pad_token_id = self.tokenizer.pad_token_id
         if len(self.tokenizer) > self.model.get_input_embeddings().num_embeddings:

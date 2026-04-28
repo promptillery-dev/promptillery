@@ -16,6 +16,7 @@ from transformers import (
     TrainingArguments,
 )
 
+from ..reproducibility import model_revision_kwargs, tokenizer_revision_kwargs
 from .base import BaseTrainer
 
 logger = logging.getLogger(__name__)
@@ -26,9 +27,14 @@ class TransformersTraiNER(BaseTrainer):
 
     def __init__(self, config, dataset, out_dir):
         super().__init__(config, dataset, out_dir)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.cfg.student)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.cfg.student,
+            **tokenizer_revision_kwargs(self.cfg),
+        )
         self.model = AutoModelForTokenClassification.from_pretrained(
-            self.cfg.student, num_labels=self.cfg.num_labels
+            self.cfg.student,
+            num_labels=self.cfg.num_labels,
+            **model_revision_kwargs(self.cfg),
         )
         self.data_collator = DataCollatorForTokenClassification(self.tokenizer)
         self.metrics = {m: evaluate.load(m) for m in self.cfg.metrics}

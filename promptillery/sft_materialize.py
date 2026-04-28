@@ -16,6 +16,7 @@ from litellm import acompletion
 
 from .config import ExperimentConfig
 from .engine import ensure_class_label, ensure_validation_split, prepare_dataset
+from .reproducibility import build_reproducibility_manifest, dataset_load_kwargs
 from .utils import create_prompt_environment
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ def _stable_hash(value: Any) -> str:
 
 def load_materialization_dataset(config: ExperimentConfig) -> DatasetDict:
     """Load and prepare a dataset for SFT materialization."""
-    dataset_kwargs = config.dataset_kwargs or {}
+    dataset_kwargs = dataset_load_kwargs(config)
     if config.dataset_subset:
         dataset = load_dataset(config.dataset, config.dataset_subset, **dataset_kwargs)
     else:
@@ -551,16 +552,37 @@ async def materialize_sft_records(
         )
 
         manifest = {
-            "schema_version": 1,
+            "schema_version": 2,
             "output_path": str(output_path),
             "manifest_path": str(manifest_path),
             "config_name": config.name,
             "config_hash": _stable_hash(config.model_dump(mode="json")),
             "student_prompt_template_hash": _stable_hash(student_prompt_template),
             "teacher_prompt_template_hash": _stable_hash(teacher_prompt_template),
+            "student_prompt_template_sha256": sha256(
+                student_prompt_template.encode("utf-8")
+            ).hexdigest(),
+            "teacher_prompt_template_sha256": sha256(
+                teacher_prompt_template.encode("utf-8")
+            ).hexdigest(),
             "dataset": config.dataset,
             "dataset_subset": config.dataset_subset,
+            "dataset_revision": config.dataset_revision,
+            "student_model": config.student,
+            "student_revision": config.student_revision,
+            "tokenizer_revision": config.tokenizer_revision,
+            "teacher_model": config.teacher,
+            "teacher_revision": config.teacher_revision,
             "split": split,
+            "materialization_request": {
+                "mode": mode,
+                "split": split,
+                "max_samples": max_samples,
+                "prompt_operator": prompt_operator,
+                "teacher_tier": teacher_tier,
+                "allow_partial": allow_partial,
+                "allow_estimated_usage": allow_estimated_usage,
+            },
             "source_records": len(source),
             "attempted_records": attempted,
             "records": written,
@@ -579,6 +601,10 @@ async def materialize_sft_records(
             "teacher_total_tokens": total_tokens,
             "usage_estimated_records": usage_estimated_records,
             "materialized_at": materialized_at,
+            "reproducibility": build_reproducibility_manifest(
+                config=config,
+                artifact_dir=output_path.parent,
+            ),
         }
         if canonical_labels_path:
             manifest["canonical_labels_path"] = canonical_labels_path

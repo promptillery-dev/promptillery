@@ -378,9 +378,10 @@ requires `run_manifest.json`, `experiment_config.yaml`, `metrics.json`, and
 evidence.
 
 `materialize-sft` writes a sibling `.manifest.json` file with source counts,
-stop reason, template/config hashes, and estimated-usage counts. Teacher-mode
-budget truncation is rejected by default; pass `--allow-partial` only when a
-budget-truncated dataset is the intended artifact.
+stop reason, template/config hashes, estimated-usage counts, and Git, runtime,
+hardware, and lockfile provenance. Teacher-mode budget truncation is rejected
+by default; pass `--allow-partial` only when a budget-truncated dataset is the
+intended artifact.
 
 ## Advanced Configuration
 

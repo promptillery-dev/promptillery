@@ -14,11 +14,12 @@ from datasets import DatasetDict, load_dataset
 from .config import TIMESTAMP_FORMAT, ExperimentConfig
 from .engine import (
     DistillationEngine,
-    ensure_origin_columns,
     ensure_class_label,
+    ensure_origin_columns,
     ensure_validation_split,
     prepare_dataset,
 )
+from .reproducibility import dataset_load_kwargs
 
 
 def _json_serializer(obj):
@@ -192,7 +193,7 @@ class AblationStudyRunner:
 
         # Load dataset
         dataset_subset = cfg.dataset_subset
-        dataset_kwargs = cfg.dataset_kwargs or {}
+        dataset_kwargs = dataset_load_kwargs(cfg)
         if dataset_subset:
             dataset = load_dataset(cfg.dataset, dataset_subset, **dataset_kwargs)
         else:

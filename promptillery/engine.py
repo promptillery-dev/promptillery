@@ -25,6 +25,11 @@ from .config import ExperimentConfig, SamplingConfig
 from .policy_controller import PolicyAction, PolicyController, enumerate_actions
 from .policy_decisions import PolicyDecision, PolicyDecisionLogger
 from .policy_features import build_policy_features
+from .reproducibility import (
+    build_reproducibility_manifest,
+    config_sha256,
+    dataset_load_kwargs,
+)
 from .token_tracker import (
     OperationType,
     TokenTracker,
@@ -402,7 +407,7 @@ class DistillationEngine:
         else:
             # Load dataset from scratch
             dataset_subset = self.cfg.dataset_subset
-            dataset_kwargs = self.cfg.dataset_kwargs or {}
+            dataset_kwargs = dataset_load_kwargs(self.cfg)
             if dataset_subset:
                 self.dataset = load_dataset(
                     self.cfg.dataset, dataset_subset, **dataset_kwargs
@@ -2179,9 +2184,9 @@ class DistillationEngine:
 
             try:
                 run_manifest = {
-                    "schema_version": 2,
+                    "schema_version": 3,
                     "artifact_schema_versions": {
-                        "run_manifest": 2,
+                        "run_manifest": 3,
                         "policy_decisions": 1,
                         "teacher_attempts": 1,
                     },
@@ -2205,7 +2210,12 @@ class DistillationEngine:
                     "task_name": self.cfg.name,
                     "dataset": self.cfg.dataset,
                     "dataset_subset": self.cfg.dataset_subset,
+                    "dataset_revision": self.cfg.dataset_revision,
                     "student_model": self.cfg.student,
+                    "student_revision": self.cfg.student_revision,
+                    "tokenizer_revision": self.cfg.tokenizer_revision,
+                    "teacher_model": self.cfg.teacher,
+                    "teacher_revision": self.cfg.teacher_revision,
                     "student_type": self.cfg.student_type,
                     "seed": self.cfg.seed,
                     "token_budget": self.cfg.token_budget,
@@ -2228,11 +2238,11 @@ class DistillationEngine:
                         "policy_decisions": "policy_decisions.jsonl",
                         "teacher_attempts": "teacher_attempts.jsonl",
                     },
-                    "config_hash": sha256(
-                        json.dumps(
-                            self.cfg.model_dump(mode="json"), sort_keys=True
-                        ).encode("utf-8")
-                    ).hexdigest(),
+                    "config_hash": config_sha256(self.cfg),
+                    "reproducibility": build_reproducibility_manifest(
+                        config=self.cfg,
+                        artifact_dir=self.out_dir,
+                    ),
                 }
                 Path(self.out_dir / "run_manifest.json").write_text(
                     json.dumps(run_manifest, indent=2, sort_keys=True),
@@ -2272,10 +2282,11 @@ def evaluate_model(
     # Load dataset - use dataset_subset to get the string name
     # (handles both old string format and new DatasetConfig format)
     dataset_subset = config.dataset_subset
+    dataset_kwargs = dataset_load_kwargs(config)
     if dataset_subset:
-        dataset = load_dataset(config.dataset, dataset_subset)
+        dataset = load_dataset(config.dataset, dataset_subset, **dataset_kwargs)
     else:
-        dataset = load_dataset(config.dataset)
+        dataset = load_dataset(config.dataset, **dataset_kwargs)
 
     # Verify split exists
     if split not in dataset:
