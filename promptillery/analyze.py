@@ -798,6 +798,124 @@ def _normalize_set(values: Iterable[Any]) -> set[str]:
     return {str(value) for value in values}
 
 
+def _coerce_scalar(value: Any) -> Any:
+    """Coerce analysis strings back to simple YAML scalars where possible."""
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return value
+
+
+def _safe_slug(value: Any) -> str:
+    """Return a conservative filename slug for generated config paths."""
+    return "".join(
+        char if char.isalnum() or char in {"-", "_"} else "_"
+        for char in str(value)
+    ).strip("_")
+
+
+def _sort_scalar(value: Any) -> tuple[int, Any]:
+    """Sort numeric-looking values numerically and everything else lexically."""
+    coerced = _coerce_scalar(value)
+    if isinstance(coerced, int):
+        return (0, coerced)
+    return (1, str(coerced))
+
+
+def plan_same_count_control_configs(
+    pilot_dir: Path,
+    base_config_path: Path,
+    output_dir: Path,
+    *,
+    metric: str | None = None,
+    mode: str = "auto",
+    source_policy: str = "frugalkd_p",
+    control_policy: str = "cost_heuristic",
+    control_base_output_dir: str | None = None,
+) -> List[Dict[str, Any]]:
+    """Write matched same_count control configs from completed source runs."""
+    import yaml
+
+    rows = analyze_runs(pilot_dir, metric=metric, mode=mode)
+    source_rows = [
+        row
+        for row in rows
+        if str(row.get("policy_name") or "") == source_policy
+        and not _is_same_count_control(row)
+    ]
+    if not source_rows:
+        raise ValueError(f"no source policy rows found for {source_policy!r}")
+
+    base_config = yaml.safe_load(base_config_path.read_text(encoding="utf-8")) or {}
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    planned = []
+    seen_pairs: set[tuple[str, str]] = set()
+    for row in sorted(
+        source_rows,
+        key=lambda item: (
+            _sort_scalar(item.get("seed")),
+            _sort_scalar(item.get("token_budget")),
+            str(item.get("run_id")),
+        ),
+    ):
+        seed = str(row.get("seed"))
+        token_budget = str(row.get("token_budget"))
+        pair = (seed, token_budget)
+        if pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
+
+        synthetic_count = _safe_int(row.get("final_synthetic_count"))
+        if synthetic_count is None:
+            raise ValueError(
+                "source run is missing final_synthetic_count: "
+                f"run_id={row.get('run_id')}"
+            )
+
+        config_data = dict(base_config)
+        config_name = (
+            f"{config_data.get('name', 'experiment')}_same_count_"
+            f"{_safe_slug(control_policy)}_s{_safe_slug(seed)}_b"
+            f"{_safe_slug(token_budget)}"
+        )
+        config_data.update(
+            {
+                "name": config_name,
+                "policy_name": control_policy,
+                "control_name": "same_count",
+                "seed": _coerce_scalar(seed),
+                "token_budget": _coerce_scalar(token_budget),
+                "synthetic_record_budget": synthetic_count,
+            }
+        )
+        if control_base_output_dir:
+            config_data["base_output_dir"] = control_base_output_dir
+
+        config_path = output_dir / f"{config_name}.yaml"
+        config_path.write_text(
+            yaml.safe_dump(config_data, sort_keys=False),
+            encoding="utf-8",
+        )
+        planned.append(
+            {
+                "config_path": str(config_path),
+                "source_run_id": row.get("run_id"),
+                "source_policy_name": source_policy,
+                "control_policy_name": control_policy,
+                "seed": seed,
+                "token_budget": token_budget,
+                "synthetic_record_budget": synthetic_count,
+                "source_final_metric": row.get("final_metric"),
+            }
+        )
+
+    (output_dir / "same_count_plan.json").write_text(
+        json.dumps(planned, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return planned
+
+
 def _is_same_count_control(row: Dict[str, Any]) -> bool:
     """Return whether an analysis row is tagged as a same-count control."""
     control_name = str(row.get("control_name") or "")
@@ -824,6 +942,7 @@ def validate_pilot_gate(
     require_teacher_attempts: bool = True,
     require_frontier: bool = True,
     require_same_count_control: bool = False,
+    same_count_source_policy: str = "frugalkd_p",
 ) -> Dict[str, Any]:
     """Return a pass/fail report for the cheap policy-axis pilot."""
     rows = analyze_runs(path, metric=metric, mode=mode)
@@ -1045,26 +1164,51 @@ def validate_pilot_gate(
             (str(row.get("seed")), str(row.get("token_budget")))
             for row in same_count_rows
         }
+        source_counts = {}
+        for row in non_control_rows:
+            if str(row.get("policy_name") or "") != same_count_source_policy:
+                continue
+            pair = (str(row.get("seed")), str(row.get("token_budget")))
+            source_counts.setdefault(pair, _safe_int(row.get("final_synthetic_count")))
+
         malformed_controls = []
         for row in same_count_rows:
+            pair = (str(row.get("seed")), str(row.get("token_budget")))
             final_count = _safe_int(row.get("final_synthetic_count"))
             target_count = _safe_int(row.get("synthetic_record_budget"))
-            if target_count is None or final_count != target_count:
+            source_count = source_counts.get(pair)
+            if (
+                target_count is None
+                or final_count != target_count
+                or source_count is None
+                or target_count != source_count
+            ):
                 malformed_controls.append(
                     {
                         "run_id": row.get("run_id"),
+                        "seed": pair[0],
+                        "token_budget": pair[1],
                         "final_synthetic_count": final_count,
                         "synthetic_record_budget": target_count,
+                        "source_policy": same_count_source_policy,
+                        "source_final_synthetic_count": source_count,
                     }
                 )
+        missing_source_pairs = target_pairs.difference(source_counts.keys())
         checks.append(
             _gate_check(
                 "same_count_controls_present",
-                target_pairs.issubset(found_pairs) and not malformed_controls,
+                target_pairs.issubset(found_pairs)
+                and not missing_source_pairs
+                and not malformed_controls,
+                source_policy=same_count_source_policy,
                 expected_pairs=[list(pair) for pair in sorted(target_pairs)],
                 found_pairs=[list(pair) for pair in sorted(found_pairs)],
                 missing_pairs=[
                     list(pair) for pair in sorted(target_pairs - found_pairs)
+                ],
+                missing_source_pairs=[
+                    list(pair) for pair in sorted(missing_source_pairs)
                 ],
                 malformed_controls=malformed_controls,
             )

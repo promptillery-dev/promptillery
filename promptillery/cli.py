@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from .ablation import AblationStudyRunner
 from .analyze import (
     analyze_runs,
+    plan_same_count_control_configs,
     validate_pilot_gate,
     write_audit_csvs,
     write_summary_csv,
@@ -303,6 +304,11 @@ def pilot_gate(
         "--require-same-count-control/--no-require-same-count-control",
         help="Require same_count control rows for every seed/budget pair",
     ),
+    same_count_source_policy: str = typer.Option(
+        "frugalkd_p",
+        "--same-count-source-policy",
+        help="Policy whose final synthetic count same_count controls must match",
+    ),
 ) -> None:
     """Validate cheap-pilot artifacts against reviewer-facing gate checks."""
     if mode not in {"auto", "max", "min"}:
@@ -320,6 +326,7 @@ def pilot_gate(
             require_teacher_attempts=require_teacher_attempts,
             require_frontier=require_frontier,
             require_same_count_control=require_same_count_control,
+            same_count_source_policy=same_count_source_policy,
         )
     except ValueError as exc:
         typer.echo(f"Error: {exc}", err=True)
@@ -335,6 +342,69 @@ def pilot_gate(
 
     if not report["passed"]:
         raise typer.Exit(code=1)
+
+
+@app.command("plan-same-count-controls")
+def plan_same_count_controls(
+    pilot_dir: str,
+    base_config: str,
+    output_dir: str = typer.Option(
+        "same_count_configs",
+        "--output-dir",
+        "-o",
+        help="Directory for generated same_count control configs",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to read while summarizing source runs",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+    source_policy: str = typer.Option(
+        "frugalkd_p",
+        "--source-policy",
+        help="Policy whose final_synthetic_count should define the matched cap",
+    ),
+    control_policy: str = typer.Option(
+        "cost_heuristic",
+        "--control-policy",
+        help="Policy to rerun under the matched synthetic-record cap",
+    ),
+    control_base_output_dir: str | None = typer.Option(
+        None,
+        "--control-base-output-dir",
+        help="Optional base_output_dir override for generated control configs",
+    ),
+) -> None:
+    """Generate matched same_count control configs from source pilot runs."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        planned = plan_same_count_control_configs(
+            Path(pilot_dir),
+            Path(base_config),
+            Path(output_dir),
+            metric=metric,
+            mode=mode,
+            source_policy=source_policy,
+            control_policy=control_policy,
+            control_base_output_dir=control_base_output_dir,
+        )
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(
+        f"Wrote {len(planned)} same_count control config(s) to {output_dir}"
+    )
+    typer.echo(f"Plan manifest: {Path(output_dir) / 'same_count_plan.json'}")
 
 
 @app.command("policy-smoke")
