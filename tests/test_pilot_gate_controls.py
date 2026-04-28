@@ -25,6 +25,8 @@ def _write_run(
     manifest_final_synthetic_count: int | None = None,
     expected_cycles: int | None = 2,
     cycles_completed: int = 2,
+    action_space_id: str | None = "action-space-a",
+    config_extra: dict | None = None,
     cycle0_metric: float = 0.1,
     final_metric: float = 0.2,
     heldout_metric: float | None = None,
@@ -44,6 +46,7 @@ def _write_run(
         "seed": seed,
         "token_budget": token_budget,
         "cycles_completed": cycles_completed,
+        "action_space": {"action_space_id": action_space_id or ""},
         "synthetic_record_budget": synthetic_record_budget,
         "final_synthetic_count": (
             final_synthetic_count
@@ -54,17 +57,18 @@ def _write_run(
     if expected_cycles is not None:
         run_manifest["expected_cycles"] = expected_cycles
     (run_dir / "run_manifest.json").write_text(json.dumps(run_manifest))
+    config_data = {
+        "name": name,
+        "policy_name": policy_name,
+        "seed": seed,
+        "token_budget": token_budget,
+        "control_name": control_name or "",
+        "synthetic_record_budget": synthetic_record_budget or "",
+    }
+    config_data.update(config_extra or {})
     (run_dir / "experiment_config.yaml").write_text(
-        "\n".join(
-            [
-                f"name: {name}",
-                f"policy_name: {policy_name}",
-                f"seed: {seed}",
-                f"token_budget: {token_budget}",
-                f"control_name: {control_name or ''}",
-                f"synthetic_record_budget: {synthetic_record_budget or ''}",
-            ]
-        )
+        yaml.safe_dump(config_data, sort_keys=False),
+        encoding="utf-8",
     )
     final_metrics = {"macro_f1": final_metric}
     if canonical_label_count is not None:
@@ -335,6 +339,182 @@ def test_pilot_gate_accepts_valid_same_count_control(tmp_path):
     assert report["passed"]
 
 
+def test_pilot_gate_rejects_same_count_action_space_mismatch(tmp_path):
+    _write_run(
+        tmp_path,
+        name="main",
+        policy_name="frugalkd_p",
+        final_synthetic_count=3,
+        action_space_id="source-actions",
+    )
+    _write_run(
+        tmp_path,
+        name="same_count",
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+        action_space_id="control-actions",
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_same_count_control=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "same_count_controls_present"
+    )
+    assert not report["passed"]
+    assert check["action_space_mismatches"] == [
+        {
+            "run_id": "same_count",
+            "seed": "13",
+            "token_budget": "25000",
+            "action_space_id": "control-actions",
+            "source_policy": "frugalkd_p",
+            "source_action_space_id": "source-actions",
+        }
+    ]
+
+
+def test_pilot_gate_rejects_duplicate_same_count_controls(tmp_path):
+    _write_run(
+        tmp_path,
+        name="main",
+        policy_name="frugalkd_p",
+        final_synthetic_count=3,
+    )
+    _write_run(
+        tmp_path,
+        name="same_count_a",
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+    )
+    _write_run(
+        tmp_path,
+        name="same_count_b",
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_same_count_control=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "same_count_controls_present"
+    )
+    assert not report["passed"]
+    assert check["duplicate_controls"] == [
+        {
+            "seed": "13",
+            "token_budget": "25000",
+            "run_ids": ["same_count_a", "same_count_b"],
+        }
+    ]
+
+
+def test_pilot_gate_rejects_same_count_config_mismatch(tmp_path):
+    _write_run(
+        tmp_path,
+        name="main",
+        policy_name="frugalkd_p",
+        final_synthetic_count=3,
+        config_extra={"trainer_config": {"budget_splits": []}},
+    )
+    _write_run(
+        tmp_path,
+        name="same_count",
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+        config_extra={"trainer_config": {"budget_splits": ["train"]}},
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_same_count_control=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "same_count_controls_present"
+    )
+    assert not report["passed"]
+    assert check["config_mismatches"][0]["run_id"] == "same_count"
+    assert (
+        check["config_mismatches"][0]["config_hash"]
+        != check["config_mismatches"][0]["source_config_hash"]
+    )
+
+
+def test_pilot_gate_rejects_main_action_space_mismatch(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        action_space_id="frugal-actions",
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        action_space_id="heuristic-actions",
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p", "cost_heuristic"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+    )
+
+    check = next(
+        check for check in report["checks"] if check["name"] == "action_space_parity"
+    )
+    assert not report["passed"]
+    assert check["failures"] == [
+        {
+            "key": ["", "", "", "", "13", "25000", "validation", "macro_f1", "max"],
+            "action_space_ids": ["frugal-actions", "heuristic-actions"],
+            "run_ids": ["frugal", "heuristic"],
+        }
+    ]
+
+
 def test_pilot_gate_rejects_duplicate_policy_seed_budget_runs(tmp_path):
     _write_run(tmp_path, name="run_a", policy_name="frugalkd_p")
     _write_run(tmp_path, name="run_b", policy_name="frugalkd_p")
@@ -511,7 +691,12 @@ def test_summarize_run_exposes_heldout_test_metric(tmp_path):
 
 
 def test_summarize_run_uses_eval_time_tokens_for_auc(tmp_path):
-    _write_run(tmp_path, name="eval_tokens", policy_name="cost_heuristic")
+    _write_run(
+        tmp_path,
+        name="eval_tokens",
+        policy_name="cost_heuristic",
+        token_budget=5,
+    )
     run_dir = tmp_path / "eval_tokens"
     metrics = {
         "0": {"macro_f1": 0.1, "_teacher_tokens_at_eval": 0},
@@ -522,6 +707,25 @@ def test_summarize_run_uses_eval_time_tokens_for_auc(tmp_path):
     summary = summarize_run(run_dir, metric="macro_f1")
 
     assert round(summary["cycle_quality_cost_auc"], 3) == 0.150
+
+
+def test_summarize_run_extends_auc_to_token_budget(tmp_path):
+    _write_run(
+        tmp_path,
+        name="budget_horizon",
+        policy_name="cost_heuristic",
+        token_budget=10,
+    )
+    run_dir = tmp_path / "budget_horizon"
+    metrics = {
+        "0": {"macro_f1": 0.1, "_teacher_tokens_at_eval": 0},
+        "1": {"macro_f1": 0.2, "_teacher_tokens_at_eval": 5},
+    }
+    (run_dir / "metrics.json").write_text(json.dumps(metrics))
+
+    summary = summarize_run(run_dir, metric="macro_f1")
+
+    assert round(summary["cycle_quality_cost_auc"], 3) == 0.175
 
 
 def test_pilot_gate_requires_heldout_test_metric(tmp_path):
@@ -921,6 +1125,7 @@ def test_plan_same_count_control_configs_from_source_runs(tmp_path):
         seed=13,
         token_budget=25000,
         final_synthetic_count=7,
+        config_extra={"trainer_config": {"budget_splits": []}},
     )
     _write_run(
         runs_dir,
@@ -929,6 +1134,7 @@ def test_plan_same_count_control_configs_from_source_runs(tmp_path):
         seed=13,
         token_budget=100000,
         final_synthetic_count=11,
+        config_extra={"trainer_config": {"budget_splits": []}},
     )
     _write_run(
         runs_dir,
@@ -952,6 +1158,9 @@ def test_plan_same_count_control_configs_from_source_runs(tmp_path):
                 "token_budget:",
                 "  - 25000",
                 "  - 100000",
+                "trainer_config:",
+                "  budget_splits:",
+                "    - train",
                 "base_output_dir: ../experiments/policy_pilot",
             ]
         ),
@@ -976,6 +1185,7 @@ def test_plan_same_count_control_configs_from_source_runs(tmp_path):
     assert first_config["seed"] == 13
     assert first_config["token_budget"] in {25000, 100000}
     assert first_config["synthetic_record_budget"] in {7, 11}
+    assert first_config["trainer_config"] == {"budget_splits": []}
     assert first_config["base_output_dir"] == "../experiments/policy_pilot/same_count"
 
     manifest = json.loads(

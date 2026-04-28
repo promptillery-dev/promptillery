@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
@@ -18,6 +19,13 @@ PREFERRED_METRICS = (
 )
 LOWER_IS_BETTER = {"eval_loss", "loss", "perplexity"}
 SAME_COUNT_CONTROL_NAMES = {"same_count", "same_synthetic_count"}
+SAME_COUNT_CONFIG_IGNORED_KEYS = {
+    "base_output_dir",
+    "control_name",
+    "name",
+    "policy_name",
+    "synthetic_record_budget",
+}
 REQUIRED_RUN_FILES = (
     "run_manifest.json",
     "experiment_config.yaml",
@@ -341,13 +349,33 @@ def _seed_materialization_summary(
     }
 
 
-def _cycle_auc(points: Iterable[tuple[float, float]]) -> float | None:
+def _cycle_auc(
+    points: Iterable[tuple[float, float]], *, x_max: float | None = None
+) -> float | None:
     sorted_points = sorted(points)
     if not sorted_points:
         return None
     if sorted_points[0][0] > 0:
         sorted_points.insert(0, (0.0, sorted_points[0][1]))
+
     max_x = sorted_points[-1][0]
+    if x_max is not None:
+        horizon = float(x_max)
+        if horizon <= 0:
+            return None
+        bounded_points = []
+        for point in sorted_points:
+            if point[0] <= horizon:
+                bounded_points.append(point)
+            else:
+                break
+        if not bounded_points:
+            bounded_points = [(0.0, sorted_points[0][1])]
+        if bounded_points[-1][0] < horizon:
+            bounded_points.append((horizon, bounded_points[-1][1]))
+        sorted_points = bounded_points
+        max_x = horizon
+
     if max_x <= 0:
         return None
 
@@ -802,6 +830,7 @@ def summarize_run(
         "action_space_id": run_manifest.get("action_space", {}).get(
             "action_space_id", ""
         ),
+        "same_count_config_hash": _same_count_config_fingerprint(config),
         "experiment": config.get("name", run_dir.name),
         "metric": metric_name or "",
         "mode": resolved_mode,
@@ -824,7 +853,7 @@ def summarize_run(
         "heldout_observed_gold_label_count": _safe_int(
             heldout.get("observed_gold_label_count") if heldout else None
         ),
-        "cycle_quality_cost_auc": _cycle_auc(points),
+        "cycle_quality_cost_auc": _cycle_auc(points, x_max=token_budget_int),
         "token_budget": token_budget,
         "synthetic_record_budget": run_manifest.get(
             "synthetic_record_budget", config.get("synthetic_record_budget")
@@ -876,6 +905,7 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "policy_name",
         "policy_family",
         "action_space_id",
+        "same_count_config_hash",
         "experiment",
         "metric",
         "mode",
@@ -979,6 +1009,17 @@ def _coerce_scalar(value: Any) -> Any:
     return value
 
 
+def _same_count_config_fingerprint(config: Dict[str, Any]) -> str:
+    """Hash the config surface that same-count controls must keep identical."""
+    comparable = {
+        key: value
+        for key, value in config.items()
+        if key not in SAME_COUNT_CONFIG_IGNORED_KEYS
+    }
+    payload = json.dumps(comparable, sort_keys=True, default=str)
+    return sha256(payload.encode("utf-8")).hexdigest()
+
+
 def _safe_slug(value: Any) -> str:
     """Return a conservative filename slug for generated config paths."""
     return "".join(
@@ -1046,7 +1087,13 @@ def plan_same_count_control_configs(
                 f"run_id={row.get('run_id')}"
             )
 
-        config_data = dict(base_config)
+        source_config_path = Path(str(row.get("run_dir"))) / "experiment_config.yaml"
+        if source_config_path.exists():
+            config_data = yaml.safe_load(
+                source_config_path.read_text(encoding="utf-8")
+            ) or {}
+        else:
+            config_data = dict(base_config)
         config_name = (
             f"{config_data.get('name', 'experiment')}_same_count_"
             f"{_safe_slug(control_policy)}_s{_safe_slug(seed)}_b"
@@ -1373,6 +1420,32 @@ def validate_pilot_gate(
                 duplicates=duplicate_combos,
             )
         )
+
+    action_space_failures = []
+    rows_by_match: Dict[tuple[str, ...], List[Dict[str, Any]]] = {}
+    for row in rows:
+        if _is_same_count_control(row):
+            continue
+        rows_by_match.setdefault(_success_match_key(row), []).append(row)
+    for key, group in rows_by_match.items():
+        action_space_ids = sorted(
+            {str(row.get("action_space_id") or "") for row in group}
+        )
+        if "" in action_space_ids or len(action_space_ids) != 1:
+            action_space_failures.append(
+                {
+                    "key": list(key),
+                    "action_space_ids": action_space_ids,
+                    "run_ids": [row.get("run_id") for row in group],
+                }
+            )
+    checks.append(
+        _gate_check(
+            "action_space_parity",
+            not action_space_failures,
+            failures=action_space_failures,
+        )
+    )
 
     if require_paper_mode:
         non_completed_rows = [
@@ -1773,19 +1846,33 @@ def validate_pilot_gate(
             for row in same_count_rows
         }
         source_counts = {}
+        source_action_spaces = {}
+        source_config_hashes = {}
         for row in non_control_rows:
             if str(row.get("policy_name") or "") != same_count_source_policy:
                 continue
             pair = (str(row.get("seed")), str(row.get("token_budget")))
             source_counts.setdefault(pair, _safe_int(row.get("final_synthetic_count")))
+            source_action_spaces.setdefault(pair, str(row.get("action_space_id") or ""))
+            source_config_hashes.setdefault(
+                pair, str(row.get("same_count_config_hash") or "")
+            )
 
         malformed_controls = []
         wrong_policy_controls = []
+        action_space_mismatches = []
+        config_mismatches = []
+        same_count_rows_by_pair: Dict[tuple[str, str], List[Dict[str, Any]]] = {}
         for row in same_count_rows:
             pair = (str(row.get("seed")), str(row.get("token_budget")))
+            same_count_rows_by_pair.setdefault(pair, []).append(row)
             final_count = _safe_int(row.get("final_synthetic_count"))
             target_count = _safe_int(row.get("synthetic_record_budget"))
             source_count = source_counts.get(pair)
+            source_action_space = source_action_spaces.get(pair, "")
+            control_action_space = str(row.get("action_space_id") or "")
+            source_config_hash = source_config_hashes.get(pair, "")
+            control_config_hash = str(row.get("same_count_config_hash") or "")
             if (
                 same_count_control_policy
                 and str(row.get("policy_name") or "") != same_count_control_policy
@@ -1814,14 +1901,52 @@ def validate_pilot_gate(
                         "source_final_synthetic_count": source_count,
                     }
                 )
+            if (
+                source_action_space or control_action_space
+            ) and control_action_space != source_action_space:
+                action_space_mismatches.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "seed": pair[0],
+                        "token_budget": pair[1],
+                        "action_space_id": control_action_space,
+                        "source_policy": same_count_source_policy,
+                        "source_action_space_id": source_action_space,
+                    }
+                )
+            if (
+                source_config_hash or control_config_hash
+            ) and control_config_hash != source_config_hash:
+                config_mismatches.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "seed": pair[0],
+                        "token_budget": pair[1],
+                        "config_hash": control_config_hash,
+                        "source_policy": same_count_source_policy,
+                        "source_config_hash": source_config_hash,
+                    }
+                )
         missing_source_pairs = target_pairs.difference(source_counts.keys())
+        duplicate_controls = [
+            {
+                "seed": pair[0],
+                "token_budget": pair[1],
+                "run_ids": [row.get("run_id") for row in group],
+            }
+            for pair, group in sorted(same_count_rows_by_pair.items())
+            if len(group) > 1
+        ]
         checks.append(
             _gate_check(
                 "same_count_controls_present",
                 target_pairs.issubset(found_pairs)
                 and not missing_source_pairs
                 and not wrong_policy_controls
-                and not malformed_controls,
+                and not malformed_controls
+                and not action_space_mismatches
+                and not config_mismatches
+                and not duplicate_controls,
                 source_policy=same_count_source_policy,
                 control_policy=same_count_control_policy,
                 expected_pairs=[list(pair) for pair in sorted(target_pairs)],
@@ -1834,6 +1959,9 @@ def validate_pilot_gate(
                 ],
                 malformed_controls=malformed_controls,
                 wrong_policy_controls=wrong_policy_controls,
+                action_space_mismatches=action_space_mismatches,
+                config_mismatches=config_mismatches,
+                duplicate_controls=duplicate_controls,
             )
         )
         if success_policy and require_same_count_success:

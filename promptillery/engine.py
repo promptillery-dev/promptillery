@@ -1601,6 +1601,7 @@ class DistillationEngine:
             }
 
         usage_recorded = False
+        attempt_logged = False
         try:
             completion_kwargs = {
                 "model": teacher_model,
@@ -1635,6 +1636,7 @@ class DistillationEngine:
                     failure_type="realized_tokens_exceeded_preflight",
                     metadata=attempt_metadata,
                 )
+                attempt_logged = True
                 raise ValueError(
                     "Realized teacher tokens exceeded preflight estimate: "
                     f"realized={usage.total_tokens} predicted={predicted_total}"
@@ -1659,6 +1661,7 @@ class DistillationEngine:
                     failure_type="realized_tokens_exceeded_remaining_budget",
                     metadata=attempt_metadata,
                 )
+                attempt_logged = True
                 raise ValueError(
                     "Realized teacher tokens exceeded remaining token budget: "
                     f"realized={usage.total_tokens} remaining={tokens_remaining}"
@@ -1699,6 +1702,7 @@ class DistillationEngine:
                         "response_sha256": response_sha256,
                     },
                 )
+                attempt_logged = True
                 return {
                     "action_name": "augment_empty",
                     "predicted_cost": predicted_cost,
@@ -1732,7 +1736,28 @@ class DistillationEngine:
 
         except Exception as e:
             logger.error(f"Batch augmentation failed: {e}")
-            if not usage_recorded:
+            failure_metadata = {
+                **attempt_metadata,
+                "error": str(e),
+            }
+            if "response_sha256" in locals():
+                failure_metadata["response_sha256"] = response_sha256
+            if not attempt_logged and usage_recorded and "usage" in locals():
+                self._record_teacher_attempt(
+                    cycle=cycle,
+                    status="failed",
+                    predicted_cost=predicted_cost,
+                    budget_before=budget_before or self._budget_snapshot(),
+                    attempt_id=attempt_id,
+                    decision_id=decision_id,
+                    realized_cost=usage,
+                    provider_reported_cost=usage,
+                    ledger_debit_cost=usage,
+                    ledger_debit_source="provider_reported",
+                    failure_type=type(e).__name__,
+                    metadata=failure_metadata,
+                )
+            elif not attempt_logged:
                 reserved_usage = self._reserved_usage_from_preflight(predicted_cost)
                 if reserved_usage.total_tokens > 0:
                     self.token_tracker.record_manual_usage(
@@ -1749,10 +1774,7 @@ class DistillationEngine:
                     ledger_debit_cost=reserved_usage,
                     ledger_debit_source="reserved_bound",
                     failure_type=type(e).__name__,
-                    metadata={
-                        **attempt_metadata,
-                        "error": str(e),
-                    },
+                    metadata=failure_metadata,
                 )
             return {
                 "action_name": "augment_failed",

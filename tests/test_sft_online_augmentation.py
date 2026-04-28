@@ -1023,3 +1023,135 @@ def test_online_sft_augmentation_appends_teacher_records(monkeypatch, tmp_path):
     assert attempts[0]["ledger_debit_source"] == "provider_reported"
     assert attempts[0]["metadata"]["records_parsed"] == 1
     assert attempts[0]["metadata"]["records_accepted"] == 1
+
+
+def test_online_sft_failed_label_validation_logs_provider_usage(monkeypatch, tmp_path):
+    async def fake_acompletion(**kwargs):
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "records": [
+                                    {
+                                        "student_prompt": "new banking request",
+                                        "teacher_response": "please_call_support",
+                                        "gold_answer": "cash_withdrawal",
+                                    }
+                                ]
+                            }
+                        )
+                    }
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 3,
+                "total_tokens": 13,
+            },
+        }
+
+    monkeypatch.setattr("promptillery.engine.acompletion", fake_acompletion)
+
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        name="online-sft-test",
+        teacher="teacher/mock",
+        student_type="causal_lm_sft",
+        paper_mode=True,
+        teacher_max_output_tokens=32,
+        augmentation_batch_size=1,
+        trainer_config={
+            "prompt_field": "student_prompt",
+            "response_field": "teacher_response",
+            "gold_answer_field": "gold_answer",
+            "answer_extraction": "canonical_label",
+            "canonical_labels": ["cash_withdrawal"],
+        },
+        seed=13,
+        token_budget=100,
+        budget_warning=None,
+        budget_stop=True,
+        policy_teacher_tiers={},
+    )
+    engine.dataset = DatasetDict(
+        {
+            "train": Dataset.from_dict(
+                {
+                    "id": ["base/0"],
+                    "student_prompt": ["base prompt"],
+                    "teacher_response": ["cash_withdrawal"],
+                    "gold_answer": ["cash_withdrawal"],
+                    "source_split": ["train"],
+                    "source_idx": [0],
+                    "origin_cycle": [0],
+                    "teacher_input_tokens": [1],
+                    "teacher_output_tokens": [1],
+                    "teacher_total_tokens": [2],
+                }
+            )
+        }
+    )
+    engine.out_dir = tmp_path
+    engine.run_id = "online-sft-test-run"
+    engine.augmentation_enabled = True
+    engine.prompt_template = object()
+    engine.prompt_vars = {}
+    engine.cfg_vars = {}
+    engine.token_tracker = TokenTracker(
+        experiment_name="online-sft-test",
+        teacher_model="teacher/mock",
+        quiet=True,
+        token_budget=100,
+        budget_stop=True,
+    )
+    engine.token_tracker.start_cycle(1)
+    engine._attempt_counter = 0
+    engine._render_augmentation_prompt = lambda sample_context, action: (
+        "rendered prompt",
+        {},
+    )
+    engine._estimate_teacher_call_tokens = lambda messages, budget, teacher_model: {
+        "input_tokens": 10,
+        "max_output_tokens": 32,
+        "total_tokens": 42,
+        "tokens_remaining": 100,
+        "token_budget": 100,
+        "allowed": True,
+        "preflight_enforced": True,
+        "estimator": "test",
+        "teacher_model": teacher_model,
+        "reason": None,
+    }
+
+    result = asyncio.run(
+        engine._augment(
+            model=None,
+            cycle=1,
+            sample_context={"classification_report": "test"},
+            budget_before={
+                "token_budget": 100,
+                "tokens_remaining": 100,
+                "spent_usd": None,
+            },
+            decision_id="decision-1",
+        )
+    )
+
+    assert result["action_name"] == "augment_failed"
+    assert len(engine.dataset["train"]) == 1
+    assert engine.token_tracker.current_cycle_usage().total_tokens == 13
+
+    attempts = [
+        json.loads(line)
+        for line in (tmp_path / "teacher_attempts.jsonl").read_text().splitlines()
+    ]
+    assert len(attempts) == 1
+    assert attempts[0]["status"] == "failed"
+    assert attempts[0]["decision_id"] == "decision-1"
+    assert attempts[0]["provider_reported_cost"]["total_tokens"] == 13
+    assert attempts[0]["ledger_debit_cost"]["total_tokens"] == 13
+    assert attempts[0]["ledger_debit_source"] == "provider_reported"
+    assert attempts[0]["failure_type"] == "ValueError"
+    assert "non-canonical teacher_response" in attempts[0]["metadata"]["error"]
