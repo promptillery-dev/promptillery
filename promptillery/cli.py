@@ -256,7 +256,13 @@ def analyze(
 
 @app.command("paper-report")
 def paper_report(
-    path: str,
+    paths: List[str] = typer.Argument(
+        ...,
+        help=(
+            "One or more run roots. Passing multiple roots combines core and "
+            "control runs in the same paper tables."
+        ),
+    ),
     output_dir: str = typer.Option(
         "paper_report",
         "--output-dir",
@@ -290,20 +296,29 @@ def paper_report(
         typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
         raise typer.Exit(code=1)
 
+    source_paths = [Path(path) for path in paths]
     try:
-        rows = analyze_runs(Path(path), metric=metric, mode=mode)
+        rows = [
+            row
+            for source_path in source_paths
+            for row in analyze_runs(source_path, metric=metric, mode=mode)
+        ]
     except ValueError as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=1)
     if not rows:
-        typer.echo(f"Error: no run artifacts found under {path}", err=True)
+        typer.echo(
+            "Error: no run artifacts found under "
+            + ", ".join(str(path) for path in source_paths),
+            err=True,
+        )
         raise typer.Exit(code=1)
     if metric and not any(row["metric"] == metric for row in rows):
         typer.echo(f"Error: metric '{metric}' was not found in any run", err=True)
         raise typer.Exit(code=1)
 
-    paths = write_paper_report(
-        Path(path),
+    report_paths = write_paper_report(
+        source_paths,
         rows,
         Path(output_dir),
         success_policy=success_policy,
@@ -311,7 +326,7 @@ def paper_report(
     )
     typer.echo(
         "Wrote paper report tables to "
-        + ", ".join(str(value) for value in paths.values())
+        + ", ".join(str(value) for value in report_paths.values())
     )
 
 

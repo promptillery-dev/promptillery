@@ -214,6 +214,48 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert frugal_points[-1]["cumulative_online_teacher_total_tokens"] == "15"
 
 
+def test_paper_report_combines_control_roots(tmp_path):
+    core_root = tmp_path / "core"
+    control_root = tmp_path / "active_control"
+    _write_run(
+        core_root,
+        name="frugal",
+        policy_name="frugalkd_p",
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    _write_run(
+        control_root,
+        name="active",
+        policy_name="cheap_only",
+        control_name="active_kd_uncertainty",
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+
+    rows = analyze_runs(core_root, metric="macro_f1") + analyze_runs(
+        control_root, metric="macro_f1"
+    )
+    paths = write_paper_report(
+        [core_root, control_root],
+        rows,
+        tmp_path / "paper_report",
+        baseline_policies=["cheap_only"],
+    )
+
+    with paths["paper_pairwise_deltas"].open(newline="", encoding="utf-8") as f:
+        delta_rows = list(csv.DictReader(f))
+    with paths["paper_main_results"].open(newline="", encoding="utf-8") as f:
+        main_rows = list(csv.DictReader(f))
+    report = paths["paper_readiness_report"].read_text(encoding="utf-8")
+
+    assert {row["policy_name"] for row in main_rows} == {"frugalkd_p", "cheap_only"}
+    assert len(delta_rows) == 1
+    assert delta_rows[0]["baseline_control_name"] == "active_kd_uncertainty"
+    assert str(core_root) in report
+    assert str(control_root) in report
+
+
 def test_pilot_gate_requires_paper_mode_when_requested(tmp_path):
     _write_run(
         tmp_path,

@@ -9,7 +9,7 @@ import statistics
 from collections import defaultdict
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Sequence
 
 
 PREFERRED_METRICS = (
@@ -361,6 +361,27 @@ def _run_dirs(path: Path) -> List[Path]:
 def _has_required_run_files(path: Path) -> bool:
     """Return whether path contains the full analysis artifact set."""
     return all((path / filename).exists() for filename in REQUIRED_RUN_FILES)
+
+
+def _coerce_paths(paths: Path | Sequence[Path]) -> List[Path]:
+    """Normalize one or more analysis roots."""
+    if isinstance(paths, Path):
+        return [paths]
+    return list(paths)
+
+
+def _run_dirs_for_paths(paths: Path | Sequence[Path]) -> List[Path]:
+    """Return run directories under one or more paths without duplicates."""
+    seen: set[Path] = set()
+    run_dirs: List[Path] = []
+    for path in _coerce_paths(paths):
+        for run_dir in _run_dirs(path):
+            resolved = run_dir.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            run_dirs.append(run_dir)
+    return run_dirs
 
 
 def _cycle_metrics(metrics: Dict[str, Any]) -> List[tuple[int, Dict[str, Any]]]:
@@ -1124,12 +1145,12 @@ def _write_rows_csv(
 
 
 def write_audit_csvs(
-    path: Path,
+    path: Path | Sequence[Path],
     rows: List[Dict[str, Any]],
     output_dir: Path,
 ) -> Dict[str, Path]:
     """Write reviewer-facing audit CSVs from existing run artifacts."""
-    run_dirs = _run_dirs(path)
+    run_dirs = _run_dirs_for_paths(path)
     policy_rows = [
         row for run_dir in run_dirs for row in summarize_policy_behavior(run_dir)
     ]
@@ -1769,7 +1790,7 @@ def _win_rate(rows: List[Dict[str, Any]], key: str) -> float | None:
 
 def _write_paper_report_markdown(
     *,
-    source_path: Path,
+    source_paths: List[Path],
     output_path: Path,
     rows: List[Dict[str, Any]],
     main_rows: List[Dict[str, Any]],
@@ -1800,7 +1821,7 @@ def _write_paper_report_markdown(
     lines = [
         "# Paper Readiness Report",
         "",
-        f"Source run root: `{source_path}`",
+        "Source run roots: " + ", ".join(f"`{path}`" for path in source_paths),
         "",
         "## Coverage",
         "",
@@ -1853,7 +1874,7 @@ def _write_paper_report_markdown(
 
 
 def write_paper_report(
-    path: Path,
+    path: Path | Sequence[Path],
     rows: List[Dict[str, Any]],
     output_dir: Path,
     *,
@@ -1862,13 +1883,14 @@ def write_paper_report(
 ) -> Dict[str, Path]:
     """Write paper-facing tables and a compact readiness report."""
     baseline_policies = baseline_policies or ["cost_heuristic", "random_feasible"]
+    source_paths = _coerce_paths(path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     summary_path = output_dir / "summary.csv"
     write_summary_csv(rows, summary_path)
-    audit_paths = write_audit_csvs(path, rows, output_dir / "audit")
+    audit_paths = write_audit_csvs(source_paths, rows, output_dir / "audit")
 
-    run_dirs = _run_dirs(path)
+    run_dirs = _run_dirs_for_paths(source_paths)
     policy_rows = [
         row for run_dir in run_dirs for row in summarize_policy_behavior(run_dir)
     ]
@@ -1930,7 +1952,7 @@ def write_paper_report(
         PAPER_BUDGET_AUDIT_FIELDS,
     )
     _write_paper_report_markdown(
-        source_path=path,
+        source_paths=source_paths,
         output_path=paths["paper_readiness_report"],
         rows=rows,
         main_rows=main_rows,
