@@ -2616,6 +2616,275 @@ def _gate_check(name: str, passed: bool, **details: Any) -> Dict[str, Any]:
     return {"name": name, "passed": passed, **details}
 
 
+def _read_csv_rows(path: Path) -> List[Dict[str, Any]]:
+    """Read a CSV artifact as dictionaries, returning no rows if absent."""
+    if not path.exists():
+        return []
+    with path.open(newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def _baseline_label(row: Dict[str, Any]) -> str:
+    """Return a stable human-readable label for a paired baseline row."""
+    control_name = str(row.get("baseline_control_name") or "")
+    policy_name = str(row.get("baseline_policy") or "")
+    return f"{policy_name}/{control_name}" if control_name else policy_name
+
+
+def _paper_metric_failures(
+    rows: List[Dict[str, Any]],
+    *,
+    min_auc_win_rate: float | None,
+    min_heldout_win_rate: float | None,
+    min_final_win_rate: float | None,
+    min_auc_delta: float,
+    min_heldout_delta: float,
+    min_final_delta: float,
+) -> List[Dict[str, Any]]:
+    """Return all paired-summary rows that fail paper success thresholds."""
+    checks = [
+        ("auc", min_auc_win_rate, min_auc_delta),
+        ("heldout", min_heldout_win_rate, min_heldout_delta),
+        ("final", min_final_win_rate, min_final_delta),
+    ]
+    failures = []
+    for row in rows:
+        row_failures = []
+        for prefix, min_win_rate, min_delta in checks:
+            if min_win_rate is None:
+                continue
+            n = _safe_int(row.get(f"{prefix}_n")) or 0
+            win_rate = _safe_float(row.get(f"{prefix}_win_rate"))
+            mean_delta = _safe_float(row.get(f"{prefix}_mean_delta"))
+            if n <= 0:
+                row_failures.append(f"{prefix}_missing_pairs")
+            if win_rate is None or win_rate < min_win_rate:
+                row_failures.append(f"{prefix}_win_rate_below_threshold")
+            if mean_delta is None or mean_delta < min_delta:
+                row_failures.append(f"{prefix}_mean_delta_below_threshold")
+        if row_failures:
+            failures.append(
+                {
+                    "baseline": _baseline_label(row),
+                    "summary_scope": row.get("summary_scope"),
+                    "token_budget": row.get("token_budget"),
+                    "failures": row_failures,
+                    "auc_win_rate": row.get("auc_win_rate"),
+                    "auc_mean_delta": row.get("auc_mean_delta"),
+                    "heldout_win_rate": row.get("heldout_win_rate"),
+                    "heldout_mean_delta": row.get("heldout_mean_delta"),
+                    "final_win_rate": row.get("final_win_rate"),
+                    "final_mean_delta": row.get("final_mean_delta"),
+                }
+            )
+    return failures
+
+
+def validate_paper_gate(
+    report_dir: Path,
+    *,
+    required_baselines: List[str] | None = None,
+    required_control_names: List[str] | None = None,
+    required_figures: List[str] | None = None,
+    min_auc_win_rate: float | None = 0.67,
+    min_heldout_win_rate: float | None = 0.67,
+    min_final_win_rate: float | None = None,
+    min_auc_delta: float = 0.0,
+    min_heldout_delta: float = 0.0,
+    min_final_delta: float = 0.0,
+    require_provider_reported_usage: bool = True,
+    require_figures: bool = True,
+) -> Dict[str, Any]:
+    """Validate a paper-report directory as a reviewer-facing go/no-go gate."""
+    report_dir = Path(report_dir)
+    required_baselines = required_baselines or []
+    required_control_names = required_control_names or []
+    required_figures = required_figures or []
+
+    paths = {
+        "paper_main_results": report_dir / "paper_main_results.csv",
+        "paper_pairwise_summary": report_dir / "paper_pairwise_summary.csv",
+        "paper_budget_audit": report_dir / "paper_budget_audit.csv",
+        "budget_feasibility_certificate": report_dir
+        / "audit"
+        / "budget_feasibility_certificate.csv",
+    }
+    if require_figures:
+        paths["paper_figures_manifest"] = (
+            report_dir / "figures" / "paper_figures_manifest.json"
+        )
+
+    checks = []
+    missing_paths = [name for name, path in paths.items() if not path.exists()]
+    checks.append(
+        _gate_check(
+            "paper_gate_required_artifacts_present",
+            not missing_paths,
+            missing=missing_paths,
+            paths={name: str(path) for name, path in paths.items()},
+        )
+    )
+
+    main_rows = _read_csv_rows(paths["paper_main_results"])
+    summary_rows = _read_csv_rows(paths["paper_pairwise_summary"])
+    budget_rows = _read_csv_rows(paths["paper_budget_audit"])
+    certificate_rows = _read_csv_rows(paths["budget_feasibility_certificate"])
+
+    checks.append(
+        _gate_check(
+            "paper_main_results_nonempty",
+            bool(main_rows),
+            row_count=len(main_rows),
+        )
+    )
+
+    all_budget_rows = [
+        row
+        for row in summary_rows
+        if str(row.get("summary_scope") or "") == "all_budgets"
+    ]
+    baseline_rows = {
+        str(row.get("baseline_policy") or ""): row for row in all_budget_rows
+    }
+    control_rows = {
+        str(row.get("baseline_control_name") or ""): row
+        for row in all_budget_rows
+        if row.get("baseline_control_name")
+    }
+    missing_baselines = [
+        baseline for baseline in required_baselines if baseline not in baseline_rows
+    ]
+    missing_controls = [
+        control for control in required_control_names if control not in control_rows
+    ]
+    checks.append(
+        _gate_check(
+            "paper_required_baselines_present",
+            not missing_baselines and not missing_controls,
+            required_baselines=required_baselines,
+            required_control_names=required_control_names,
+            found_baselines=sorted(baseline_rows),
+            found_control_names=sorted(control_rows),
+            missing_baselines=missing_baselines,
+            missing_control_names=missing_controls,
+        )
+    )
+
+    comparison_rows = [
+        row
+        for row in all_budget_rows
+        if str(row.get("baseline_policy") or "") in set(required_baselines)
+        or str(row.get("baseline_control_name") or "") in set(required_control_names)
+    ]
+    requires_comparisons = bool(required_baselines or required_control_names)
+    metric_failures = _paper_metric_failures(
+        comparison_rows,
+        min_auc_win_rate=min_auc_win_rate,
+        min_heldout_win_rate=min_heldout_win_rate,
+        min_final_win_rate=min_final_win_rate,
+        min_auc_delta=min_auc_delta,
+        min_heldout_delta=min_heldout_delta,
+        min_final_delta=min_final_delta,
+    )
+    checks.append(
+        _gate_check(
+            "paper_required_comparisons_pass",
+            (not requires_comparisons or bool(comparison_rows)) and not metric_failures,
+            comparison_count=len(comparison_rows),
+            failures=metric_failures,
+        )
+    )
+
+    failed_certificates = [
+        row for row in certificate_rows if not _truthy(row.get("certificate_passed"))
+    ]
+    checks.append(
+        _gate_check(
+            "paper_budget_feasibility_certificates_pass",
+            bool(certificate_rows) and not failed_certificates,
+            certificate_count=len(certificate_rows),
+            failures=[
+                {
+                    "run_id": row.get("run_id"),
+                    "policy_name": row.get("policy_name"),
+                    "failure_reasons": row.get("failure_reasons"),
+                }
+                for row in failed_certificates
+            ],
+        )
+    )
+
+    budget_failures = []
+    for row in budget_rows:
+        failure_reasons = []
+        if (_safe_float(row.get("max_token_budget_overage")) or 0.0) > 0.0:
+            failure_reasons.append("token_budget_overage")
+        if (_safe_int(row.get("over_preflight_bound_rows")) or 0) > 0:
+            failure_reasons.append("over_preflight_bound")
+        if (_safe_int(row.get("over_remaining_budget_rows")) or 0) > 0:
+            failure_reasons.append("over_remaining_budget")
+        if (_safe_int(row.get("budget_violation_attempt_rows")) or 0) > 0:
+            failure_reasons.append("budget_violation_attempt")
+        if (_safe_int(row.get("parse_failure_attempt_rows")) or 0) > 0:
+            failure_reasons.append("parse_failure_attempt")
+        if (
+            require_provider_reported_usage
+            and (_safe_int(row.get("estimated_or_reserved_usage_rows")) or 0) > 0
+        ):
+            failure_reasons.append("estimated_or_reserved_usage")
+        if failure_reasons:
+            budget_failures.append(
+                {
+                    "policy_name": row.get("policy_name"),
+                    "control_name": row.get("control_name"),
+                    "token_budget": row.get("token_budget"),
+                    "failure_reasons": failure_reasons,
+                }
+            )
+    checks.append(
+        _gate_check(
+            "paper_budget_audit_passes",
+            bool(budget_rows) and not budget_failures,
+            budget_row_count=len(budget_rows),
+            failures=budget_failures,
+        )
+    )
+
+    if require_figures:
+        manifest_path = paths["paper_figures_manifest"]
+        figure_failures = []
+        manifest: Dict[str, Any] = {}
+        if manifest_path.exists():
+            try:
+                manifest = _load_json(manifest_path)
+            except json.JSONDecodeError as exc:
+                figure_failures.append(f"invalid_manifest_json:{exc}")
+        created = [Path(str(path)).name for path in manifest.get("created", []) if path]
+        missing_figures = [
+            figure
+            for figure in required_figures
+            if not any(name.startswith(figure) for name in created)
+        ]
+        checks.append(
+            _gate_check(
+                "paper_required_figures_present",
+                manifest_path.exists() and not figure_failures and not missing_figures,
+                manifest=str(manifest_path),
+                required_figures=required_figures,
+                created=created,
+                skipped=manifest.get("skipped", []),
+                failures=figure_failures,
+                missing_figures=missing_figures,
+            )
+        )
+
+    return {
+        "passed": all(check["passed"] for check in checks),
+        "report_dir": str(report_dir),
+        "checks": checks,
+    }
+
+
 SUCCESS_MATCH_FIELDS = (
     "dataset",
     "dataset_subset",

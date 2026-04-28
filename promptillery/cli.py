@@ -14,6 +14,7 @@ from .ablation import AblationStudyRunner
 from .analyze import (
     analyze_runs,
     plan_same_count_control_configs,
+    validate_paper_gate,
     validate_pilot_gate,
     write_audit_csvs,
     write_paper_report,
@@ -366,6 +367,102 @@ def paper_figures(
     else:
         typer.echo("No paper figures were created", err=True)
     typer.echo(f"Figure manifest: {manifest['manifest']}")
+
+
+@app.command("paper-gate")
+def paper_gate(
+    report_dir: str = typer.Argument(
+        ...,
+        help="Directory produced by `promptillery paper-report`",
+    ),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional JSON gate report output path",
+    ),
+    required_baselines: str = typer.Option(
+        "fixed_coverage,fixed_boundary,fixed_repair,random_feasible,cost_heuristic,active_uncertainty,student_deficiency",
+        "--required-baselines",
+        help="Comma-separated baseline policy_name values required in all-budget paired summaries",
+    ),
+    required_control_names: str = typer.Option(
+        "",
+        "--required-control-names",
+        help="Comma-separated baseline control_name values required in all-budget paired summaries",
+    ),
+    required_figures: str = typer.Option(
+        "quality_cost,paired_deltas,policy_behavior,token_calibration,budget_tokens",
+        "--required-figures",
+        help="Comma-separated figure filename prefixes required in the figure manifest",
+    ),
+    min_auc_win_rate: float | None = typer.Option(
+        0.67,
+        "--min-auc-win-rate",
+        help="Minimum all-budget paired win rate on quality-cost AUC",
+    ),
+    min_heldout_win_rate: float | None = typer.Option(
+        0.67,
+        "--min-heldout-win-rate",
+        help="Minimum all-budget paired win rate on held-out metric",
+    ),
+    min_final_win_rate: float | None = typer.Option(
+        None,
+        "--min-final-win-rate",
+        help="Optional minimum all-budget paired win rate on final validation metric",
+    ),
+    min_auc_delta: float = typer.Option(
+        0.0,
+        "--min-auc-delta",
+        help="Minimum mean AUC delta for required comparisons",
+    ),
+    min_heldout_delta: float = typer.Option(
+        0.0,
+        "--min-heldout-delta",
+        help="Minimum mean held-out delta for required comparisons",
+    ),
+    min_final_delta: float = typer.Option(
+        0.0,
+        "--min-final-delta",
+        help="Minimum mean final-metric delta for required comparisons",
+    ),
+    require_provider_reported_usage: bool = typer.Option(
+        True,
+        "--require-provider-reported-usage/--no-require-provider-reported-usage",
+        help="Reject reserved or estimated teacher-usage rows in paper budget audit",
+    ),
+    require_figures: bool = typer.Option(
+        True,
+        "--require-figures/--no-require-figures",
+        help="Require a paper_figures_manifest.json with expected figures",
+    ),
+) -> None:
+    """Validate paper-report outputs against reviewer-facing go/no-go checks."""
+    report = validate_paper_gate(
+        Path(report_dir),
+        required_baselines=_csv_option_values(required_baselines),
+        required_control_names=_csv_option_values(required_control_names),
+        required_figures=_csv_option_values(required_figures),
+        min_auc_win_rate=min_auc_win_rate,
+        min_heldout_win_rate=min_heldout_win_rate,
+        min_final_win_rate=min_final_win_rate,
+        min_auc_delta=min_auc_delta,
+        min_heldout_delta=min_heldout_delta,
+        min_final_delta=min_final_delta,
+        require_provider_reported_usage=require_provider_reported_usage,
+        require_figures=require_figures,
+    )
+
+    report_json = json.dumps(report, indent=2, sort_keys=True)
+    if output:
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        Path(output).write_text(report_json + "\n", encoding="utf-8")
+        typer.echo(f"Wrote paper gate report to {output}")
+    else:
+        typer.echo(report_json)
+
+    if not report["passed"]:
+        raise typer.Exit(code=1)
 
 
 @app.command("pilot-gate")
