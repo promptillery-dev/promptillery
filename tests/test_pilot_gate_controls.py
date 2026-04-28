@@ -21,6 +21,7 @@ def _write_run(
     synthetic_record_budget: int | None = None,
     final_synthetic_count: int = 0,
     manifest_final_synthetic_count: int | None = None,
+    heldout_metric: float | None = None,
 ) -> None:
     run_dir = root / name
     run_dir.mkdir(parents=True)
@@ -52,9 +53,15 @@ def _write_run(
             ]
         )
     )
-    (run_dir / "metrics.json").write_text(
-        json.dumps({"0": {"macro_f1": 0.1}, "1": {"macro_f1": 0.2}})
-    )
+    metrics = {"0": {"macro_f1": 0.1}, "1": {"macro_f1": 0.2}}
+    if heldout_metric is not None:
+        metrics["heldout_test"] = {
+            "macro_f1": heldout_metric,
+            "_heldout_split": "test",
+            "_selection_split": "validation",
+            "_selected_cycle": 1,
+        }
+    (run_dir / "metrics.json").write_text(json.dumps(metrics))
     (run_dir / "token_usage.json").write_text(
         json.dumps(
             {
@@ -205,6 +212,66 @@ def test_summarize_run_prefers_manifest_final_synthetic_count(tmp_path):
     summary = summarize_run(tmp_path / "manifest_count", metric="macro_f1")
 
     assert summary["final_synthetic_count"] == 3
+
+
+def test_summarize_run_exposes_heldout_test_metric(tmp_path):
+    _write_run(
+        tmp_path,
+        name="with_heldout",
+        policy_name="cost_heuristic",
+        heldout_metric=0.17,
+    )
+
+    summary = summarize_run(tmp_path / "with_heldout", metric="macro_f1")
+
+    assert summary["final_metric"] == 0.2
+    assert summary["heldout_split"] == "test"
+    assert summary["heldout_metric_name"] == "macro_f1"
+    assert summary["heldout_metric"] == 0.17
+
+
+def test_pilot_gate_requires_heldout_test_metric(tmp_path):
+    _write_run(tmp_path, name="missing", policy_name="frugalkd_p")
+
+    missing = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_heldout=True,
+    )
+
+    assert not missing["passed"]
+    assert any(
+        check["name"] == "heldout_test_metrics_present"
+        and not check["passed"]
+        for check in missing["checks"]
+    )
+
+
+def test_pilot_gate_accepts_heldout_test_metric(tmp_path):
+    _write_run(
+        tmp_path,
+        name="with_heldout",
+        policy_name="frugalkd_p",
+        heldout_metric=0.17,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_heldout=True,
+    )
+
+    assert report["passed"]
 
 
 def test_plan_same_count_control_configs_from_source_runs(tmp_path):

@@ -298,6 +298,12 @@ def pilot_gate(
         "--require-frontier/--no-require-frontier",
         help="Require matched fixed-policy frontier rows for every run",
     ),
+    require_heldout: bool = typer.Option(
+        False,
+        "--require-heldout/--no-require-heldout",
+        "--require-held-out/--no-require-held-out",
+        help="Require final held-out test metrics for every summarized run",
+    ),
     require_same_count_control: bool = typer.Option(
         False,
         "--require-same-count-controls/--no-require-same-count-controls",
@@ -325,6 +331,7 @@ def pilot_gate(
             expected_budgets=_csv_option_values(budgets),
             require_teacher_attempts=require_teacher_attempts,
             require_frontier=require_frontier,
+            require_heldout=require_heldout,
             require_same_count_control=require_same_count_control,
             same_count_source_policy=same_count_source_policy,
         )

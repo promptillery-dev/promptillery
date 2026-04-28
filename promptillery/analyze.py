@@ -212,6 +212,12 @@ def _cycle_metrics(metrics: Dict[str, Any]) -> List[tuple[int, Dict[str, Any]]]:
     return sorted(cycles)
 
 
+def _heldout_test_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
+    """Return final held-out metrics when a run reported them."""
+    heldout = metrics.get("heldout_test")
+    return heldout if isinstance(heldout, dict) else {}
+
+
 def _choose_metric(
     cycles: List[tuple[int, Dict[str, Any]]], metric: str | None
 ) -> str | None:
@@ -635,6 +641,12 @@ def summarize_run(
     final_value = None
     if final_cycle is not None and metric_name in dict(cycles)[final_cycle]:
         final_value = dict(cycles)[final_cycle][metric_name]
+    heldout = _heldout_test_metrics(metrics)
+    heldout_value = (
+        _safe_float(heldout.get(metric_name)) if metric_name and heldout else None
+    )
+    heldout_split = heldout.get("_heldout_split", "") if heldout else ""
+    heldout_metric_name = metric_name if heldout_value is not None else ""
 
     grand_total = token_usage.get("grand_total", {})
     token_budget = run_manifest.get("token_budget", config.get("token_budget"))
@@ -665,6 +677,9 @@ def summarize_run(
         "best_metric": best_value,
         "final_cycle": final_cycle,
         "final_metric": final_value,
+        "heldout_split": heldout_split,
+        "heldout_metric_name": heldout_metric_name,
+        "heldout_metric": heldout_value,
         "cycle_quality_cost_auc": _cycle_auc(points),
         "token_budget": token_budget,
         "synthetic_record_budget": run_manifest.get(
@@ -722,6 +737,9 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "best_metric",
         "final_cycle",
         "final_metric",
+        "heldout_split",
+        "heldout_metric_name",
+        "heldout_metric",
         "cycle_quality_cost_auc",
         "token_budget",
         "synthetic_record_budget",
@@ -941,6 +959,7 @@ def validate_pilot_gate(
     expected_budgets: List[str] | None = None,
     require_teacher_attempts: bool = True,
     require_frontier: bool = True,
+    require_heldout: bool = False,
     require_same_count_control: bool = False,
     same_count_source_policy: str = "frugalkd_p",
 ) -> Dict[str, Any]:
@@ -1141,6 +1160,21 @@ def validate_pilot_gate(
                 "fixed_policy_frontier_available",
                 not missing_frontier,
                 violating_run_ids=[row.get("run_id") for row in missing_frontier],
+            )
+        )
+
+    if require_heldout:
+        missing_heldout = [
+            row
+            for row in rows
+            if str(row.get("heldout_split") or "") != "test"
+            or _safe_float(row.get("heldout_metric")) is None
+        ]
+        checks.append(
+            _gate_check(
+                "heldout_test_metrics_present",
+                not missing_heldout,
+                violating_run_ids=[row.get("run_id") for row in missing_heldout],
             )
         )
 

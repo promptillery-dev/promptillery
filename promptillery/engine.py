@@ -626,6 +626,21 @@ class DistillationEngine:
         )
         return "train"
 
+    def _heldout_eval_split(self, selection_split: str) -> str | None:
+        """Return a split reserved for final reporting, not policy selection."""
+        if "test" in self.dataset and selection_split != "test":
+            return "test"
+        return None
+
+    def _should_report_heldout(self, selection_split: str) -> bool:
+        """Return whether this run should emit final held-out metrics."""
+        if self._heldout_eval_split(selection_split) is None:
+            return False
+        return bool(
+            self.cfg.paper_mode
+            or self.cfg.trainer_config.get("report_held_out_test", False)
+        )
+
     def _current_synthetic_count(self) -> int | None:
         """Return accepted synthetic rows in the current train split."""
         if (
@@ -1744,6 +1759,36 @@ class DistillationEngine:
                     if self.early_stopper.stopped:
                         break
 
+                heldout_split = self._heldout_eval_split(eval_split)
+                if (
+                    final_model is not None
+                    and heldout_split is not None
+                    and self._should_report_heldout(eval_split)
+                ):
+                    completed_cycles = [
+                        int(key) for key in results.keys() if key.isdigit()
+                    ]
+                    selected_cycle = max(completed_cycles) if completed_cycles else None
+                    if self.early_stopper.stopped:
+                        selected_cycle = self.early_stopper.best_cycle
+                    heldout_metrics = self.trainer.evaluate(
+                        final_model,
+                        split=heldout_split,
+                    )
+                    heldout_metrics = {
+                        **heldout_metrics,
+                        "_heldout_split": heldout_split,
+                        "_selection_split": eval_split,
+                        "_selected_cycle": selected_cycle,
+                        "_run_id": self.run_id,
+                    }
+                    logger.info(
+                        "Final held-out metrics on %s split: %s",
+                        heldout_split,
+                        heldout_metrics,
+                    )
+                    results["heldout_test"] = heldout_metrics
+
                 self.token_tracker.print_final_summary()
             except Exception as exc:
                 run_status = "failed"
@@ -1812,6 +1857,7 @@ class DistillationEngine:
                     "expected_cycles": self.cfg.cycles,
                     "cycles_completed": self.token_tracker.summary.cycles_completed,
                     "selection_split": eval_split,
+                    "heldout_split": self._heldout_eval_split(eval_split),
                     "paper_mode": self.cfg.paper_mode,
                     "control_name": self.cfg.control_name,
                     "task_name": self.cfg.name,
@@ -1835,6 +1881,7 @@ class DistillationEngine:
                     },
                     "artifact_paths": {
                         "metrics": "metrics.json",
+                        "heldout_metrics": "metrics.json#heldout_test",
                         "token_usage": "token_usage.json",
                         "policy_decisions": "policy_decisions.jsonl",
                         "teacher_attempts": "teacher_attempts.jsonl",

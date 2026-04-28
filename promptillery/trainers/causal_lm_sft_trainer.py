@@ -561,13 +561,23 @@ class CausalLMSFTTrainer(BaseTrainer):
         summary: Dict[str, Any],
     ) -> None:
         """Persist generation predictions and metric summary."""
+        split = str(summary.get("split") or "eval")
         predictions_path = self.out_dir / "eval_predictions.jsonl"
         summary_path = self.out_dir / "exact_metric_summary.json"
-        with predictions_path.open("w", encoding="utf-8") as f:
-            for record in records:
-                f.write(json.dumps(record, sort_keys=True) + "\n")
-        with summary_path.open("w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2, sort_keys=True)
+        split_predictions_path = self.out_dir / f"eval_predictions_{split}.jsonl"
+        split_summary_path = self.out_dir / f"exact_metric_summary_{split}.json"
+        prediction_paths = {split_predictions_path}
+        summary_paths = {split_summary_path}
+        if split == (self._eval_split() or split):
+            prediction_paths.add(predictions_path)
+            summary_paths.add(summary_path)
+        for path in prediction_paths:
+            with path.open("w", encoding="utf-8") as f:
+                for record in records:
+                    f.write(json.dumps(record, sort_keys=True) + "\n")
+        for path in summary_paths:
+            with path.open("w", encoding="utf-8") as f:
+                json.dump(summary, f, indent=2, sort_keys=True)
 
     def _run_generation_eval(
         self,
