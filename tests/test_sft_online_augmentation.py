@@ -285,6 +285,62 @@ def test_fixed_mixed_teacher_alternates_teacher_tiers():
     assert second.action.teacher_tier == "strong"
 
 
+def test_active_uncertainty_policy_uses_same_action_space():
+    controller = PolicyController("active_uncertainty", seed=13)
+    actions = [
+        PolicyAction(prompt_operator="coverage", teacher_tier="cheap", batch_size=4),
+        PolicyAction(prompt_operator="boundary", teacher_tier="cheap", batch_size=8),
+        PolicyAction(prompt_operator="repair", teacher_tier="cheap", batch_size=16),
+        PolicyAction(is_stop=True),
+    ]
+    predicted_costs = {action.name: {"total_tokens": 256} for action in actions}
+
+    choice = controller.select(
+        {
+            "features": {
+                "eval_entropy_normalized_mean": 0.7,
+                "eval_hard_error_rate": 0.2,
+                "eval_max_confusion_rate": 0.3,
+            },
+            "budget": {"tokens_remaining": 10_000},
+        },
+        actions=actions,
+        predicted_costs=predicted_costs,
+    )
+
+    assert choice.action.prompt_operator == "boundary"
+    assert "coverage:cheap:b4" in choice.action_scores
+    assert "repair:cheap:b16" in choice.action_scores
+
+
+def test_student_deficiency_policy_uses_same_action_space():
+    controller = PolicyController("student_deficiency", seed=13)
+    actions = [
+        PolicyAction(prompt_operator="coverage", teacher_tier="cheap", batch_size=4),
+        PolicyAction(prompt_operator="boundary", teacher_tier="cheap", batch_size=8),
+        PolicyAction(prompt_operator="repair", teacher_tier="cheap", batch_size=16),
+        PolicyAction(is_stop=True),
+    ]
+    predicted_costs = {action.name: {"total_tokens": 256} for action in actions}
+
+    choice = controller.select(
+        {
+            "features": {
+                "eval_error_rate": 0.6,
+                "eval_hard_error_rate": 0.5,
+                "eval_max_confusion_rate": 0.1,
+            },
+            "budget": {"tokens_remaining": 10_000},
+        },
+        actions=actions,
+        predicted_costs=predicted_costs,
+    )
+
+    assert choice.action.prompt_operator == "repair"
+    assert "coverage:cheap:b4" in choice.action_scores
+    assert "boundary:cheap:b8" in choice.action_scores
+
+
 def test_format_choices_for_prompt_handles_arc_choices():
     rendered = format_choices_for_prompt(
         {

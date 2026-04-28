@@ -233,6 +233,14 @@ class PolicyController:
             action, scores = self._select_fixed(non_stop, state, predicted_costs)
         elif self.policy_name in {"cheap_only", "strong_only"}:
             action, scores = self._select_tier(non_stop, state, predicted_costs)
+        elif self.policy_name == "active_uncertainty":
+            action, scores = self._select_scored(
+                non_stop, state, predicted_costs, self._active_uncertainty_score
+            )
+        elif self.policy_name == "student_deficiency":
+            action, scores = self._select_scored(
+                non_stop, state, predicted_costs, self._student_deficiency_score
+            )
         elif self.policy_name == "cost_heuristic":
             action, scores = self._select_scored(
                 non_stop, state, predicted_costs, self._heuristic_score
@@ -342,6 +350,44 @@ class PolicyController:
         batch_gain = math.sqrt(max(action.batch_size, 1) / 16)
         cost = action_cost_tokens(action, predicted_costs)
         return (operator_gain + tier_gain) * batch_gain / max(cost, 1.0)
+
+    def _active_uncertainty_score(
+        self,
+        action: PolicyAction,
+        state: Mapping[str, Any],
+        predicted_costs: Mapping[str, Any],
+    ) -> float:
+        features = _state_features(state)
+        entropy = float(features.get("eval_entropy_normalized_mean", 0.0) or 0.0)
+        hard_errors = float(features.get("eval_hard_error_rate", 0.0) or 0.0)
+        confusion = float(features.get("eval_max_confusion_rate", 0.0) or 0.0)
+        operator_gain = {
+            "coverage": 0.05,
+            "boundary": 0.10 + entropy + max(hard_errors, confusion),
+            "repair": 0.05 + hard_errors,
+        }.get(str(action.prompt_operator), 0.05)
+        batch_gain = math.sqrt(max(action.batch_size, 1) / 16)
+        cost = action_cost_tokens(action, predicted_costs)
+        return operator_gain * batch_gain / max(cost, 1.0)
+
+    def _student_deficiency_score(
+        self,
+        action: PolicyAction,
+        state: Mapping[str, Any],
+        predicted_costs: Mapping[str, Any],
+    ) -> float:
+        features = _state_features(state)
+        error_rate = float(features.get("eval_error_rate", 0.0) or 0.0)
+        hard_errors = float(features.get("eval_hard_error_rate", 0.0) or 0.0)
+        confusion = float(features.get("eval_max_confusion_rate", 0.0) or 0.0)
+        operator_gain = {
+            "coverage": 0.05 + 0.25 * error_rate,
+            "boundary": 0.05 + confusion,
+            "repair": 0.10 + error_rate + hard_errors,
+        }.get(str(action.prompt_operator), 0.05)
+        batch_gain = math.sqrt(max(action.batch_size, 1) / 16)
+        cost = action_cost_tokens(action, predicted_costs)
+        return operator_gain * batch_gain / max(cost, 1.0)
 
     def _linear_score(
         self,
