@@ -50,7 +50,8 @@ class CausalLMSFTTrainer(BaseTrainer):
             self.trainer_config.get("trust_remote_code", False)
         )
         self._canonical_labels_cache: List[str] | None = None
-        self._generation_eval_cache: Dict[tuple[int, str, int | None], Any] = {}
+        self._generation_eval_cache: Dict[tuple[int, int, str, int | None], Any] = {}
+        self._generation_eval_version = 0
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.cfg.student,
@@ -235,6 +236,8 @@ class CausalLMSFTTrainer(BaseTrainer):
             data_collator=self.data_collator,
         )
         trainer.train()
+        self._generation_eval_version += 1
+        self._generation_eval_cache = {}
         return trainer
 
     def evaluate(self, trainer: Trainer, split: str = "test") -> Dict[str, Any]:
@@ -367,7 +370,7 @@ class CausalLMSFTTrainer(BaseTrainer):
         limit = self.trainer_config.get("max_eval_generation_samples")
         return int(limit) if limit is not None else None
 
-    def _generation_cache(self) -> Dict[tuple[int, str, int | None], Any]:
+    def _generation_cache(self) -> Dict[tuple[int, int, str, int | None], Any]:
         """Return a lazily initialized generation-eval cache."""
         if not hasattr(self, "_generation_eval_cache"):
             self._generation_eval_cache = {}
@@ -589,7 +592,8 @@ class CausalLMSFTTrainer(BaseTrainer):
     ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """Run or reuse generation evaluation for a model/split/sample cap."""
         model = getattr(trainer, "model", trainer)
-        key = (id(model), split, sample_limit)
+        version = int(getattr(self, "_generation_eval_version", 0))
+        key = (version, id(model), split, sample_limit)
         cache = self._generation_cache()
         if key not in cache:
             records = self._generate_eval_records(trainer, split, sample_limit)

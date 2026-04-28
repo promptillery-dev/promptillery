@@ -115,6 +115,44 @@ def test_sft_generation_summary_uses_canonical_labels(tmp_path):
     assert records[1]["prediction_is_valid_label"] is False
 
 
+def test_generation_eval_cache_invalidates_after_training_version():
+    trainer = CausalLMSFTTrainer.__new__(CausalLMSFTTrainer)
+    trainer._generation_eval_cache = {}
+    trainer._generation_eval_version = 0
+    calls = []
+
+    def fake_generate(_trainer, split, sample_limit):
+        calls.append((split, sample_limit))
+        return [{"normalized_prediction": str(len(calls))}]
+
+    trainer._generate_eval_records = fake_generate
+    trainer._generation_summary = lambda records: {"exact_match": len(records)}
+    model = object()
+    hf_trainer = SimpleNamespace(model=model)
+
+    trainer._run_generation_eval(
+        hf_trainer,
+        "validation",
+        4,
+        write_artifacts=False,
+    )
+    trainer._run_generation_eval(
+        hf_trainer,
+        "validation",
+        4,
+        write_artifacts=False,
+    )
+    trainer._generation_eval_version += 1
+    trainer._run_generation_eval(
+        hf_trainer,
+        "validation",
+        4,
+        write_artifacts=False,
+    )
+
+    assert calls == [("validation", 4), ("validation", 4)]
+
+
 def test_sft_detailed_predictions_feed_policy_prompt_context(tmp_path):
     trainer = CausalLMSFTTrainer.__new__(CausalLMSFTTrainer)
     trainer.trainer_config = {
