@@ -253,6 +253,28 @@ def require_paper_splits(dataset: DatasetDict) -> None:
         )
 
 
+def ensure_origin_columns(dataset: DatasetDict) -> DatasetDict:
+    """Add origin-tracking columns without overwriting materialized metadata."""
+    for split, ds in dataset.items():
+        columns = set(ds.column_names)
+        if "source_split" not in columns:
+            ds = ds.add_column("source_split", [split] * len(ds))
+            columns.add("source_split")
+        if "source_idx" not in columns:
+            values = (
+                list(ds["source_index"])
+                if "source_index" in columns
+                else [-1] * len(ds)
+            )
+            ds = ds.add_column("source_idx", values)
+            columns.add("source_idx")
+        if "origin_cycle" not in columns:
+            values = list(ds["cycle"]) if "cycle" in columns else [0] * len(ds)
+            ds = ds.add_column("origin_cycle", values)
+        dataset[split] = ds
+    return dataset
+
+
 class EarlyStopper:
     """Handles early stopping logic based on metric monitoring."""
 
@@ -399,12 +421,9 @@ class DistillationEngine:
             if self.cfg.paper_mode:
                 require_paper_splits(self.dataset)
 
-            # keep track of the origin of every row
-            for split, ds in self.dataset.items():
-                ds = ds.add_column("source_split", [split] * len(ds))
-                ds = ds.add_column("source_idx", [-1] * len(ds))
-                ds = ds.add_column("origin_cycle", [0] * len(ds))
-                self.dataset[split] = ds
+            # Keep track of the origin of every row without overwriting
+            # materialized SFT metadata.
+            self.dataset = ensure_origin_columns(self.dataset)
 
         self.out_dir = self.cfg.get_output_dir()
         self.out_dir.mkdir(parents=True, exist_ok=False)
@@ -629,6 +648,20 @@ class DistillationEngine:
             "tokens_remaining": tokens_remaining,
         }
 
+    def _teacher_usage_snapshot(self) -> Dict[str, Any]:
+        """Return cumulative teacher-token usage including the active cycle."""
+        grand_total = self.token_tracker.summary.grand_total
+        current_usage = self.token_tracker.current_cycle_usage()
+        cost = grand_total.estimated_cost
+        if current_usage.estimated_cost is not None:
+            cost = (cost or 0.0) + current_usage.estimated_cost
+        return {
+            "input_tokens": grand_total.input_tokens + current_usage.input_tokens,
+            "output_tokens": grand_total.output_tokens + current_usage.output_tokens,
+            "total_tokens": grand_total.total_tokens + current_usage.total_tokens,
+            "estimated_cost": cost,
+        }
+
     def _cycle_eval_split(self) -> str:
         """Return the split used for cycle rewards and policy context."""
         if "validation" in self.dataset:
@@ -788,10 +821,25 @@ class DistillationEngine:
         attempt_id: str,
         decision_id: str | None = None,
         realized_cost: TokenUsage | None = None,
+        provider_reported_cost: TokenUsage | None = None,
+        ledger_debit_cost: TokenUsage | None = None,
+        ledger_debit_source: str | None = None,
         failure_type: str | None = None,
         metadata: Dict[str, Any] | None = None,
     ) -> None:
         """Append an audited teacher-call attempt for budget debugging."""
+        if ledger_debit_cost is None:
+            ledger_debit_cost = realized_cost
+        if provider_reported_cost is None and status in {
+            "success",
+            "empty_response",
+            "budget_violation",
+        }:
+            provider_reported_cost = realized_cost
+        if ledger_debit_source is None:
+            ledger_debit_source = (
+                "provider_reported" if provider_reported_cost is not None else ""
+            )
         row = {
             "schema_version": 1,
             "run_id": self.run_id,
@@ -800,7 +848,16 @@ class DistillationEngine:
             "cycle": cycle,
             "status": status,
             "predicted_cost": predicted_cost,
-            "realized_cost": realized_cost.model_dump() if realized_cost else {},
+            "provider_reported_cost": (
+                provider_reported_cost.model_dump() if provider_reported_cost else {}
+            ),
+            "ledger_debit_cost": (
+                ledger_debit_cost.model_dump() if ledger_debit_cost else {}
+            ),
+            "ledger_debit_source": ledger_debit_source,
+            "realized_cost": (
+                ledger_debit_cost.model_dump() if ledger_debit_cost else {}
+            ),
             "failure_type": failure_type,
             "budget_before": budget_before,
             "budget_after": self._budget_snapshot(),
@@ -847,6 +904,12 @@ class DistillationEngine:
                 input_tokens = self._estimate_tokens_from_chars(messages)
         else:
             input_tokens = self._estimate_tokens_from_chars(messages)
+
+        if getattr(self.cfg, "paper_mode", False) and estimator != "litellm.token_counter":
+            raise ValueError(
+                "paper_mode=true requires LiteLLM token_counter preflight; "
+                f"got estimator={estimator}"
+            )
 
         max_output_tokens = self.cfg.teacher_max_output_tokens
         predicted_total = None
@@ -1312,6 +1375,7 @@ class DistillationEngine:
                 budget_before=budget_before or self._budget_snapshot(),
                 attempt_id=attempt_id,
                 decision_id=decision_id,
+                ledger_debit_source="zero_no_dispatch",
                 failure_type=predicted_cost["reason"],
                 metadata=attempt_metadata,
             )
@@ -1333,6 +1397,8 @@ class DistillationEngine:
             }
             if self.cfg.teacher_max_output_tokens is not None:
                 completion_kwargs["max_tokens"] = self.cfg.teacher_max_output_tokens
+            if getattr(self.cfg, "paper_mode", False):
+                completion_kwargs["num_retries"] = 0
             result = await acompletion(**completion_kwargs)
             usage = extract_usage_from_response(result)
             if usage.total_tokens <= 0:
@@ -1468,6 +1534,8 @@ class DistillationEngine:
                     attempt_id=attempt_id,
                     decision_id=decision_id,
                     realized_cost=reserved_usage,
+                    ledger_debit_cost=reserved_usage,
+                    ledger_debit_source="reserved_bound",
                     failure_type=type(e).__name__,
                     metadata={
                         **attempt_metadata,
@@ -1604,10 +1672,19 @@ class DistillationEngine:
 
                         model = self.trainer.train()
                         metrics = self.trainer.evaluate(model, split=eval_split)
+                        usage_at_eval = self._teacher_usage_snapshot()
                         metrics = {
                             **metrics,
                             "_selection_split": eval_split,
                             "_run_id": self.run_id,
+                            "_teacher_input_tokens_at_eval": usage_at_eval[
+                                "input_tokens"
+                            ],
+                            "_teacher_output_tokens_at_eval": usage_at_eval[
+                                "output_tokens"
+                            ],
+                            "_teacher_tokens_at_eval": usage_at_eval["total_tokens"],
+                            "_teacher_cost_at_eval": usage_at_eval["estimated_cost"],
                         }
                         logger.info(
                             "Cycle %d metrics on %s split: %s",

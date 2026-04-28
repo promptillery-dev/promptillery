@@ -6,7 +6,7 @@ import pytest
 from datasets import ClassLabel, Dataset, DatasetDict, Features, Value
 from jinja2 import Template
 
-from promptillery.engine import DistillationEngine
+from promptillery.engine import DistillationEngine, ensure_origin_columns
 from promptillery.policy_controller import PolicyAction, PolicyController
 from promptillery.sft_materialize import _write_canonical_labels_artifact
 from promptillery.token_tracker import TokenTracker
@@ -230,6 +230,28 @@ def test_materialize_writes_canonical_label_artifact(tmp_path):
         "cash_withdrawal",
         "card_arrival",
     ]
+
+
+def test_origin_columns_preserve_materialized_sft_metadata():
+    dataset = DatasetDict(
+        {
+            "train": Dataset.from_dict(
+                {
+                    "student_prompt": ["prompt"],
+                    "teacher_response": ["answer"],
+                    "source_split": ["train"],
+                    "source_index": [7],
+                    "cycle": [2],
+                }
+            )
+        }
+    )
+
+    prepared = ensure_origin_columns(dataset)
+
+    assert prepared["train"]["source_split"] == ["train"]
+    assert prepared["train"]["source_idx"] == [7]
+    assert prepared["train"]["origin_cycle"] == [2]
 
 
 def test_augmented_sft_rows_preserve_schema_fields():
@@ -530,5 +552,8 @@ def test_online_sft_augmentation_appends_teacher_records(monkeypatch, tmp_path):
     ]
     assert attempts[0]["status"] == "success"
     assert attempts[0]["decision_id"] == "decision-1"
+    assert attempts[0]["provider_reported_cost"]["total_tokens"] == 13
+    assert attempts[0]["ledger_debit_cost"]["total_tokens"] == 13
+    assert attempts[0]["ledger_debit_source"] == "provider_reported"
     assert attempts[0]["metadata"]["records_parsed"] == 1
     assert attempts[0]["metadata"]["records_accepted"] == 1

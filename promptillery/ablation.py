@@ -14,6 +14,7 @@ from datasets import DatasetDict, load_dataset
 from .config import TIMESTAMP_FORMAT, ExperimentConfig
 from .engine import (
     DistillationEngine,
+    ensure_origin_columns,
     ensure_class_label,
     ensure_validation_split,
     prepare_dataset,
@@ -205,12 +206,9 @@ class AblationStudyRunner:
         dataset = prepare_dataset(dataset, cfg.sampling)
         dataset = ensure_validation_split(dataset, cfg)
 
-        # Add tracking columns for origin of each row
-        for split, ds in dataset.items():
-            ds = ds.add_column("source_split", [split] * len(ds))
-            ds = ds.add_column("source_idx", [-1] * len(ds))
-            ds = ds.add_column("origin_cycle", [0] * len(ds))
-            dataset[split] = ds
+        # Add tracking columns for origin of each row without overwriting
+        # materialized SFT metadata.
+        dataset = ensure_origin_columns(dataset)
 
         logger.info(
             f"Dataset loaded and sampled once: "

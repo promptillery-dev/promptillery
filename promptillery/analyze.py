@@ -82,6 +82,13 @@ TEACHER_CALIBRATION_FIELDS = [
     "predicted_input_tokens",
     "predicted_max_output_tokens",
     "predicted_total_tokens",
+    "provider_reported_input_tokens",
+    "provider_reported_output_tokens",
+    "provider_reported_total_tokens",
+    "ledger_debit_input_tokens",
+    "ledger_debit_output_tokens",
+    "ledger_debit_total_tokens",
+    "ledger_debit_source",
     "realized_input_tokens",
     "realized_output_tokens",
     "realized_total_tokens",
@@ -249,6 +256,83 @@ def _cycle_token_totals(token_usage: Dict[str, Any]) -> Dict[int, int]:
     return totals
 
 
+def _configured_data_files(config: Dict[str, Any]) -> List[str]:
+    """Return dataset file paths from a copied experiment config."""
+    data_files = (config.get("dataset_kwargs") or {}).get("data_files")
+    if data_files is None:
+        return []
+    if isinstance(data_files, str):
+        return [data_files]
+    if isinstance(data_files, list):
+        return [str(item) for item in data_files]
+    if isinstance(data_files, dict):
+        paths: List[str] = []
+        for value in data_files.values():
+            if isinstance(value, list):
+                paths.extend(str(item) for item in value)
+            else:
+                paths.append(str(value))
+        return paths
+    return []
+
+
+def _resolve_existing_path(path: str, run_dir: Path) -> Path | None:
+    """Resolve a copied config path against common analysis locations."""
+    raw_path = Path(path).expanduser()
+    candidates = [raw_path] if raw_path.is_absolute() else []
+    if not raw_path.is_absolute():
+        candidates.extend(
+            [
+                Path.cwd() / raw_path,
+                run_dir / raw_path,
+                run_dir.parent / raw_path,
+            ]
+        )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _seed_materialization_summary(
+    run_dir: Path, config: Dict[str, Any], token_usage: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Summarize fixed seed-data teacher tokens from manifests or token usage."""
+    manifest_paths = []
+    for data_file in _configured_data_files(config):
+        resolved = _resolve_existing_path(data_file, run_dir)
+        if resolved is None:
+            continue
+        manifest = Path(str(resolved) + ".manifest.json")
+        if manifest.exists():
+            manifest_paths.append(manifest)
+
+    seed_total = 0
+    estimated_records = 0
+    for manifest_path in sorted(set(manifest_paths)):
+        payload = _load_json(manifest_path)
+        seed_total += int(payload.get("teacher_total_tokens", 0) or 0)
+        estimated_records += int(payload.get("usage_estimated_records", 0) or 0)
+
+    sft_usage = (token_usage.get("totals") or {}).get("sft_data", {})
+    charged_seed_total = int(sft_usage.get("total_tokens", 0) or 0)
+    if seed_total <= 0:
+        seed_total = charged_seed_total
+
+    grand_total = token_usage.get("grand_total", {})
+    online_total = int(grand_total.get("total_tokens", 0) or 0)
+    if charged_seed_total > 0:
+        online_total = max(0, online_total - charged_seed_total)
+
+    return {
+        "seed_materialization_manifest_count": len(set(manifest_paths)),
+        "seed_usage_estimated_records": estimated_records,
+        "seed_teacher_total_tokens": seed_total,
+        "online_teacher_total_tokens": online_total,
+        "total_teacher_total_tokens": seed_total + online_total,
+    }
+
+
 def _cycle_auc(points: Iterable[tuple[float, float]]) -> float | None:
     sorted_points = sorted(points)
     if not sorted_points:
@@ -278,7 +362,11 @@ def _teacher_attempt_summary(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     calibration_ratios = []
     for row in rows:
         predicted = row.get("predicted_cost", {})
-        realized = row.get("realized_cost", {})
+        realized = (
+            row.get("provider_reported_cost")
+            or row.get("ledger_debit_cost")
+            or row.get("realized_cost", {})
+        )
         predicted_total = predicted.get("total_tokens")
         realized_total = realized.get("total_tokens")
         if predicted_total and realized_total is not None:
@@ -408,10 +496,18 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
     for attempt in _load_jsonl(run_dir / "teacher_attempts.jsonl"):
         metadata = attempt.get("metadata", {}) or {}
         predicted = attempt.get("predicted_cost", {}) or {}
-        realized = attempt.get("realized_cost", {}) or {}
+        provider_reported = (
+            attempt.get("provider_reported_cost") or attempt.get("realized_cost", {})
+        )
+        ledger_debit = attempt.get("ledger_debit_cost") or attempt.get(
+            "realized_cost", {}
+        )
+        realized = provider_reported or ledger_debit
         budget_before = attempt.get("budget_before", {}) or {}
         budget_after = attempt.get("budget_after", {}) or {}
         predicted_total = _safe_float(predicted.get("total_tokens"))
+        provider_total = _safe_float(provider_reported.get("total_tokens"))
+        ledger_total = _safe_float(ledger_debit.get("total_tokens"))
         realized_total = _safe_float(realized.get("total_tokens"))
         tokens_remaining_before = _safe_float(budget_before.get("tokens_remaining"))
         ratio = (
@@ -447,6 +543,17 @@ def summarize_teacher_calibration(run_dir: Path) -> List[Dict[str, Any]]:
                 "predicted_input_tokens": predicted.get("input_tokens"),
                 "predicted_max_output_tokens": predicted.get("max_output_tokens"),
                 "predicted_total_tokens": predicted_total,
+                "provider_reported_input_tokens": provider_reported.get(
+                    "input_tokens"
+                ),
+                "provider_reported_output_tokens": provider_reported.get(
+                    "output_tokens"
+                ),
+                "provider_reported_total_tokens": provider_total,
+                "ledger_debit_input_tokens": ledger_debit.get("input_tokens"),
+                "ledger_debit_output_tokens": ledger_debit.get("output_tokens"),
+                "ledger_debit_total_tokens": ledger_total,
+                "ledger_debit_source": attempt.get("ledger_debit_source"),
                 "realized_input_tokens": realized.get("input_tokens"),
                 "realized_output_tokens": realized.get("output_tokens"),
                 "realized_total_tokens": realized_total,
@@ -606,6 +713,7 @@ def summarize_run(
                 config = yaml.safe_load(f) or {}
         except Exception:
             config = {}
+    seed_summary = _seed_materialization_summary(run_dir, config, token_usage)
 
     cycles = _cycle_metrics(metrics)
     metric_name = _choose_metric(cycles, metric)
@@ -626,7 +734,12 @@ def summarize_run(
         if metric_name in values_for_cycle:
             value = float(values_for_cycle[metric_name])
             values.append((cycle, value))
-            points.append((float(cycle_tokens.get(cycle, 0)), value))
+            tokens_at_eval = _safe_float(
+                values_for_cycle.get("_teacher_tokens_at_eval")
+            )
+            if tokens_at_eval is None:
+                tokens_at_eval = float(cycle_tokens.get(cycle, 0))
+            points.append((tokens_at_eval, value))
 
     best_cycle = None
     best_value = None
@@ -695,6 +808,7 @@ def summarize_run(
         "teacher_output_tokens": grand_total.get("output_tokens", 0),
         "teacher_total_tokens": grand_total.get("total_tokens", 0),
         "estimated_cost": grand_total.get("estimated_cost"),
+        **seed_summary,
         "cycles_completed": token_usage.get("cycles_completed", len(cycles)),
         "policy_decision_count": len(policy_decisions),
         "policy_stop_count": sum(
@@ -749,6 +863,11 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "teacher_output_tokens",
         "teacher_total_tokens",
         "estimated_cost",
+        "seed_materialization_manifest_count",
+        "seed_usage_estimated_records",
+        "seed_teacher_total_tokens",
+        "online_teacher_total_tokens",
+        "total_teacher_total_tokens",
         "cycles_completed",
         "policy_decision_count",
         "policy_stop_count",
@@ -1119,6 +1238,33 @@ def validate_pilot_gate(
             orphan_attempt_ids=[row.get("attempt_id") for row in orphan_attempts],
             missing_decision_attempt_ids=[
                 row.get("attempt_id") for row in missing_attempt_decisions
+            ],
+        )
+    )
+    attempt_decision_ids = {
+        str(row.get("decision_id"))
+        for row in calibration_rows
+        if row.get("decision_id")
+    }
+    acquisition_outcomes = {
+        "augment",
+        "augment_empty",
+        "augment_failed",
+        "budget_masked",
+    }
+    decisions_missing_attempts = [
+        row
+        for row in policy_rows
+        if row.get("decision_id")
+        and str(row.get("acquisition_outcome")) in acquisition_outcomes
+        and str(row.get("decision_id")) not in attempt_decision_ids
+    ]
+    checks.append(
+        _gate_check(
+            "acquisition_decisions_have_teacher_attempts",
+            not decisions_missing_attempts,
+            missing_decision_ids=[
+                row.get("decision_id") for row in decisions_missing_attempts
             ],
         )
     )

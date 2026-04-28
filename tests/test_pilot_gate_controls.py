@@ -230,6 +230,20 @@ def test_summarize_run_exposes_heldout_test_metric(tmp_path):
     assert summary["heldout_metric"] == 0.17
 
 
+def test_summarize_run_uses_eval_time_tokens_for_auc(tmp_path):
+    _write_run(tmp_path, name="eval_tokens", policy_name="cost_heuristic")
+    run_dir = tmp_path / "eval_tokens"
+    metrics = {
+        "0": {"macro_f1": 0.1, "_teacher_tokens_at_eval": 0},
+        "1": {"macro_f1": 0.2, "_teacher_tokens_at_eval": 5},
+    }
+    (run_dir / "metrics.json").write_text(json.dumps(metrics))
+
+    summary = summarize_run(run_dir, metric="macro_f1")
+
+    assert round(summary["cycle_quality_cost_auc"], 3) == 0.150
+
+
 def test_pilot_gate_requires_heldout_test_metric(tmp_path):
     _write_run(tmp_path, name="missing", policy_name="frugalkd_p")
 
@@ -272,6 +286,47 @@ def test_pilot_gate_accepts_heldout_test_metric(tmp_path):
     )
 
     assert report["passed"]
+
+
+def test_pilot_gate_requires_acquisition_decision_attempt_join(tmp_path):
+    _write_run(tmp_path, name="missing_attempt", policy_name="frugalkd_p")
+    run_dir = tmp_path / "missing_attempt"
+    (run_dir / "policy_decisions.jsonl").write_text(
+        json.dumps(
+            {
+                "cycle": 0,
+                "decision_id": "missing_attempt:d0",
+                "policy_name": "frugalkd_p",
+                "action_name": "coverage:cheap:b8",
+                "state": {},
+                "metadata": {"acquisition_outcome": "augment"},
+                "budget_before": {},
+                "budget_after": {},
+                "realized_cost": {},
+                "predicted_cost": {},
+            }
+        )
+        + "\n"
+    )
+    (run_dir / "teacher_attempts.jsonl").write_text("")
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "acquisition_decisions_have_teacher_attempts"
+    )
+    assert not report["passed"]
+    assert check["missing_decision_ids"] == ["missing_attempt:d0"]
 
 
 def test_plan_same_count_control_configs_from_source_runs(tmp_path):
