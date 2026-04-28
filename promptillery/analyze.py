@@ -3125,6 +3125,15 @@ def validate_paper_gate(
             failure_reasons.append("budget_violation_attempt")
         if (_safe_int(row.get("parse_failure_attempt_rows")) or 0) > 0:
             failure_reasons.append("parse_failure_attempt")
+        failed_attempt_rows = _safe_int(row.get("failed_attempt_rows")) or 0
+        masked_attempt_rows = _safe_int(row.get("masked_attempt_rows")) or 0
+        if max(0, failed_attempt_rows - masked_attempt_rows) > 0:
+            failure_reasons.append("failed_teacher_attempt")
+        if (
+            require_provider_reported_usage
+            and (_safe_int(row.get("missing_provider_usage_rows")) or 0) > 0
+        ):
+            failure_reasons.append("missing_provider_usage")
         if (
             require_provider_reported_usage
             and (_safe_int(row.get("estimated_or_reserved_usage_rows")) or 0) > 0
@@ -3196,7 +3205,30 @@ def validate_paper_gate(
                 manifest = _load_json(manifest_path)
             except json.JSONDecodeError as exc:
                 figure_failures.append(f"invalid_manifest_json:{exc}")
-        created = [Path(str(path)).name for path in manifest.get("created", []) if path]
+        created_refs = [str(path) for path in manifest.get("created", []) if path]
+        created = [Path(path).name for path in created_refs]
+        for raw_path in created_refs:
+            candidate = Path(raw_path)
+            candidates = (
+                [candidate]
+                if candidate.is_absolute()
+                else [
+                    Path.cwd() / candidate,
+                    manifest_path.parent / candidate,
+                    manifest_path.parent / candidate.name,
+                    report_dir / candidate,
+                ]
+            )
+            figure_path = next(
+                (path for path in candidates if path.exists()),
+                candidates[0],
+            )
+            if not figure_path.exists():
+                figure_failures.append(f"missing_figure_artifact:{raw_path}")
+            elif not figure_path.is_file():
+                figure_failures.append(f"non_file_figure_artifact:{raw_path}")
+            elif figure_path.stat().st_size <= 0:
+                figure_failures.append(f"empty_figure_artifact:{raw_path}")
         missing_figures = [
             figure
             for figure in required_figures

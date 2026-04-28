@@ -444,6 +444,7 @@ def test_paper_gate_passes_complete_report(tmp_path):
     )
     figure_dir = report_dir / "figures"
     figure_dir.mkdir()
+    (figure_dir / "quality_cost_dataset_macro_f1.pdf").write_bytes(b"%PDF-1.4\n")
     (figure_dir / "paper_figures_manifest.json").write_text(
         json.dumps(
             {
@@ -462,6 +463,186 @@ def test_paper_gate_passes_complete_report(tmp_path):
     )
 
     assert report["passed"]
+
+
+def test_paper_gate_rejects_missing_figure_artifact(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.3,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+    figure_dir = report_dir / "figures"
+    figure_dir.mkdir()
+    missing_figure = figure_dir / "quality_cost_dataset_macro_f1.pdf"
+    (figure_dir / "paper_figures_manifest.json").write_text(
+        json.dumps({"created": [str(missing_figure)], "skipped": []}) + "\n",
+        encoding="utf-8",
+    )
+
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        required_figures=["quality_cost"],
+    )
+
+    checks = {check["name"]: check for check in report["checks"]}
+    assert not report["passed"]
+    assert not checks["paper_required_figures_present"]["passed"]
+    assert checks["paper_required_figures_present"]["failures"] == [
+        f"missing_figure_artifact:{missing_figure}"
+    ]
+
+
+def test_paper_gate_rejects_missing_provider_usage(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    run_dir = tmp_path / "frugal"
+    (run_dir / "teacher_attempts.jsonl").write_text(
+        json.dumps(
+            {
+                "cycle": 0,
+                "attempt_id": "frugal:a0",
+                "decision_id": "frugal:d1",
+                "run_id": "frugal",
+                "status": "success",
+                "failure_type": "",
+                "predicted_cost": {"total_tokens": 8},
+                "provider_reported_cost": {},
+                "ledger_debit_cost": {"total_tokens": 8},
+                "realized_cost": {"total_tokens": 8},
+                "ledger_debit_source": "reserved_bound",
+                "budget_before": {"tokens_remaining": 100},
+                "budget_after": {"tokens_remaining": 92},
+                "metadata": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.3,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        require_figures=False,
+    )
+
+    budget_check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "paper_budget_audit_passes"
+    )
+    assert not report["passed"]
+    assert not budget_check["passed"]
+    assert budget_check["failures"][0]["failure_reasons"] == [
+        "missing_provider_usage",
+        "estimated_or_reserved_usage",
+    ]
+
+
+def test_paper_gate_rejects_nonmasked_failed_teacher_attempt(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    run_dir = tmp_path / "frugal"
+    (run_dir / "teacher_attempts.jsonl").write_text(
+        json.dumps(
+            {
+                "cycle": 0,
+                "attempt_id": "frugal:a0",
+                "decision_id": "frugal:d1",
+                "run_id": "frugal",
+                "status": "failed",
+                "failure_type": "rate_limit",
+                "predicted_cost": {"total_tokens": 8},
+                "provider_reported_cost": {"total_tokens": 8},
+                "ledger_debit_cost": {"total_tokens": 8},
+                "realized_cost": {"total_tokens": 8},
+                "ledger_debit_source": "provider_reported",
+                "budget_before": {"tokens_remaining": 100},
+                "budget_after": {"tokens_remaining": 92},
+                "metadata": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.3,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        require_figures=False,
+    )
+
+    budget_check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "paper_budget_audit_passes"
+    )
+    assert not report["passed"]
+    assert not budget_check["passed"]
+    assert budget_check["failures"][0]["failure_reasons"] == ["failed_teacher_attempt"]
 
 
 def test_paper_gate_rejects_missing_baseline_and_failed_certificate(tmp_path):
