@@ -37,6 +37,7 @@ Answer the student prompt below. Return only the target response.
 Student prompt:
 {{ student_prompt }}
 """
+SOURCE_INDEX_LIST_LIMIT = 5000
 
 
 def _stable_hash(value: Any) -> str:
@@ -169,6 +170,47 @@ def _configured_canonical_labels(config: ExperimentConfig) -> List[str]:
     return [str(label) for label in labels]
 
 
+def _temporary_source_index_column(source) -> str:
+    """Return a temporary source-index column name absent from the dataset."""
+    base_name = "__promptillery_source_index"
+    column = base_name
+    suffix = 1
+    while column in source.column_names:
+        suffix += 1
+        column = f"{base_name}_{suffix}"
+    return column
+
+
+def _drop_temporary_source_index(source, column: str):
+    """Remove the temporary source-index column from a selected dataset."""
+    if column in source.column_names:
+        return source.remove_columns(column)
+    return source
+
+
+def _selection_metadata(
+    *,
+    strategy: str,
+    seed: int,
+    source_records: int,
+    selected_indices: List[int],
+) -> Dict[str, Any]:
+    """Build an auditable manifest block for source-example selection."""
+    encoded_indices = json.dumps(selected_indices, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    metadata: Dict[str, Any] = {
+        "selection_strategy": strategy,
+        "selection_seed": seed,
+        "source_records_before_selection": source_records,
+        "selected_source_indices_count": len(selected_indices),
+        "selected_source_indices_sha256": sha256(encoded_indices).hexdigest(),
+        "selected_source_indices_preview": selected_indices[:20],
+        "selected_source_indices": selected_indices,
+    }
+    return metadata
+
+
 def _select_source_examples(
     source,
     *,
@@ -176,12 +218,51 @@ def _select_source_examples(
     stratify_by: str | None = None,
     seed: int = 0,
     canonical_labels: List[str] | None = None,
+    selection_strategy: str = "prefix",
+    return_metadata: bool = False,
 ):
     """Select materialization rows, optionally preserving label coverage."""
+    strategy = str(selection_strategy or "prefix").strip().lower()
+    if stratify_by:
+        if strategy not in {"prefix", "stratified"}:
+            raise ValueError(
+                "selection_strategy must be 'stratified' when "
+                "stratify_max_samples=true"
+            )
+        strategy = "stratified"
+    elif strategy not in {"prefix", "seeded_sample"}:
+        raise ValueError(
+            "selection_strategy must be one of: prefix, seeded_sample"
+        )
+
     if max_samples is None or max_samples >= len(source):
-        return source
+        selected_indices = list(range(len(source)))
+        metadata = _selection_metadata(
+            strategy="all",
+            seed=seed,
+            source_records=len(source),
+            selected_indices=selected_indices,
+        )
+        return (source, metadata) if return_metadata else source
+
     if not stratify_by:
-        return source.select(range(max_samples))
+        if strategy == "seeded_sample":
+            index_column = _temporary_source_index_column(source)
+            indexed_source = source.add_column(index_column, list(range(len(source))))
+            selected = indexed_source.shuffle(seed=seed).select(range(max_samples))
+            selected_indices = [int(index) for index in selected[index_column]]
+            selected = _drop_temporary_source_index(selected, index_column)
+        else:
+            selected_indices = list(range(max_samples))
+            selected = source.select(selected_indices)
+        metadata = _selection_metadata(
+            strategy=strategy,
+            seed=seed,
+            source_records=len(source),
+            selected_indices=selected_indices,
+        )
+        return (selected, metadata) if return_metadata else selected
+
     if stratify_by not in source.column_names:
         available = ", ".join(sorted(source.column_names))
         raise ValueError(
@@ -221,13 +302,32 @@ def _select_source_examples(
                 break
             if index not in selected:
                 selected.append(index)
-        return source.select(selected[:max_samples])
+        selected_indices = selected[:max_samples]
+        selected_source = source.select(selected_indices)
+        metadata = _selection_metadata(
+            strategy=strategy,
+            seed=seed,
+            source_records=len(source),
+            selected_indices=selected_indices,
+        )
+        return (selected_source, metadata) if return_metadata else selected_source
 
-    return source.train_test_split(
+    index_column = _temporary_source_index_column(source)
+    indexed_source = source.add_column(index_column, list(range(len(source))))
+    selected_source = indexed_source.train_test_split(
         train_size=max_samples,
         stratify_by_column=stratify_by,
         seed=seed,
     )["train"]
+    selected_indices = [int(index) for index in selected_source[index_column]]
+    selected_source = _drop_temporary_source_index(selected_source, index_column)
+    metadata = _selection_metadata(
+        strategy=strategy,
+        seed=seed,
+        source_records=len(source),
+        selected_indices=selected_indices,
+    )
+    return (selected_source, metadata) if return_metadata else selected_source
 
 
 def _format_template(template: str, values: Dict[str, Any]) -> str:
@@ -353,6 +453,21 @@ async def materialize_sft_records(
     canonical_labels_field = materialize_config.get("canonical_labels_field")
     configured_canonical_labels = _configured_canonical_labels(config)
     stratify_max_samples = bool(materialize_config.get("stratify_max_samples", False))
+    configured_selection_strategy = materialize_config.get("selection_strategy")
+    if configured_selection_strategy is None:
+        selection_strategy = "stratified" if stratify_max_samples else "prefix"
+    else:
+        selection_strategy = str(configured_selection_strategy).strip().lower()
+    if stratify_max_samples and selection_strategy != "stratified":
+        raise ValueError(
+            "materialize_sft.selection_strategy must be 'stratified' when "
+            "stratify_max_samples=true"
+        )
+    if not stratify_max_samples and selection_strategy == "stratified":
+        raise ValueError(
+            "materialize_sft.selection_strategy='stratified' requires "
+            "stratify_max_samples=true"
+        )
 
     dataset = load_materialization_dataset(config)
     if split not in dataset:
@@ -360,12 +475,14 @@ async def materialize_sft_records(
         raise ValueError(f"Split '{split}' not found. Available splits: {available}")
 
     source = dataset[split]
-    source = _select_source_examples(
+    source, selection_info = _select_source_examples(
         source,
         max_samples=max_samples,
         stratify_by=stratify_field if stratify_max_samples else None,
         seed=int(config.seed),
         canonical_labels=configured_canonical_labels,
+        selection_strategy=selection_strategy,
+        return_metadata=True,
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -393,6 +510,9 @@ async def materialize_sft_records(
         with temp_path.open("w", encoding="utf-8") as f:
             for index, row in enumerate(source):
                 attempted += 1
+                source_original_index = selection_info["selected_source_indices"][
+                    index
+                ]
                 predicted_total = 0
                 row_values = dict(row)
                 gold_answer, resolved_gold_field = _label_text(
@@ -519,6 +639,7 @@ async def materialize_sft_records(
                     "source_example_id": source_id,
                     "source_split": split,
                     "source_index": index,
+                    "source_original_index": source_original_index,
                     "prompt_operator": prompt_operator,
                     "teacher_tier": teacher_tier if mode == "teacher" else "gold",
                     "teacher_model": config.teacher if mode == "teacher" else "gold",
@@ -586,11 +707,16 @@ async def materialize_sft_records(
                 "mode": mode,
                 "split": split,
                 "max_samples": max_samples,
+                "selection_strategy": selection_info["selection_strategy"],
+                "selection_seed": selection_info["selection_seed"],
                 "prompt_operator": prompt_operator,
                 "teacher_tier": teacher_tier,
                 "allow_partial": allow_partial,
                 "allow_estimated_usage": allow_estimated_usage,
             },
+            "source_records_before_selection": selection_info[
+                "source_records_before_selection"
+            ],
             "source_records": len(source),
             "attempted_records": attempted,
             "accepted_records": written,
@@ -603,6 +729,17 @@ async def materialize_sft_records(
             "mode": mode,
             "max_samples": max_samples,
             "stratify_max_samples": stratify_max_samples,
+            "selection_strategy": selection_info["selection_strategy"],
+            "selection_seed": selection_info["selection_seed"],
+            "selected_source_indices_count": selection_info[
+                "selected_source_indices_count"
+            ],
+            "selected_source_indices_sha256": selection_info[
+                "selected_source_indices_sha256"
+            ],
+            "selected_source_indices_preview": selection_info[
+                "selected_source_indices_preview"
+            ],
             "prompt_operator": prompt_operator,
             "teacher_tier": teacher_tier,
             "token_budget": config.token_budget,
@@ -626,6 +763,13 @@ async def materialize_sft_records(
                 artifact_dir=output_path.parent,
             ),
         }
+        if (
+            selection_info["selected_source_indices_count"]
+            <= SOURCE_INDEX_LIST_LIMIT
+        ):
+            manifest["selected_source_indices"] = selection_info[
+                "selected_source_indices"
+            ]
         if canonical_labels_path:
             manifest["canonical_labels_path"] = canonical_labels_path
         artifact_hash = sha256()

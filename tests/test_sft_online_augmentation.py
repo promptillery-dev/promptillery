@@ -560,6 +560,47 @@ def test_select_source_examples_can_stratify_string_labels():
     assert set(subset["answerKey"]) == {"A", "B", "C"}
 
 
+def test_select_source_examples_can_use_seeded_sample():
+    dataset = Dataset.from_dict(
+        {"text": [f"example-{index}" for index in range(20)]}
+    )
+
+    subset, metadata = _select_source_examples(
+        dataset,
+        max_samples=6,
+        seed=13,
+        selection_strategy="seeded_sample",
+        return_metadata=True,
+    )
+    repeated_subset, repeated_metadata = _select_source_examples(
+        dataset,
+        max_samples=6,
+        seed=13,
+        selection_strategy="seeded_sample",
+        return_metadata=True,
+    )
+    other_subset, other_metadata = _select_source_examples(
+        dataset,
+        max_samples=6,
+        seed=101,
+        selection_strategy="seeded_sample",
+        return_metadata=True,
+    )
+
+    assert len(subset) == 6
+    assert metadata["selection_strategy"] == "seeded_sample"
+    assert metadata["selection_seed"] == 13
+    assert metadata["selected_source_indices"] != list(range(6))
+    assert metadata["selected_source_indices"] == repeated_metadata[
+        "selected_source_indices"
+    ]
+    assert subset["text"] == repeated_subset["text"]
+    assert metadata["selected_source_indices"] != other_metadata[
+        "selected_source_indices"
+    ]
+    assert subset["text"] != other_subset["text"]
+
+
 def test_select_source_examples_rejects_too_small_stratified_cap():
     features = Features(
         {
@@ -582,6 +623,69 @@ def test_select_source_examples_rejects_too_small_stratified_cap():
             stratify_by="label",
             seed=13,
         )
+
+
+def test_materialize_manifest_records_seeded_sample_selection(monkeypatch, tmp_path):
+    source = Dataset.from_dict(
+        {
+            "text": [f"prompt-{index}" for index in range(12)],
+            "label_text": ["alpha", "beta"] * 6,
+        },
+    )
+    dataset = DatasetDict({"train": source})
+    monkeypatch.setattr(
+        "promptillery.sft_materialize.load_materialization_dataset",
+        lambda config: dataset,
+    )
+    config = ExperimentConfig(
+        name="seeded_materialization",
+        dataset="mock",
+        teacher="mock/teacher",
+        seed=13,
+        paper_mode=True,
+        auto_modify_name=False,
+        dataset_config={
+            "name": "mock",
+            "num_classes": 2,
+            "text_field": "text",
+            "label_field": "label_text",
+        },
+        trainer_config={
+            "materialize_sft": {
+                "gold_answer_field": "label_text",
+                "selection_strategy": "seeded_sample",
+            }
+        },
+    )
+
+    result = asyncio.run(
+        materialize_sft_records(
+            config=config,
+            output_path=tmp_path / "train.jsonl",
+            split="train",
+            mode="gold",
+            max_samples=4,
+        )
+    )
+
+    records = [
+        json.loads(line)
+        for line in (tmp_path / "train.jsonl").read_text().splitlines()
+    ]
+    manifest = json.loads((tmp_path / "train.jsonl.manifest.json").read_text())
+    selected_indices = manifest["selected_source_indices"]
+
+    assert result["records"] == 4
+    assert manifest["selection_strategy"] == "seeded_sample"
+    assert manifest["selection_seed"] == 13
+    assert manifest["source_records_before_selection"] == 12
+    assert manifest["selected_source_indices_count"] == 4
+    assert selected_indices != list(range(4))
+    assert [record["source_index"] for record in records] == [0, 1, 2, 3]
+    assert [record["source_original_index"] for record in records] == selected_indices
+    assert [record["student_prompt"] for record in records] == [
+        source[int(index)]["text"] for index in selected_indices
+    ]
 
 
 def test_origin_columns_preserve_materialized_sft_metadata():
