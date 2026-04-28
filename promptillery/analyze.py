@@ -1085,6 +1085,110 @@ def _gate_check(name: str, passed: bool, **details: Any) -> Dict[str, Any]:
     return {"name": name, "passed": passed, **details}
 
 
+SUCCESS_MATCH_FIELDS = (
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "seed",
+    "token_budget",
+    "selection_split",
+    "metric",
+    "mode",
+)
+
+
+def _success_match_key(row: Dict[str, Any]) -> tuple[str, ...]:
+    """Return the paired-comparison key for scientific-success checks."""
+    return tuple(str(row.get(field) or "") for field in SUCCESS_MATCH_FIELDS)
+
+
+def _comparison_delta(
+    policy_value: float | None,
+    baseline_value: float | None,
+    mode: str,
+) -> float | None:
+    """Return positive values when the policy beats the baseline."""
+    if policy_value is None or baseline_value is None:
+        return None
+    return baseline_value - policy_value if mode == "min" else policy_value - baseline_value
+
+
+def _paired_success_check(
+    *,
+    rows: List[Dict[str, Any]],
+    name: str,
+    success_policy: str,
+    baseline_rows: List[Dict[str, Any]],
+    value_key: str,
+    min_win_rate: float,
+    min_delta: float,
+) -> Dict[str, Any]:
+    """Compare one policy against matched baselines for one metric column."""
+    success_rows = [
+        row
+        for row in rows
+        if str(row.get("policy_name") or "") == success_policy
+        and not _is_same_count_control(row)
+    ]
+    baselines_by_key: Dict[tuple[str, ...], List[Dict[str, Any]]] = {}
+    for row in baseline_rows:
+        baselines_by_key.setdefault(_success_match_key(row), []).append(row)
+
+    comparisons = []
+    missing_pairs = []
+    for policy_row in success_rows:
+        key = _success_match_key(policy_row)
+        matched = baselines_by_key.get(key, [])
+        if not matched:
+            missing_pairs.append(
+                {
+                    "run_id": policy_row.get("run_id"),
+                    "key": list(key),
+                }
+            )
+            continue
+        for baseline_row in matched:
+            delta = _comparison_delta(
+                _safe_float(policy_row.get(value_key)),
+                _safe_float(baseline_row.get(value_key)),
+                str(policy_row.get("mode") or "max"),
+            )
+            comparisons.append(
+                {
+                    "policy_run_id": policy_row.get("run_id"),
+                    "baseline_run_id": baseline_row.get("run_id"),
+                    "baseline_policy": baseline_row.get("policy_name"),
+                    "baseline_control": baseline_row.get("control_name"),
+                    "seed": policy_row.get("seed"),
+                    "token_budget": policy_row.get("token_budget"),
+                    "delta": delta,
+                    "won": delta is not None and delta >= min_delta,
+                }
+            )
+
+    valid = [row for row in comparisons if row["delta"] is not None]
+    win_count = sum(1 for row in valid if row["won"])
+    win_rate = (win_count / len(valid)) if valid else 0.0
+    return _gate_check(
+        name,
+        bool(valid) and not missing_pairs and win_rate >= min_win_rate,
+        success_policy=success_policy,
+        value_key=value_key,
+        min_win_rate=min_win_rate,
+        min_delta=min_delta,
+        comparison_count=len(valid),
+        win_count=win_count,
+        win_rate=win_rate,
+        missing_pairs=missing_pairs,
+        failures=[
+            row
+            for row in comparisons
+            if row["delta"] is None or not row["won"]
+        ],
+    )
+
+
 def validate_pilot_gate(
     path: Path,
     *,
@@ -1099,6 +1203,15 @@ def validate_pilot_gate(
     require_full_label_coverage: bool = False,
     require_same_count_control: bool = False,
     same_count_source_policy: str = "frugalkd_p",
+    success_policy: str | None = None,
+    success_baselines: List[str] | None = None,
+    min_auc_win_rate: float | None = None,
+    min_heldout_win_rate: float | None = None,
+    min_final_win_rate: float | None = None,
+    min_auc_delta: float = 0.0,
+    min_heldout_delta: float = 0.0,
+    min_final_delta: float = 0.0,
+    require_same_count_success: bool = False,
 ) -> Dict[str, Any]:
     """Return a pass/fail report for the cheap policy-axis pilot."""
     rows = analyze_runs(path, metric=metric, mode=mode)
@@ -1384,6 +1497,51 @@ def validate_pilot_gate(
             )
         )
 
+    baseline_set = set(success_baselines or [])
+    if success_policy and baseline_set:
+        non_control_rows = [row for row in rows if not _is_same_count_control(row)]
+        baseline_rows = [
+            row
+            for row in non_control_rows
+            if str(row.get("policy_name") or "") in baseline_set
+        ]
+        if min_auc_win_rate is not None:
+            checks.append(
+                _paired_success_check(
+                    rows=non_control_rows,
+                    name="success_policy_beats_baselines_auc",
+                    success_policy=success_policy,
+                    baseline_rows=baseline_rows,
+                    value_key="cycle_quality_cost_auc",
+                    min_win_rate=min_auc_win_rate,
+                    min_delta=min_auc_delta,
+                )
+            )
+        if min_heldout_win_rate is not None:
+            checks.append(
+                _paired_success_check(
+                    rows=non_control_rows,
+                    name="success_policy_beats_baselines_heldout",
+                    success_policy=success_policy,
+                    baseline_rows=baseline_rows,
+                    value_key="heldout_metric",
+                    min_win_rate=min_heldout_win_rate,
+                    min_delta=min_heldout_delta,
+                )
+            )
+        if min_final_win_rate is not None:
+            checks.append(
+                _paired_success_check(
+                    rows=non_control_rows,
+                    name="success_policy_beats_baselines_final",
+                    success_policy=success_policy,
+                    baseline_rows=baseline_rows,
+                    value_key="final_metric",
+                    min_win_rate=min_final_win_rate,
+                    min_delta=min_final_delta,
+                )
+            )
+
     if require_same_count_control:
         same_count_rows = [
             row for row in rows if _is_same_count_control(row)
@@ -1453,6 +1611,43 @@ def validate_pilot_gate(
                 malformed_controls=malformed_controls,
             )
         )
+        if success_policy and require_same_count_success:
+            if min_auc_win_rate is not None:
+                checks.append(
+                    _paired_success_check(
+                        rows=rows,
+                        name="success_policy_beats_same_count_auc",
+                        success_policy=success_policy,
+                        baseline_rows=same_count_rows,
+                        value_key="cycle_quality_cost_auc",
+                        min_win_rate=min_auc_win_rate,
+                        min_delta=min_auc_delta,
+                    )
+                )
+            if min_heldout_win_rate is not None:
+                checks.append(
+                    _paired_success_check(
+                        rows=rows,
+                        name="success_policy_beats_same_count_heldout",
+                        success_policy=success_policy,
+                        baseline_rows=same_count_rows,
+                        value_key="heldout_metric",
+                        min_win_rate=min_heldout_win_rate,
+                        min_delta=min_heldout_delta,
+                    )
+                )
+            if min_final_win_rate is not None:
+                checks.append(
+                    _paired_success_check(
+                        rows=rows,
+                        name="success_policy_beats_same_count_final",
+                        success_policy=success_policy,
+                        baseline_rows=same_count_rows,
+                        value_key="final_metric",
+                        min_win_rate=min_final_win_rate,
+                        min_delta=min_final_delta,
+                    )
+                )
 
     passed = all(check["passed"] for check in checks)
     return {

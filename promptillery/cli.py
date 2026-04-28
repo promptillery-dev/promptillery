@@ -320,6 +320,51 @@ def pilot_gate(
         "--same-count-source-policy",
         help="Policy whose final synthetic count same_count controls must match",
     ),
+    success_policy: str | None = typer.Option(
+        None,
+        "--success-policy",
+        help="Policy that must beat matched baselines for scientific-success gates",
+    ),
+    success_baselines: str = typer.Option(
+        "",
+        "--success-baselines",
+        help="Comma-separated baseline policy_name values for success checks",
+    ),
+    min_auc_win_rate: float | None = typer.Option(
+        None,
+        "--min-auc-win-rate",
+        help="Minimum paired win rate on cycle_quality_cost_auc",
+    ),
+    min_heldout_win_rate: float | None = typer.Option(
+        None,
+        "--min-heldout-win-rate",
+        help="Minimum paired win rate on heldout_metric",
+    ),
+    min_final_win_rate: float | None = typer.Option(
+        None,
+        "--min-final-win-rate",
+        help="Minimum paired win rate on final_metric",
+    ),
+    min_auc_delta: float = typer.Option(
+        0.0,
+        "--min-auc-delta",
+        help="Minimum paired AUC delta counted as a win",
+    ),
+    min_heldout_delta: float = typer.Option(
+        0.0,
+        "--min-heldout-delta",
+        help="Minimum paired heldout delta counted as a win",
+    ),
+    min_final_delta: float = typer.Option(
+        0.0,
+        "--min-final-delta",
+        help="Minimum paired final-metric delta counted as a win",
+    ),
+    require_same_count_success: bool = typer.Option(
+        False,
+        "--require-same-count-success/--no-require-same-count-success",
+        help="Require success_policy to beat matched same_count controls",
+    ),
 ) -> None:
     """Validate cheap-pilot artifacts against reviewer-facing gate checks."""
     if mode not in {"auto", "max", "min"}:
@@ -340,6 +385,15 @@ def pilot_gate(
             require_full_label_coverage=require_full_label_coverage,
             require_same_count_control=require_same_count_control,
             same_count_source_policy=same_count_source_policy,
+            success_policy=success_policy,
+            success_baselines=_csv_option_values(success_baselines),
+            min_auc_win_rate=min_auc_win_rate,
+            min_heldout_win_rate=min_heldout_win_rate,
+            min_final_win_rate=min_final_win_rate,
+            min_auc_delta=min_auc_delta,
+            min_heldout_delta=min_heldout_delta,
+            min_final_delta=min_final_delta,
+            require_same_count_success=require_same_count_success,
         )
     except ValueError as exc:
         typer.echo(f"Error: {exc}", err=True)

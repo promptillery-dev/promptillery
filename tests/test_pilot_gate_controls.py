@@ -21,6 +21,8 @@ def _write_run(
     synthetic_record_budget: int | None = None,
     final_synthetic_count: int = 0,
     manifest_final_synthetic_count: int | None = None,
+    cycle0_metric: float = 0.1,
+    final_metric: float = 0.2,
     heldout_metric: float | None = None,
     canonical_label_count: int | None = None,
     observed_gold_label_count: int | None = None,
@@ -56,12 +58,12 @@ def _write_run(
             ]
         )
     )
-    final_metrics = {"macro_f1": 0.2}
+    final_metrics = {"macro_f1": final_metric}
     if canonical_label_count is not None:
         final_metrics["canonical_label_count"] = canonical_label_count
     if observed_gold_label_count is not None:
         final_metrics["observed_gold_label_count"] = observed_gold_label_count
-    metrics = {"0": {"macro_f1": 0.1}, "1": final_metrics}
+    metrics = {"0": {"macro_f1": cycle0_metric}, "1": final_metrics}
     if heldout_metric is not None:
         metrics["heldout_test"] = {
             "macro_f1": heldout_metric,
@@ -365,6 +367,117 @@ def test_pilot_gate_accepts_full_canonical_label_coverage(tmp_path):
     )
 
     assert report["passed"]
+
+
+def test_pilot_gate_requires_success_policy_auc_win(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.1,
+        final_metric=0.2,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.2,
+        final_metric=0.3,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p", "cost_heuristic"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        success_policy="frugalkd_p",
+        success_baselines=["cost_heuristic"],
+        min_auc_win_rate=1.0,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "success_policy_beats_baselines_auc"
+    )
+    assert not report["passed"]
+    assert check["win_rate"] == 0.0
+
+
+def test_pilot_gate_accepts_success_policy_heldout_win(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        heldout_metric=0.4,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        heldout_metric=0.3,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p", "cost_heuristic"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_heldout=True,
+        success_policy="frugalkd_p",
+        success_baselines=["cost_heuristic"],
+        min_heldout_win_rate=1.0,
+    )
+
+    assert report["passed"]
+
+
+def test_pilot_gate_requires_same_count_success(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        final_synthetic_count=3,
+        heldout_metric=0.3,
+    )
+    _write_run(
+        tmp_path,
+        name="same_count",
+        policy_name="cost_heuristic",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+        heldout_metric=0.35,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_heldout=True,
+        require_same_count_control=True,
+        success_policy="frugalkd_p",
+        min_heldout_win_rate=1.0,
+        require_same_count_success=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "success_policy_beats_same_count_heldout"
+    )
+    assert not report["passed"]
+    assert check["win_rate"] == 0.0
 
 
 def test_pilot_gate_requires_acquisition_decision_attempt_join(tmp_path):
