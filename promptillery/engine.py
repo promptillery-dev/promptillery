@@ -955,11 +955,24 @@ class DistillationEngine:
 
         trainer_config = self.cfg.trainer_config or {}
         budget_splits = trainer_config.get("budget_splits", ["train"])
-        required = bool(trainer_config.get("require_teacher_token_fields", True))
+        required = bool(trainer_config.get("require_teacher_token_fields", True)) or bool(
+            self.cfg.paper_mode
+        )
         fields = (
             "teacher_input_tokens",
             "teacher_output_tokens",
             "teacher_total_tokens",
+        )
+
+        validate_splits = trainer_config.get("validate_budget_splits")
+        if validate_splits is None:
+            validate_splits = (
+                list(self.dataset.keys()) if self.cfg.paper_mode else budget_splits
+            )
+        self._validate_external_sft_token_usage(
+            splits=list(validate_splits),
+            fields=fields,
+            required=required,
         )
 
         input_tokens = 0
@@ -999,14 +1012,6 @@ class DistillationEngine:
                         "Invalid SFT token accounting: teacher_total_tokens must "
                         "be at least teacher_input_tokens + teacher_output_tokens"
                     )
-                if (
-                    self.cfg.paper_mode
-                    and "usage_estimated" in ds.column_names
-                    and bool(row["usage_estimated"])
-                ):
-                    raise ValueError(
-                        "paper_mode=true rejects SFT rows with usage_estimated=true"
-                    )
                 input_tokens += row_input
                 output_tokens += row_output
                 total_tokens += row_total
@@ -1017,6 +1022,14 @@ class DistillationEngine:
                 f"Pre-materialized SFT data uses {total_tokens:,} teacher tokens, "
                 f"exceeding configured token_budget={self.cfg.token_budget:,}"
             )
+
+        if charged_rows <= 0:
+            self._external_sft_usage_recorded = True
+            logger.info(
+                "Validated pre-materialized SFT token fields without debiting seed "
+                "rows into the online policy budget"
+            )
+            return
 
         usage = TokenUsage(
             input_tokens=input_tokens,
@@ -1031,6 +1044,50 @@ class DistillationEngine:
             charged_rows,
             total_tokens,
         )
+
+    def _validate_external_sft_token_usage(
+        self,
+        *,
+        splits: List[str],
+        fields: tuple[str, str, str],
+        required: bool,
+    ) -> None:
+        """Validate fixed SFT seed token fields without debiting them."""
+        for split in splits:
+            if split not in self.dataset:
+                if required:
+                    raise ValueError(
+                        f"SFT validation split '{split}' is missing from the dataset"
+                    )
+                continue
+
+            ds = self.dataset[split]
+            missing = [field for field in fields if field not in ds.column_names]
+            if missing:
+                if required:
+                    raise ValueError(
+                        "Pre-materialized SFT data must include teacher token "
+                        f"fields {fields}; missing {missing} in split '{split}'"
+                    )
+                continue
+
+            for row in ds:
+                row_input = int(row["teacher_input_tokens"] or 0)
+                row_output = int(row["teacher_output_tokens"] or 0)
+                row_total = int(row["teacher_total_tokens"] or 0)
+                if row_total < row_input + row_output:
+                    raise ValueError(
+                        "Invalid SFT token accounting: teacher_total_tokens must "
+                        "be at least teacher_input_tokens + teacher_output_tokens"
+                    )
+                if (
+                    self.cfg.paper_mode
+                    and "usage_estimated" in ds.column_names
+                    and bool(row["usage_estimated"])
+                ):
+                    raise ValueError(
+                        "paper_mode=true rejects SFT rows with usage_estimated=true"
+                    )
 
     @staticmethod
     def _estimate_tokens_from_chars(messages: List[Dict[str, str]]) -> int:

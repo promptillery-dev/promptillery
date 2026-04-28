@@ -254,6 +254,86 @@ def test_origin_columns_preserve_materialized_sft_metadata():
     assert prepared["train"]["origin_cycle"] == [2]
 
 
+def test_paper_mode_validates_seed_usage_even_when_not_debited():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        name="seed-validation-test",
+        student_type="causal_lm_sft",
+        paper_mode=True,
+        trainer_config={
+            "budget_splits": [],
+            "require_teacher_token_fields": True,
+        },
+        token_budget=100,
+    )
+    engine.dataset = DatasetDict(
+        {
+            "train": Dataset.from_dict(
+                {
+                    "student_prompt": ["prompt"],
+                    "teacher_response": ["answer"],
+                    "teacher_input_tokens": [3],
+                    "teacher_output_tokens": [2],
+                    "teacher_total_tokens": [5],
+                    "usage_estimated": [True],
+                }
+            )
+        }
+    )
+    engine.token_tracker = TokenTracker(
+        experiment_name="seed-validation-test",
+        teacher_model="teacher/mock",
+        quiet=True,
+        token_budget=100,
+    )
+    engine.token_tracker.start_cycle(0)
+    engine._external_sft_usage_recorded = False
+
+    with pytest.raises(ValueError, match="usage_estimated=true"):
+        engine._record_external_sft_token_usage()
+
+
+def test_seed_usage_validation_can_skip_online_budget_debit():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(
+        name="seed-validation-test",
+        student_type="causal_lm_sft",
+        paper_mode=True,
+        trainer_config={
+            "budget_splits": [],
+            "require_teacher_token_fields": True,
+        },
+        token_budget=100,
+    )
+    engine.dataset = DatasetDict(
+        {
+            "train": Dataset.from_dict(
+                {
+                    "student_prompt": ["prompt"],
+                    "teacher_response": ["answer"],
+                    "teacher_input_tokens": [3],
+                    "teacher_output_tokens": [2],
+                    "teacher_total_tokens": [5],
+                    "usage_estimated": [False],
+                }
+            )
+        }
+    )
+    engine.token_tracker = TokenTracker(
+        experiment_name="seed-validation-test",
+        teacher_model="teacher/mock",
+        quiet=True,
+        token_budget=100,
+    )
+    engine.token_tracker.start_cycle(0)
+    engine._external_sft_usage_recorded = False
+
+    engine._record_external_sft_token_usage()
+
+    assert engine._external_sft_usage_recorded is True
+    assert engine.token_tracker.current_cycle_usage().total_tokens == 0
+
+
 def test_augmented_sft_rows_preserve_schema_fields():
     engine = DistillationEngine.__new__(DistillationEngine)
     engine.cfg = SimpleNamespace(
