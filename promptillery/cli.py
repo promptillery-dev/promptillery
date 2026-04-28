@@ -14,6 +14,7 @@ from .ablation import AblationStudyRunner
 from .analyze import (
     analyze_runs,
     plan_same_count_control_configs,
+    validate_fixed_scorer_gate,
     validate_paper_gate,
     validate_pilot_gate,
     write_audit_csvs,
@@ -292,6 +293,11 @@ def paper_report(
         "--success-baselines",
         help="Comma-separated baseline policy_name values for paired deltas",
     ),
+    success_control_baselines: str = typer.Option(
+        "",
+        "--success-control-baselines",
+        help="Comma-separated baseline control_name values for paired deltas",
+    ),
 ) -> None:
     """Write paper-facing result, delta, budget, and behavior tables."""
     if mode not in {"auto", "max", "min"}:
@@ -325,6 +331,7 @@ def paper_report(
         Path(output_dir),
         success_policy=success_policy,
         baseline_policies=_csv_option_values(success_baselines),
+        baseline_control_names=_csv_option_values(success_control_baselines),
     )
     typer.echo(
         "Wrote paper report tables to "
@@ -426,6 +433,11 @@ def paper_gate(
         "--min-final-delta",
         help="Minimum mean final-metric delta for required comparisons",
     ),
+    max_seed_baseline_delta: float | None = typer.Option(
+        1e-9,
+        "--max-seed-baseline-delta",
+        help="Maximum absolute seed-only metric delta in required comparisons",
+    ),
     require_provider_reported_usage: bool = typer.Option(
         True,
         "--require-provider-reported-usage/--no-require-provider-reported-usage",
@@ -449,6 +461,7 @@ def paper_gate(
         min_auc_delta=min_auc_delta,
         min_heldout_delta=min_heldout_delta,
         min_final_delta=min_final_delta,
+        max_seed_baseline_delta=max_seed_baseline_delta,
         require_provider_reported_usage=require_provider_reported_usage,
         require_figures=require_figures,
     )
@@ -458,6 +471,90 @@ def paper_gate(
         Path(output).parent.mkdir(parents=True, exist_ok=True)
         Path(output).write_text(report_json + "\n", encoding="utf-8")
         typer.echo(f"Wrote paper gate report to {output}")
+    else:
+        typer.echo(report_json)
+
+    if not report["passed"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("fixed-scorer-gate")
+def fixed_scorer_gate(
+    path: str = typer.Argument(..., help="Fixed-scorer sensitivity run root"),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional JSON gate report output path",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to summarize; defaults to the first recognized run metric",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+    control_names: str = typer.Option(
+        "fixed_scorer_no_cost,fixed_scorer_single_operator,fixed_scorer_single_batch,fixed_scorer_no_stop",
+        "--control-names",
+        help="Comma-separated fixed-scorer control_name values required",
+    ),
+    seeds: str = typer.Option(
+        "",
+        "--seeds",
+        help="Comma-separated seeds required for each control",
+    ),
+    budgets: str = typer.Option(
+        "",
+        "--budgets",
+        help="Comma-separated token budgets required for each control",
+    ),
+    require_heldout: bool = typer.Option(
+        True,
+        "--require-heldout/--no-require-heldout",
+        help="Require held-out test metrics for every sensitivity run",
+    ),
+    require_paper_mode: bool = typer.Option(
+        True,
+        "--require-paper-mode/--no-require-paper-mode",
+        help="Require completed paper_mode runs",
+    ),
+    require_provider_reported_usage: bool = typer.Option(
+        True,
+        "--require-provider-reported-usage/--no-require-provider-reported-usage",
+        help="Reject estimated seed usage and non-provider teacher debits",
+    ),
+) -> None:
+    """Validate fixed-scorer sensitivity controls without action parity."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        report = validate_fixed_scorer_gate(
+            Path(path),
+            metric=metric,
+            mode=mode,
+            required_control_names=_csv_option_values(control_names),
+            expected_seeds=_csv_option_values(seeds),
+            expected_budgets=_csv_option_values(budgets),
+            require_heldout=require_heldout,
+            require_paper_mode=require_paper_mode,
+            require_provider_reported_usage=require_provider_reported_usage,
+        )
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    report_json = json.dumps(report, indent=2, sort_keys=True)
+    if output:
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        Path(output).write_text(report_json + "\n", encoding="utf-8")
+        typer.echo(f"Wrote fixed-scorer gate report to {output}")
     else:
         typer.echo(report_json)
 

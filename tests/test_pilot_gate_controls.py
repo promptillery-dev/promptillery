@@ -11,6 +11,7 @@ from promptillery.analyze import (
     plan_same_count_control_configs,
     summarize_budget_feasibility,
     summarize_run,
+    validate_fixed_scorer_gate,
     validate_paper_gate,
     validate_pilot_gate,
     write_audit_csvs,
@@ -707,7 +708,7 @@ def test_paper_gate_passes_complete_report(tmp_path):
         tmp_path,
         name="heuristic",
         policy_name="cost_heuristic",
-        cycle0_metric=0.3,
+        cycle0_metric=0.4,
         final_metric=0.6,
         heldout_metric=0.55,
     )
@@ -780,7 +781,7 @@ def test_paper_gate_rejects_missing_figure_artifact(tmp_path):
         tmp_path,
         name="heuristic",
         policy_name="cost_heuristic",
-        cycle0_metric=0.3,
+        cycle0_metric=0.4,
         final_metric=0.6,
         heldout_metric=0.55,
     )
@@ -811,6 +812,156 @@ def test_paper_gate_rejects_missing_figure_artifact(tmp_path):
     assert not checks["paper_required_figures_present"]["passed"]
     assert checks["paper_required_figures_present"]["failures"] == [
         f"missing_figure_artifact:{missing_figure}"
+    ]
+
+
+def test_paper_gate_rejects_seed_baseline_mismatch(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.35,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    for name in ("frugal", "heuristic"):
+        _write_dataset_cycle(
+            tmp_path,
+            name,
+            [
+                {
+                    "id": f"{name}/seed/0",
+                    "student_prompt": "balance question",
+                    "teacher_response": "alpha",
+                    "gold_answer": "alpha",
+                    "source_split": "train",
+                    "source_idx": 0,
+                    "origin_cycle": 0,
+                }
+            ],
+        )
+
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic"],
+    )
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        require_figures=False,
+    )
+
+    checks = {check["name"]: check for check in report["checks"]}
+    assert not report["passed"]
+    assert not checks["paper_shared_seed_baselines_match"]["passed"]
+    assert checks["paper_shared_seed_baselines_match"]["failures"][0][
+        "failure"
+    ] == "seed_baseline_delta_above_tolerance"
+
+
+def test_paper_report_compares_fixed_scorer_control_baselines(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    _write_run(
+        tmp_path,
+        name="fixed_scorer_no_cost",
+        policy_name="frugalkd_p",
+        control_name="fixed_scorer_no_cost",
+        cycle0_metric=0.4,
+        final_metric=0.65,
+        heldout_metric=0.6,
+    )
+
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=[],
+        baseline_control_names=["fixed_scorer_no_cost"],
+    )
+
+    with (report_dir / "paper_pairwise_deltas.csv").open(
+        newline="", encoding="utf-8"
+    ) as f:
+        delta_rows = list(csv.DictReader(f))
+    assert len(delta_rows) == 1
+    assert delta_rows[0]["baseline_policy"] == "frugalkd_p"
+    assert delta_rows[0]["baseline_control_name"] == "fixed_scorer_no_cost"
+    assert float(delta_rows[0]["delta_seed_baseline_metric"]) == 0.0
+    assert float(delta_rows[0]["delta_heldout_metric"]) > 0
+
+
+def test_fixed_scorer_gate_accepts_required_controls(tmp_path):
+    for control_name in (
+        "fixed_scorer_no_cost",
+        "fixed_scorer_single_operator",
+        "fixed_scorer_single_batch",
+        "fixed_scorer_no_stop",
+    ):
+        _write_run(
+            tmp_path,
+            name=control_name,
+            policy_name="frugalkd_p",
+            control_name=control_name,
+            token_budget=100000,
+            heldout_metric=0.7,
+        )
+
+    report = validate_fixed_scorer_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_seeds=["13"],
+        expected_budgets=["100000"],
+    )
+
+    assert report["passed"]
+
+
+def test_fixed_scorer_gate_rejects_missing_control(tmp_path):
+    _write_run(
+        tmp_path,
+        name="fixed_scorer_no_cost",
+        policy_name="frugalkd_p",
+        control_name="fixed_scorer_no_cost",
+        token_budget=100000,
+        heldout_metric=0.7,
+    )
+
+    report = validate_fixed_scorer_gate(
+        tmp_path,
+        metric="macro_f1",
+        required_control_names=[
+            "fixed_scorer_no_cost",
+            "fixed_scorer_single_operator",
+        ],
+        expected_seeds=["13"],
+        expected_budgets=["100000"],
+    )
+
+    checks = {check["name"]: check for check in report["checks"]}
+    assert not report["passed"]
+    assert checks["fixed_scorer_controls_present"]["missing"] == [
+        "fixed_scorer_single_operator"
     ]
 
 
@@ -2518,6 +2669,89 @@ def test_plan_same_count_control_configs_from_source_runs(tmp_path):
     assert manifest[0]["match_key"]["student_model"] == "fixture/student"
     assert manifest[0]["source_action_space_id"] == "action-space-a"
     assert manifest[0]["source_config_hash"]
+
+
+def test_plan_same_count_control_configs_uses_requested_fixed_policy(tmp_path):
+    runs_dir = tmp_path / "runs"
+    _write_run(
+        runs_dir,
+        name="source",
+        policy_name="frugalkd_p",
+        seed=13,
+        token_budget=25000,
+        final_synthetic_count=7,
+    )
+
+    base_config = tmp_path / "base.yaml"
+    base_config.write_text(
+        "\n".join(
+            [
+                "name: banking_pilot",
+                "policy_name:",
+                "  - cost_heuristic",
+                "  - frugalkd_p",
+                "seed:",
+                "  - 13",
+                "token_budget:",
+                "  - 25000",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    plan = plan_same_count_control_configs(
+        runs_dir,
+        base_config,
+        tmp_path / "same_count_configs",
+        metric="macro_f1",
+        control_policy="fixed_boundary",
+    )
+
+    config_path = Path(plan[0]["config_path"])
+    config = yaml.safe_load(config_path.read_text())
+    assert config["policy_name"] == "fixed_boundary"
+    assert plan[0]["control_policy_name"] == "fixed_boundary"
+
+
+def test_plan_same_count_control_configs_auto_selects_best_fixed_or_cost(tmp_path):
+    runs_dir = tmp_path / "runs"
+    _write_run(
+        runs_dir,
+        name="source",
+        policy_name="frugalkd_p",
+        seed=13,
+        token_budget=25000,
+        final_synthetic_count=7,
+    )
+    _write_run(
+        runs_dir,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        seed=13,
+        token_budget=25000,
+        final_metric=0.5,
+    )
+    _write_run(
+        runs_dir,
+        name="boundary",
+        policy_name="fixed_boundary",
+        seed=13,
+        token_budget=25000,
+        final_metric=0.7,
+    )
+
+    base_config = tmp_path / "base.yaml"
+    base_config.write_text("name: banking_pilot\npolicy_name: frugalkd_p\n")
+
+    plan = plan_same_count_control_configs(
+        runs_dir,
+        base_config,
+        tmp_path / "same_count_configs",
+        metric="macro_f1",
+        control_policy="best_fixed_or_cost",
+    )
+
+    assert plan[0]["control_policy_name"] == "fixed_boundary"
 
 
 def test_plan_same_count_control_configs_rejects_duplicate_match_key(tmp_path):

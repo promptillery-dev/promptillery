@@ -25,6 +25,25 @@ PREFERRED_METRICS = (
 )
 LOWER_IS_BETTER = {"eval_loss", "loss", "perplexity"}
 SAME_COUNT_CONTROL_NAMES = {"same_count", "same_synthetic_count"}
+SAME_COUNT_AUTO_CONTROL_POLICY = "best_fixed_or_cost"
+SAME_COUNT_AUTO_CONTROL_POLICIES = (
+    "cost_heuristic",
+    "fixed_coverage",
+    "fixed_boundary",
+    "fixed_repair",
+)
+SAME_COUNT_AUTO_CONTROL_VALUE_KEYS = (
+    "total_teacher_quality_cost_auc",
+    "cycle_quality_cost_auc",
+    "heldout_metric",
+    "final_metric",
+)
+FIXED_SCORER_CONTROL_NAMES = (
+    "fixed_scorer_no_cost",
+    "fixed_scorer_single_operator",
+    "fixed_scorer_single_batch",
+    "fixed_scorer_no_stop",
+)
 SAME_COUNT_CONFIG_IGNORED_KEYS = {
     "base_output_dir",
     "control_name",
@@ -228,6 +247,9 @@ PAPER_PAIRWISE_DELTA_FIELDS = [
     "success_policy",
     "baseline_policy",
     "baseline_control_name",
+    "success_seed_baseline_metric",
+    "baseline_seed_baseline_metric",
+    "delta_seed_baseline_metric",
     "delta_cycle_quality_cost_auc",
     "delta_online_acquisition_quality_cost_auc",
     "delta_total_teacher_quality_cost_auc",
@@ -2087,6 +2109,8 @@ def summarize_run(
     final_value = None
     if final_cycle is not None and metric_name in dict(cycles)[final_cycle]:
         final_value = dict(cycles)[final_cycle][metric_name]
+    seed_baseline_cycle = values[0][0] if values else None
+    seed_baseline_value = values[0][1] if values else None
     heldout = _heldout_test_metrics(metrics)
     heldout_value = (
         _safe_float(heldout.get(metric_name)) if metric_name and heldout else None
@@ -2140,6 +2164,8 @@ def summarize_run(
         "mode": resolved_mode,
         "best_cycle": best_cycle,
         "best_metric": best_value,
+        "seed_baseline_cycle": seed_baseline_cycle,
+        "seed_baseline_metric": seed_baseline_value,
         "final_cycle": final_cycle,
         "final_metric": final_value,
         "heldout_split": heldout_split,
@@ -2225,6 +2251,8 @@ def write_summary_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
         "mode",
         "best_cycle",
         "best_metric",
+        "seed_baseline_cycle",
+        "seed_baseline_metric",
         "final_cycle",
         "final_metric",
         "heldout_split",
@@ -2502,26 +2530,38 @@ def summarize_paper_pairwise_deltas(
     *,
     success_policy: str,
     baseline_policies: List[str],
+    baseline_control_names: List[str] | None = None,
 ) -> List[Dict[str, Any]]:
     """Return paired success-policy deltas against named baselines."""
-    if not success_policy or not baseline_policies:
+    baseline_control_names = baseline_control_names or []
+    if not success_policy or not (baseline_policies or baseline_control_names):
         return []
     success_by_key = {
         _paper_match_key(row): row
         for row in rows
         if str(row.get("policy_name") or "") == success_policy
-        and not _is_same_count_control(row)
+        and not str(row.get("control_name") or "")
     }
     baseline_set = set(baseline_policies)
+    baseline_control_set = set(baseline_control_names)
     delta_rows = []
     for baseline in rows:
         baseline_policy = str(baseline.get("policy_name") or "")
-        if baseline_policy not in baseline_set:
+        baseline_control = str(baseline.get("control_name") or "")
+        if (
+            baseline_policy not in baseline_set
+            and baseline_control not in baseline_control_set
+        ):
             continue
         success = success_by_key.get(_paper_match_key(baseline))
         if not success:
             continue
         mode = str(success.get("mode") or baseline.get("mode") or "max")
+        seed_baseline_delta = _improvement_delta(
+            success.get("seed_baseline_metric"),
+            baseline.get("seed_baseline_metric"),
+            mode,
+        )
         online_auc_delta = _improvement_delta(
             success.get("cycle_quality_cost_auc"),
             baseline.get("cycle_quality_cost_auc"),
@@ -2555,7 +2595,14 @@ def summarize_paper_pairwise_deltas(
                 "token_budget": success.get("token_budget"),
                 "success_policy": success_policy,
                 "baseline_policy": baseline_policy,
-                "baseline_control_name": baseline.get("control_name"),
+                "baseline_control_name": baseline_control,
+                "success_seed_baseline_metric": success.get(
+                    "seed_baseline_metric"
+                ),
+                "baseline_seed_baseline_metric": baseline.get(
+                    "seed_baseline_metric"
+                ),
+                "delta_seed_baseline_metric": seed_baseline_delta,
                 "delta_cycle_quality_cost_auc": online_auc_delta,
                 "delta_online_acquisition_quality_cost_auc": (
                     online_acquisition_auc_delta
@@ -3402,9 +3449,12 @@ def write_paper_report(
     *,
     success_policy: str = "frugalkd_p",
     baseline_policies: List[str] | None = None,
+    baseline_control_names: List[str] | None = None,
 ) -> Dict[str, Path]:
     """Write paper-facing tables and a compact readiness report."""
-    baseline_policies = baseline_policies or ["cost_heuristic", "random_feasible"]
+    if baseline_policies is None:
+        baseline_policies = ["cost_heuristic", "random_feasible"]
+    baseline_control_names = baseline_control_names or []
     source_paths = _coerce_paths(path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -3424,6 +3474,7 @@ def write_paper_report(
         rows,
         success_policy=success_policy,
         baseline_policies=baseline_policies,
+        baseline_control_names=baseline_control_names,
     )
     delta_summary_rows = summarize_paper_pairwise_summary(delta_rows)
     point_rows = summarize_paper_quality_cost_points(run_dirs, rows)
@@ -3626,15 +3677,21 @@ def plan_same_count_control_configs(
             )
         else:
             config_data = dict(base_config)
+        selected_control_policy = _resolve_same_count_control_policy(
+            row,
+            rows,
+            requested_policy=control_policy,
+            mode=str(row.get("mode") or "max"),
+        )
         config_name = (
             f"{config_data.get('name', 'experiment')}_same_count_"
-            f"{_safe_slug(control_policy)}_s{_safe_slug(seed)}_b"
+            f"{_safe_slug(selected_control_policy)}_s{_safe_slug(seed)}_b"
             f"{_safe_slug(token_budget)}"
         )
         config_data.update(
             {
                 "name": config_name,
-                "policy_name": control_policy,
+                "policy_name": selected_control_policy,
                 "control_name": "same_count",
                 "seed": _coerce_scalar(seed),
                 "token_budget": _coerce_scalar(token_budget),
@@ -3658,7 +3715,7 @@ def plan_same_count_control_configs(
                 "source_policy_name": source_policy,
                 "source_action_space_id": row.get("action_space_id"),
                 "source_config_hash": row.get("same_count_config_hash"),
-                "control_policy_name": control_policy,
+                "control_policy_name": selected_control_policy,
                 "match_key": _same_count_match_dict(row),
                 "seed": seed,
                 "token_budget": token_budget,
@@ -3672,6 +3729,53 @@ def plan_same_count_control_configs(
         encoding="utf-8",
     )
     return planned
+
+
+def _resolve_same_count_control_policy(
+    row: Dict[str, Any],
+    rows: List[Dict[str, Any]],
+    *,
+    requested_policy: str,
+    mode: str,
+) -> str:
+    """Resolve literal or automatic same-count control policy selection."""
+    if requested_policy != SAME_COUNT_AUTO_CONTROL_POLICY:
+        return requested_policy
+
+    match_key = _same_count_match_key(row)
+    candidates = [
+        candidate
+        for candidate in rows
+        if not _is_same_count_control(candidate)
+        and _same_count_match_key(candidate) == match_key
+        and str(candidate.get("policy_name") or "")
+        in SAME_COUNT_AUTO_CONTROL_POLICIES
+    ]
+    if not candidates:
+        raise ValueError(
+            "no same_count auto-control candidates found for match key: "
+            f"{_same_count_key_dict(match_key)}; expected one of "
+            f"{', '.join(SAME_COUNT_AUTO_CONTROL_POLICIES)}"
+        )
+
+    ordered_candidates = sorted(
+        candidates,
+        key=lambda candidate: (
+            SAME_COUNT_AUTO_CONTROL_POLICIES.index(
+                str(candidate.get("policy_name") or "")
+            ),
+            str(candidate.get("run_id") or ""),
+        ),
+    )
+    for value_key in SAME_COUNT_AUTO_CONTROL_VALUE_KEYS:
+        best = _best_row(ordered_candidates, value_key, mode)
+        if best is not None:
+            return str(best.get("policy_name") or "")
+
+    raise ValueError(
+        "same_count auto-control candidates have no numeric selection metric "
+        f"for match key: {_same_count_key_dict(match_key)}"
+    )
 
 
 def _is_same_count_control(row: Dict[str, Any]) -> bool:
@@ -3753,6 +3857,62 @@ def _paper_metric_failures(
     return failures
 
 
+def _paper_seed_baseline_failures(
+    rows: List[Dict[str, Any]],
+    *,
+    required_baselines: List[str],
+    required_control_names: List[str],
+    max_seed_baseline_delta: float | None,
+) -> List[Dict[str, Any]]:
+    """Return paired rows whose seed-only quality differs too much."""
+    if max_seed_baseline_delta is None:
+        return []
+    baseline_set = set(required_baselines)
+    control_set = set(required_control_names)
+    failures = []
+    for row in rows:
+        if (
+            str(row.get("baseline_policy") or "") not in baseline_set
+            and str(row.get("baseline_control_name") or "") not in control_set
+        ):
+            continue
+        delta = _safe_float(row.get("delta_seed_baseline_metric"))
+        if delta is None:
+            failures.append(
+                {
+                    "baseline": _baseline_label(row),
+                    "seed": row.get("seed"),
+                    "token_budget": row.get("token_budget"),
+                    "failure": "missing_seed_baseline_delta",
+                    "success_seed_baseline_metric": row.get(
+                        "success_seed_baseline_metric"
+                    ),
+                    "baseline_seed_baseline_metric": row.get(
+                        "baseline_seed_baseline_metric"
+                    ),
+                }
+            )
+            continue
+        if abs(delta) > max_seed_baseline_delta:
+            failures.append(
+                {
+                    "baseline": _baseline_label(row),
+                    "seed": row.get("seed"),
+                    "token_budget": row.get("token_budget"),
+                    "failure": "seed_baseline_delta_above_tolerance",
+                    "delta_seed_baseline_metric": delta,
+                    "max_seed_baseline_delta": max_seed_baseline_delta,
+                    "success_seed_baseline_metric": row.get(
+                        "success_seed_baseline_metric"
+                    ),
+                    "baseline_seed_baseline_metric": row.get(
+                        "baseline_seed_baseline_metric"
+                    ),
+                }
+            )
+    return failures
+
+
 def validate_paper_gate(
     report_dir: Path,
     *,
@@ -3765,6 +3925,7 @@ def validate_paper_gate(
     min_auc_delta: float = 0.0,
     min_heldout_delta: float = 0.0,
     min_final_delta: float = 0.0,
+    max_seed_baseline_delta: float | None = 1e-9,
     require_provider_reported_usage: bool = True,
     require_figures: bool = True,
 ) -> Dict[str, Any]:
@@ -3776,6 +3937,7 @@ def validate_paper_gate(
 
     paths = {
         "paper_main_results": report_dir / "paper_main_results.csv",
+        "paper_pairwise_deltas": report_dir / "paper_pairwise_deltas.csv",
         "paper_pairwise_summary": report_dir / "paper_pairwise_summary.csv",
         "paper_budget_audit": report_dir / "paper_budget_audit.csv",
         "budget_feasibility_certificate": report_dir
@@ -3807,6 +3969,7 @@ def validate_paper_gate(
     )
 
     main_rows = _read_csv_rows(paths["paper_main_results"])
+    delta_rows = _read_csv_rows(paths["paper_pairwise_deltas"])
     summary_rows = _read_csv_rows(paths["paper_pairwise_summary"])
     budget_rows = _read_csv_rows(paths["paper_budget_audit"])
     certificate_rows = _read_csv_rows(paths["budget_feasibility_certificate"])
@@ -3877,6 +4040,20 @@ def validate_paper_gate(
             (not requires_comparisons or bool(comparison_rows)) and not metric_failures,
             comparison_count=len(comparison_rows),
             failures=metric_failures,
+        )
+    )
+    seed_baseline_failures = _paper_seed_baseline_failures(
+        delta_rows,
+        required_baselines=required_baselines,
+        required_control_names=required_control_names,
+        max_seed_baseline_delta=max_seed_baseline_delta,
+    )
+    checks.append(
+        _gate_check(
+            "paper_shared_seed_baselines_match",
+            not seed_baseline_failures,
+            max_seed_baseline_delta=max_seed_baseline_delta,
+            failures=seed_baseline_failures,
         )
     )
 
@@ -4074,6 +4251,197 @@ def validate_paper_gate(
     return {
         "passed": all(check["passed"] for check in checks),
         "report_dir": str(report_dir),
+        "checks": checks,
+    }
+
+
+def validate_fixed_scorer_gate(
+    path: Path,
+    *,
+    metric: str | None = None,
+    mode: str = "auto",
+    required_control_names: List[str] | None = None,
+    expected_seeds: List[str] | None = None,
+    expected_budgets: List[str] | None = None,
+    require_heldout: bool = True,
+    require_paper_mode: bool = True,
+    require_provider_reported_usage: bool = True,
+) -> Dict[str, Any]:
+    """Validate the fixed-scorer sensitivity slice without action parity."""
+    rows = analyze_runs(path, metric=metric, mode=mode)
+    run_dirs = _run_dirs(path)
+    calibration_rows = [
+        row for run_dir in run_dirs for row in summarize_teacher_calibration(run_dir)
+    ]
+    certificate_rows = [summarize_budget_feasibility(run_dir) for run_dir in run_dirs]
+    required_control_names = list(required_control_names or FIXED_SCORER_CONTROL_NAMES)
+    required_control_set = set(required_control_names)
+    expected_seed_set = set(expected_seeds or [])
+    expected_budget_set = set(expected_budgets or [])
+
+    checks = []
+    control_names_found = _normalize_set(row.get("control_name") for row in rows)
+    unexpected_controls = sorted(
+        name for name in control_names_found if name not in required_control_set
+    )
+    checks.append(
+        _gate_check(
+            "fixed_scorer_controls_present",
+            required_control_set.issubset(control_names_found)
+            and not unexpected_controls,
+            expected=sorted(required_control_set),
+            found=sorted(control_names_found),
+            missing=sorted(required_control_set - control_names_found),
+            unexpected=unexpected_controls,
+        )
+    )
+
+    expected_combos = {
+        (control, seed, budget)
+        for control in required_control_set
+        for seed in expected_seed_set
+        for budget in expected_budget_set
+    }
+    combo_rows: Dict[tuple[str, str, str], List[Dict[str, Any]]] = {}
+    for row in rows:
+        combo = (
+            str(row.get("control_name") or ""),
+            str(row.get("seed") or ""),
+            str(row.get("token_budget") or ""),
+        )
+        combo_rows.setdefault(combo, []).append(row)
+    found_combos = set(combo_rows)
+    duplicate_combos = [
+        {
+            "combo": list(combo),
+            "run_ids": [row.get("run_id") for row in group],
+        }
+        for combo, group in sorted(combo_rows.items())
+        if len(group) > 1
+    ]
+    if expected_combos:
+        checks.append(
+            _gate_check(
+                "fixed_scorer_control_seed_budget_grid",
+                expected_combos == found_combos and not duplicate_combos,
+                expected_count=len(expected_combos),
+                found_count=sum(len(group) for group in combo_rows.values()),
+                missing=[
+                    list(combo) for combo in sorted(expected_combos - found_combos)
+                ],
+                unexpected=[
+                    list(combo) for combo in sorted(found_combos - expected_combos)
+                ],
+                duplicates=duplicate_combos,
+            )
+        )
+
+    if require_paper_mode:
+        non_completed_rows = [
+            row for row in rows if str(row.get("run_status") or "") != "completed"
+        ]
+        checks.append(
+            _gate_check(
+                "fixed_scorer_runs_completed",
+                not non_completed_rows,
+                violating_run_ids=[row.get("run_id") for row in non_completed_rows],
+            )
+        )
+        non_paper_rows = [row for row in rows if not _truthy(row.get("paper_mode"))]
+        checks.append(
+            _gate_check(
+                "fixed_scorer_paper_mode_enabled",
+                not non_paper_rows,
+                violating_run_ids=[row.get("run_id") for row in non_paper_rows],
+            )
+        )
+
+    if require_heldout:
+        missing_heldout = [
+            row
+            for row in rows
+            if str(row.get("heldout_split") or "") != "test"
+            or _safe_float(row.get("heldout_metric")) is None
+        ]
+        checks.append(
+            _gate_check(
+                "fixed_scorer_heldout_test_metrics_present",
+                not missing_heldout,
+                violating_run_ids=[row.get("run_id") for row in missing_heldout],
+            )
+        )
+
+    if require_provider_reported_usage:
+        estimated_seed_rows = [
+            row
+            for row in rows
+            if (_safe_int(row.get("seed_usage_estimated_records")) or 0) > 0
+        ]
+        checks.append(
+            _gate_check(
+                "fixed_scorer_no_estimated_seed_usage",
+                not estimated_seed_rows,
+                violating_run_ids=[row.get("run_id") for row in estimated_seed_rows],
+            )
+        )
+        dispatched_attempts = [
+            row for row in calibration_rows if str(row.get("status") or "") != "masked"
+        ]
+        missing_provider_attempts = [
+            row
+            for row in dispatched_attempts
+            if row.get("provider_reported_present") is not True
+            or _safe_int(row.get("provider_reported_total_tokens")) is None
+        ]
+        non_provider_debits = [
+            row
+            for row in dispatched_attempts
+            if str(row.get("ledger_debit_source") or "") != "provider_reported"
+        ]
+        checks.append(
+            _gate_check(
+                "fixed_scorer_provider_reported_usage_present",
+                not missing_provider_attempts and not non_provider_debits,
+                missing_provider_attempt_ids=[
+                    row.get("attempt_id") for row in missing_provider_attempts
+                ],
+                non_provider_debit_attempt_ids=[
+                    row.get("attempt_id") for row in non_provider_debits
+                ],
+            )
+        )
+
+    overage_rows = [
+        row for row in rows if (_safe_float(row.get("token_budget_overage")) or 0) > 0
+    ]
+    checks.append(
+        _gate_check(
+            "fixed_scorer_no_token_budget_overage",
+            not overage_rows,
+            violating_run_ids=[row.get("run_id") for row in overage_rows],
+        )
+    )
+    failed_certificates = [
+        row for row in certificate_rows if not _truthy(row.get("certificate_passed"))
+    ]
+    checks.append(
+        _gate_check(
+            "fixed_scorer_budget_feasibility_certificate",
+            not failed_certificates,
+            failing_run_ids=[row.get("run_id") for row in failed_certificates],
+            failures=[
+                {
+                    "run_id": row.get("run_id"),
+                    "failure_reasons": row.get("failure_reasons"),
+                }
+                for row in failed_certificates
+            ],
+        )
+    )
+
+    return {
+        "passed": all(check["passed"] for check in checks),
+        "path": str(path),
         "checks": checks,
     }
 
@@ -4874,6 +5242,7 @@ def validate_pilot_gate(
         action_space_mismatches = []
         config_mismatches = []
         plan_control_mismatches = []
+        plan_policy_mismatches = []
         same_count_rows_by_key: Dict[tuple[str, ...], List[Dict[str, Any]]] = {}
         for row in same_count_rows:
             pair = (str(row.get("seed")), str(row.get("token_budget")))
@@ -4902,6 +5271,22 @@ def validate_pilot_gate(
                             "experiment": row.get("experiment"),
                             "match_key": _same_count_key_dict(key),
                             "planned_control_experiment_names": sorted(planned_names),
+                        }
+                    )
+                planned_policies = {
+                    str(item.get("control_policy_name") or "")
+                    for item in plan_items
+                    if item.get("control_policy_name")
+                }
+                if planned_policies and str(row.get("policy_name") or "") not in (
+                    planned_policies
+                ):
+                    plan_policy_mismatches.append(
+                        {
+                            "run_id": row.get("run_id"),
+                            "policy_name": row.get("policy_name"),
+                            "match_key": _same_count_key_dict(key),
+                            "planned_control_policy_names": sorted(planned_policies),
                         }
                     )
             if (
@@ -5016,7 +5401,8 @@ def validate_pilot_gate(
                 and not unplanned_control_keys
                 and not duplicate_plan_keys
                 and not plan_count_mismatches
-                and not plan_control_mismatches,
+                and not plan_control_mismatches
+                and not plan_policy_mismatches,
                 source_policy=same_count_source_policy,
                 control_policy=same_count_control_policy,
                 same_count_plan=str(resolved_plan_path)
@@ -5052,6 +5438,7 @@ def validate_pilot_gate(
                 duplicate_plan_match_keys=duplicate_plan_keys,
                 plan_count_mismatches=plan_count_mismatches,
                 plan_control_mismatches=plan_control_mismatches,
+                plan_policy_mismatches=plan_policy_mismatches,
             )
         )
         if success_policy and require_same_count_success:
