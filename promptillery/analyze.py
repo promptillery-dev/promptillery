@@ -353,6 +353,17 @@ PAPER_BUDGET_AUDIT_FIELDS = [
     "masked_attempt_rows",
     "budget_violation_attempt_rows",
     "parse_failure_attempt_rows",
+    "records_requested",
+    "records_parsed",
+    "records_accepted",
+    "parse_success_rate",
+    "parse_accept_rate",
+    "parsed_records_per_1k_online_tokens",
+    "accepted_records_per_1k_online_tokens",
+    "mean_unused_online_token_budget",
+    "reservation_slack_total_tokens",
+    "reservation_slack_ratio",
+    "reserved_to_provider_token_ratio",
     "provider_reported_attempt_rows",
     "estimated_or_reserved_usage_rows",
     "cheap_teacher_attempt_rows",
@@ -2484,7 +2495,50 @@ def summarize_paper_budget_audit(
         total_mean, _ = _mean_std(
             row.get("total_teacher_total_tokens") for row in group
         )
+        unused_budget_mean, _ = _mean_std(
+            max(
+                0,
+                (_safe_int(row.get("token_budget")) or 0)
+                - (_safe_int(row.get("online_teacher_total_tokens")) or 0),
+            )
+            for row in group
+            if _safe_int(row.get("token_budget")) is not None
+        )
         estimated_cost_mean, _ = _mean_std(row.get("estimated_cost") for row in group)
+        records_requested = sum(
+            _safe_int(attempt.get("records_requested")) or 0
+            for attempt in group_calibration
+        )
+        records_parsed = sum(
+            _safe_int(attempt.get("records_parsed")) or 0
+            for attempt in group_calibration
+        )
+        records_accepted = sum(
+            _safe_int(attempt.get("records_accepted")) or 0
+            for attempt in group_calibration
+        )
+        online_token_total = sum(
+            _safe_int(row.get("online_teacher_total_tokens")) or 0 for row in group
+        )
+        provider_token_total = sum(
+            _safe_int(attempt.get("provider_reported_total_tokens")) or 0
+            for attempt in group_calibration
+            if _truthy(attempt.get("provider_reported_present"))
+        )
+        reserved_token_total = sum(
+            _safe_int(attempt.get("predicted_total_tokens")) or 0
+            for attempt in group_calibration
+            if _truthy(attempt.get("provider_reported_present"))
+        )
+        reservation_slack_total = sum(
+            max(
+                0,
+                (_safe_int(attempt.get("predicted_total_tokens")) or 0)
+                - (_safe_int(attempt.get("provider_reported_total_tokens")) or 0),
+            )
+            for attempt in group_calibration
+            if _truthy(attempt.get("provider_reported_present"))
+        )
         cheap_attempts = [
             attempt
             for attempt in group_calibration
@@ -2554,6 +2608,39 @@ def summarize_paper_budget_audit(
                         marker in str(attempt.get("failure_type") or "").lower()
                         for marker in ("parse", "malformed", "invalid_json")
                     )
+                ),
+                "records_requested": records_requested,
+                "records_parsed": records_parsed,
+                "records_accepted": records_accepted,
+                "parse_success_rate": (
+                    records_parsed / records_requested
+                    if records_requested
+                    else None
+                ),
+                "parse_accept_rate": (
+                    records_accepted / records_parsed if records_parsed else None
+                ),
+                "parsed_records_per_1k_online_tokens": (
+                    records_parsed * 1000 / online_token_total
+                    if online_token_total
+                    else None
+                ),
+                "accepted_records_per_1k_online_tokens": (
+                    records_accepted * 1000 / online_token_total
+                    if online_token_total
+                    else None
+                ),
+                "mean_unused_online_token_budget": unused_budget_mean,
+                "reservation_slack_total_tokens": reservation_slack_total,
+                "reservation_slack_ratio": (
+                    reservation_slack_total / provider_token_total
+                    if provider_token_total
+                    else None
+                ),
+                "reserved_to_provider_token_ratio": (
+                    reserved_token_total / provider_token_total
+                    if provider_token_total
+                    else None
                 ),
                 "provider_reported_attempt_rows": sum(
                     1

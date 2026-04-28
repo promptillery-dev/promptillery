@@ -209,7 +209,7 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
                     "run_id": "frugal",
                     "status": "success",
                     "failure_type": "",
-                    "predicted_cost": {"total_tokens": 10},
+                    "predicted_cost": {"total_tokens": 12},
                     "provider_reported_cost": {
                         "input_tokens": 7,
                         "output_tokens": 3,
@@ -228,7 +228,12 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
                     "ledger_debit_source": "provider_reported",
                     "budget_before": {"tokens_remaining": 100},
                     "budget_after": {"tokens_remaining": 90},
-                    "metadata": {"teacher_tier": "cheap"},
+                    "metadata": {
+                        "teacher_tier": "cheap",
+                        "records_requested": 4,
+                        "records_parsed": 3,
+                        "records_accepted": 2,
+                    },
                 },
                 {
                     "cycle": 0,
@@ -351,6 +356,18 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert frugal_budget["masked_attempt_rows"] == "1"
     assert frugal_budget["budget_violation_attempt_rows"] == "1"
     assert frugal_budget["parse_failure_attempt_rows"] == "1"
+    assert frugal_budget["records_requested"] == "4"
+    assert frugal_budget["records_parsed"] == "3"
+    assert frugal_budget["records_accepted"] == "2"
+    assert frugal_budget["parse_success_rate"] == "0.75"
+    assert frugal_budget["parse_accept_rate"].startswith("0.666")
+    assert frugal_budget["accepted_records_per_1k_online_tokens"].startswith(
+        "133.333"
+    )
+    assert frugal_budget["mean_unused_online_token_budget"] == "24985.0"
+    assert frugal_budget["reservation_slack_total_tokens"] == "2"
+    assert frugal_budget["reservation_slack_ratio"] == "0.2"
+    assert frugal_budget["reserved_to_provider_token_ratio"] == "1.2"
     assert frugal_budget["cheap_teacher_attempt_rows"] == "1"
     assert frugal_budget["strong_teacher_attempt_rows"] == "2"
     assert frugal_budget["cheap_teacher_input_tokens"] == "7"
