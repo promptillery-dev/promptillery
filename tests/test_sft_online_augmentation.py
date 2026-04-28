@@ -243,6 +243,65 @@ def test_policy_controller_manifest_exposes_fixed_linear_weights():
     assert "eval_error_rate" in manifest["linear_weights"]
 
 
+def test_policy_controller_manifest_exposes_paced_linear_weights():
+    engine = DistillationEngine.__new__(DistillationEngine)
+    engine.cfg = SimpleNamespace(policy_name="frugalkd_paced")
+    engine.policy_controller = PolicyController(
+        "frugalkd_paced",
+        lambda_cost=0.25,
+        exploration_bonus=0.5,
+        pacing_epsilon=1e-5,
+        seed=13,
+    )
+
+    manifest = engine._policy_controller_manifest()
+
+    assert manifest["controller_type"] == "paced_linear_acquisition_scorer"
+    assert manifest["lambda_cost"] == 0.25
+    assert manifest["pacing_epsilon"] == 1e-5
+    assert manifest["pacing_rule_version"] == 1
+    assert manifest["pacing_rule"] == "remaining_budget_shadow_price"
+    assert "eval_error_rate" in manifest["linear_weights"]
+
+
+def test_frugalkd_paced_uses_dynamic_shadow_price_metadata():
+    fixed_controller = PolicyController("frugalkd_p", lambda_cost=0.0003, seed=13)
+    paced_controller = PolicyController("frugalkd_paced", lambda_cost=0.0003, seed=13)
+    actions = [
+        PolicyAction(prompt_operator="coverage", teacher_tier="cheap", batch_size=4),
+        PolicyAction(prompt_operator="repair", teacher_tier="cheap", batch_size=16),
+        PolicyAction(is_stop=True),
+    ]
+    state = {
+        "cycle": 1,
+        "cycles": 4,
+        "features": {"eval_error_rate": 0.8},
+        "budget": {"token_budget": 1000, "tokens_remaining": 250},
+    }
+    predicted_costs = {
+        "coverage:cheap:b4": {"total_tokens": 100},
+        "repair:cheap:b16": {"total_tokens": 200},
+    }
+
+    fixed_choice = fixed_controller.select(
+        state,
+        actions=actions,
+        predicted_costs=predicted_costs,
+    )
+    choice = paced_controller.select(state, actions=actions, predicted_costs=predicted_costs)
+
+    assert fixed_choice.action.name == "repair:cheap:b16"
+    assert choice.action.name == "coverage:cheap:b4"
+    assert choice.metadata is not None
+    assert choice.metadata["base_lambda"] == 0.0003
+    assert choice.metadata["remaining_acquisition_cycles"] == 2
+    assert choice.metadata["elapsed_acquisition_cycles"] == 1
+    assert choice.metadata["total_acquisition_cycles"] == 3
+    assert choice.metadata["pace_ratio"] == pytest.approx(8 / 3)
+    assert choice.metadata["lambda_t"] == pytest.approx(0.0003 * 8 / 3)
+    assert choice.model_dump()["metadata"]["lambda_t"] == choice.metadata["lambda_t"]
+
+
 def test_engine_action_space_can_hide_stop_for_sensitivity_slice():
     engine = DistillationEngine.__new__(DistillationEngine)
     engine.cfg = SimpleNamespace(

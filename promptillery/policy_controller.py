@@ -64,6 +64,7 @@ class PolicyChoice:
     action_scores: Dict[str, float]
     predicted_cost: Dict[str, Any]
     feasible_actions: Sequence[str]
+    metadata: Dict[str, Any] | None = None
 
     def model_dump(self) -> Dict[str, Any]:
         """Return a JSON-serializable policy choice."""
@@ -73,6 +74,7 @@ class PolicyChoice:
             "action_scores": self.action_scores,
             "predicted_cost": self.predicted_cost,
             "feasible_actions": list(self.feasible_actions),
+            "metadata": dict(self.metadata or {}),
         }
 
 
@@ -187,12 +189,14 @@ class PolicyController:
         *,
         lambda_cost: float = 1e-4,
         exploration_bonus: float = 0.0,
+        pacing_epsilon: float = 1e-6,
         seed: int = 0,
         linear_weights: Mapping[str, float] | None = None,
     ) -> None:
         self.policy_name = policy_name
         self.lambda_cost = lambda_cost
         self.exploration_bonus = exploration_bonus
+        self.pacing_epsilon = pacing_epsilon
         self.rng = random.Random(seed)
         self.linear_weights = dict(linear_weights or DEFAULT_FRUGALKD_WEIGHTS)
 
@@ -214,14 +218,21 @@ class PolicyController:
         non_stop = [action for action in feasible if not action.is_stop]
 
         if not non_stop:
+            metadata = (
+                self._pacing_metadata(state)
+                if self.policy_name in {"frugalkd_paced", "frugalkd_p_paced"}
+                else {}
+            )
             return PolicyChoice(
                 policy_name=self.policy_name,
                 action=stop,
                 action_scores={"STOP": 0.0},
                 predicted_cost={"total_tokens": 0},
                 feasible_actions=[action.name for action in feasible],
+                metadata=metadata,
             )
 
+        metadata: Dict[str, Any] = {}
         if self.policy_name == "random_feasible":
             action = self.rng.choice(non_stop)
             scores = {candidate.name: 0.0 for candidate in non_stop}
@@ -249,6 +260,19 @@ class PolicyController:
             action, scores = self._select_scored(
                 non_stop, state, predicted_costs, self._linear_score
             )
+        elif self.policy_name in {"frugalkd_paced", "frugalkd_p_paced"}:
+            metadata = self._pacing_metadata(state)
+            action, scores = self._select_scored(
+                non_stop,
+                state,
+                predicted_costs,
+                lambda action, state, predicted_costs: self._linear_score(
+                    action,
+                    state,
+                    predicted_costs,
+                    lambda_cost=float(metadata["lambda_t"]),
+                ),
+            )
         elif self.policy_name in {"STOP", "student_only"}:
             action = stop
             scores = {"STOP": 0.0}
@@ -261,6 +285,7 @@ class PolicyController:
             action_scores=scores,
             predicted_cost={"total_tokens": action_cost_tokens(action, predicted_costs)},
             feasible_actions=[candidate.name for candidate in feasible],
+            metadata=metadata,
         )
 
     def _select_fixed(
@@ -394,6 +419,8 @@ class PolicyController:
         action: PolicyAction,
         state: Mapping[str, Any],
         predicted_costs: Mapping[str, Any],
+        *,
+        lambda_cost: float | None = None,
     ) -> float:
         features = self._action_features(action, state)
         gain = sum(
@@ -401,7 +428,58 @@ class PolicyController:
             for name, value in features.items()
         )
         cost = action_cost_tokens(action, predicted_costs)
-        return gain + self.exploration_bonus - self.lambda_cost * cost
+        token_price = self.lambda_cost if lambda_cost is None else lambda_cost
+        return gain + self.exploration_bonus - token_price * cost
+
+    def _pacing_metadata(self, state: Mapping[str, Any]) -> Dict[str, Any]:
+        budget = _budget_state(state)
+        remaining = _tokens_remaining(state)
+        token_budget = _as_float(budget.get("token_budget"))
+        cycle = _as_float(state.get("cycle"))
+        cycles = _as_float(state.get("cycles"))
+        remaining_cycles = _as_float(state.get("remaining_acquisition_cycles"))
+        if remaining_cycles is None and cycle is not None and cycles is not None:
+            remaining_cycles = max(1.0, cycles - cycle - 1.0)
+        if remaining_cycles is None:
+            remaining_cycles = 1.0
+        if cycle is None:
+            elapsed_acquisition_cycles = 0.0
+        elif cycles is None:
+            elapsed_acquisition_cycles = max(0.0, cycle)
+        else:
+            elapsed_acquisition_cycles = min(max(0.0, cycle), max(cycles - 1.0, 1.0))
+        total_acquisition_cycles = elapsed_acquisition_cycles + remaining_cycles
+
+        if remaining is None or token_budget is None or token_budget <= 0:
+            target_rate = 0.0
+            actual_rate = 0.0
+            pace_ratio = 1.0
+        else:
+            expected_spent = max(
+                0.0,
+                elapsed_acquisition_cycles
+                * token_budget
+                / max(total_acquisition_cycles, 1.0),
+            )
+            target_remaining = max(token_budget - expected_spent, 0.0)
+            target_rate = target_remaining / max(remaining_cycles, 1.0)
+            actual_rate = remaining / max(remaining_cycles, 1.0)
+            pace_ratio = target_rate / max(actual_rate, self.pacing_epsilon)
+
+        lambda_t = self.lambda_cost * pace_ratio
+        return {
+            "base_lambda": self.lambda_cost,
+            "lambda_t": lambda_t,
+            "pace_ratio": pace_ratio,
+            "target_rate": target_rate,
+            "actual_rate": actual_rate,
+            "tokens_remaining": remaining,
+            "token_budget": token_budget,
+            "elapsed_acquisition_cycles": elapsed_acquisition_cycles,
+            "remaining_acquisition_cycles": remaining_cycles,
+            "total_acquisition_cycles": total_acquisition_cycles,
+            "pacing_epsilon": self.pacing_epsilon,
+        }
 
     def _action_features(
         self, action: PolicyAction, state: Mapping[str, Any]

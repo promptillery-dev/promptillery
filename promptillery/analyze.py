@@ -39,6 +39,7 @@ SAME_COUNT_AUTO_CONTROL_VALUE_KEYS = (
     "final_metric",
 )
 FIXED_SCORER_CONTROL_NAMES = (
+    "fixed_scorer_paced",
     "fixed_scorer_no_cost",
     "fixed_scorer_single_operator",
     "fixed_scorer_single_batch",
@@ -100,6 +101,16 @@ POLICY_BEHAVIOR_FIELDS = [
     "tokens_remaining_before",
     "tokens_remaining_after",
     "teacher_tokens_this_cycle",
+    "pacing_base_lambda",
+    "pacing_lambda_t",
+    "pacing_pace_ratio",
+    "pacing_target_rate",
+    "pacing_actual_rate",
+    "pacing_tokens_remaining",
+    "pacing_token_budget",
+    "pacing_elapsed_acquisition_cycles",
+    "pacing_remaining_acquisition_cycles",
+    "pacing_total_acquisition_cycles",
 ]
 TEACHER_CALIBRATION_FIELDS = [
     "run_dir",
@@ -1193,6 +1204,7 @@ def summarize_policy_behavior(run_dir: Path) -> List[Dict[str, Any]]:
         realized = decision.get("realized_cost", {}) or {}
         predicted = decision.get("predicted_cost", {}) or {}
         action_scores = decision.get("action_scores", {}) or {}
+        pacing = metadata.get("pacing", {}) or {}
         action_name = str(decision.get("action_name") or action.get("name") or "")
         score = action_scores.get(action_name)
         score_rank, score_margin = _rank_score(action_scores, action_name)
@@ -1218,6 +1230,30 @@ def summarize_policy_behavior(run_dir: Path) -> List[Dict[str, Any]]:
                 "tokens_remaining_before": budget_before.get("tokens_remaining"),
                 "tokens_remaining_after": budget_after.get("tokens_remaining"),
                 "teacher_tokens_this_cycle": realized.get("total_tokens"),
+                "pacing_base_lambda": pacing.get("base_lambda"),
+                "pacing_lambda_t": metadata.get(
+                    "pacing_lambda_t", pacing.get("lambda_t")
+                ),
+                "pacing_pace_ratio": metadata.get(
+                    "pacing_pace_ratio", pacing.get("pace_ratio")
+                ),
+                "pacing_target_rate": metadata.get(
+                    "pacing_target_rate", pacing.get("target_rate")
+                ),
+                "pacing_actual_rate": metadata.get(
+                    "pacing_actual_rate", pacing.get("actual_rate")
+                ),
+                "pacing_tokens_remaining": pacing.get("tokens_remaining"),
+                "pacing_token_budget": pacing.get("token_budget"),
+                "pacing_elapsed_acquisition_cycles": pacing.get(
+                    "elapsed_acquisition_cycles"
+                ),
+                "pacing_remaining_acquisition_cycles": pacing.get(
+                    "remaining_acquisition_cycles"
+                ),
+                "pacing_total_acquisition_cycles": pacing.get(
+                    "total_acquisition_cycles"
+                ),
             }
         )
     return rows
@@ -3917,6 +3953,7 @@ def validate_paper_gate(
     report_dir: Path,
     *,
     required_baselines: List[str] | None = None,
+    required_reported_baselines: List[str] | None = None,
     required_control_names: List[str] | None = None,
     required_figures: List[str] | None = None,
     min_auc_win_rate: float | None = 0.67,
@@ -3932,6 +3969,7 @@ def validate_paper_gate(
     """Validate a paper-report directory as a reviewer-facing go/no-go gate."""
     report_dir = Path(report_dir)
     required_baselines = required_baselines or []
+    required_reported_baselines = required_reported_baselines or []
     required_control_names = required_control_names or []
     required_figures = required_figures or []
 
@@ -4002,18 +4040,27 @@ def validate_paper_gate(
     missing_baselines = [
         baseline for baseline in required_baselines if baseline not in baseline_rows
     ]
+    missing_reported_baselines = [
+        baseline
+        for baseline in required_reported_baselines
+        if baseline not in baseline_rows
+    ]
     missing_controls = [
         control for control in required_control_names if control not in control_rows
     ]
     checks.append(
         _gate_check(
             "paper_required_baselines_present",
-            not missing_baselines and not missing_controls,
+            not missing_baselines
+            and not missing_reported_baselines
+            and not missing_controls,
             required_baselines=required_baselines,
+            required_reported_baselines=required_reported_baselines,
             required_control_names=required_control_names,
             found_baselines=sorted(baseline_rows),
             found_control_names=sorted(control_rows),
             missing_baselines=missing_baselines,
+            missing_reported_baselines=missing_reported_baselines,
             missing_control_names=missing_controls,
         )
     )

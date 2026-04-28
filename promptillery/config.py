@@ -219,8 +219,8 @@ class ExperimentConfig(BaseModel):
         description=(
             "Teacher-acquisition policy. Use fixed_promptillery for the legacy "
             "loop, or PolicyController names such as random_feasible, "
-            "cost_heuristic, frugalkd_p, fixed_coverage, active_uncertainty, "
-            "student_deficiency, cheap_only, fixed_mixed_teacher, "
+            "cost_heuristic, frugalkd_p, frugalkd_paced, fixed_coverage, "
+            "active_uncertainty, student_deficiency, cheap_only, fixed_mixed_teacher, "
             "student_only, or STOP."
         ),
     )
@@ -255,6 +255,14 @@ class ExperimentConfig(BaseModel):
         default=0.0,
         ge=0.0,
         description="Exploration bonus used by the fixed linear FrugalKD-P scorer.",
+    )
+    policy_pacing_epsilon: float = Field(
+        default=1e-6,
+        gt=0.0,
+        description=(
+            "Small denominator floor for the FrugalKD-Paced dynamic "
+            "shadow-price rule."
+        ),
     )
 
     # Budget control

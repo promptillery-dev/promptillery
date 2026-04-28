@@ -393,6 +393,14 @@ def paper_gate(
         "--required-baselines",
         help="Comma-separated baseline policy_name values required in all-budget paired summaries",
     ),
+    required_reported_baselines: str = typer.Option(
+        "",
+        "--required-reported-baselines",
+        help=(
+            "Comma-separated baseline policy_name values required in paired "
+            "summaries without applying success thresholds"
+        ),
+    ),
     required_control_names: str = typer.Option(
         "",
         "--required-control-names",
@@ -453,6 +461,7 @@ def paper_gate(
     report = validate_paper_gate(
         Path(report_dir),
         required_baselines=_csv_option_values(required_baselines),
+        required_reported_baselines=_csv_option_values(required_reported_baselines),
         required_control_names=_csv_option_values(required_control_names),
         required_figures=_csv_option_values(required_figures),
         min_auc_win_rate=min_auc_win_rate,
@@ -499,7 +508,9 @@ def fixed_scorer_gate(
         help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
     ),
     control_names: str = typer.Option(
-        "fixed_scorer_no_cost,fixed_scorer_single_operator,fixed_scorer_single_batch,fixed_scorer_no_stop",
+        "fixed_scorer_paced,fixed_scorer_no_cost,"
+        "fixed_scorer_single_operator,fixed_scorer_single_batch,"
+        "fixed_scorer_no_stop",
         "--control-names",
         help="Comma-separated fixed-scorer control_name values required",
     ),
@@ -583,7 +594,8 @@ def pilot_gate(
         help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
     ),
     policies: str = typer.Option(
-        "fixed_coverage,fixed_boundary,fixed_repair,random_feasible,cost_heuristic,frugalkd_p",
+        "fixed_coverage,fixed_boundary,fixed_repair,random_feasible,"
+        "cost_heuristic,frugalkd_p,frugalkd_paced",
         "--policies",
         help="Comma-separated expected policy_name values",
     ),
@@ -820,7 +832,7 @@ def policy_smoke(
         "--policy",
         help=(
             "Policy to smoke test: student_only, random_feasible, "
-            "cost_heuristic, frugalkd_p, active_uncertainty, "
+            "cost_heuristic, frugalkd_p, frugalkd_paced, active_uncertainty, "
             "student_deficiency, fixed_mixed_teacher, or fixed_*"
         ),
     ),

@@ -911,8 +911,71 @@ def test_paper_report_compares_fixed_scorer_control_baselines(tmp_path):
     assert float(delta_rows[0]["delta_heldout_metric"]) > 0
 
 
+def test_paper_gate_requires_reported_baseline_without_success_threshold(tmp_path):
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.8,
+        heldout_metric=0.75,
+    )
+    _write_run(
+        tmp_path,
+        name="heuristic",
+        policy_name="cost_heuristic",
+        cycle0_metric=0.4,
+        final_metric=0.6,
+        heldout_metric=0.55,
+    )
+    _write_run(
+        tmp_path,
+        name="paced",
+        policy_name="frugalkd_paced",
+        cycle0_metric=0.2,
+        final_metric=0.9,
+        heldout_metric=0.85,
+    )
+    for name in ("frugal", "heuristic", "paced"):
+        _write_dataset_cycle(
+            tmp_path,
+            name,
+            [
+                {
+                    "id": f"{name}/seed/0",
+                    "student_prompt": "balance question",
+                    "teacher_response": "alpha",
+                    "gold_answer": "alpha",
+                    "source_split": "train",
+                    "source_idx": 0,
+                    "origin_cycle": 0,
+                }
+            ],
+        )
+
+    rows = analyze_runs(tmp_path, metric="macro_f1")
+    report_dir = tmp_path / "paper_report"
+    write_paper_report(
+        tmp_path,
+        rows,
+        report_dir,
+        baseline_policies=["cost_heuristic", "frugalkd_paced"],
+    )
+    report = validate_paper_gate(
+        report_dir,
+        required_baselines=["cost_heuristic"],
+        required_reported_baselines=["frugalkd_paced"],
+        require_figures=False,
+    )
+
+    checks = {check["name"]: check for check in report["checks"]}
+    assert report["passed"]
+    assert checks["paper_required_baselines_present"]["passed"]
+
+
 def test_fixed_scorer_gate_accepts_required_controls(tmp_path):
     for control_name in (
+        "fixed_scorer_paced",
         "fixed_scorer_no_cost",
         "fixed_scorer_single_operator",
         "fixed_scorer_single_batch",

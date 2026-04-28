@@ -498,6 +498,7 @@ class DistillationEngine:
             self.cfg.policy_name,
             lambda_cost=self.cfg.policy_lambda_cost,
             exploration_bonus=self.cfg.policy_exploration_bonus,
+            pacing_epsilon=self.cfg.policy_pacing_epsilon,
             seed=self.cfg.seed,
         )
 
@@ -513,6 +514,8 @@ class DistillationEngine:
         controller_type = (
             "fixed_linear_acquisition_scorer"
             if policy_name in {"frugalkd_p", "linear_frugalkd_p"}
+            else "paced_linear_acquisition_scorer"
+            if policy_name in {"frugalkd_paced", "frugalkd_p_paced"}
             else "deterministic_baseline"
         )
         payload: Dict[str, Any] = {
@@ -520,9 +523,19 @@ class DistillationEngine:
             "controller_type": controller_type,
             "lambda_cost": self.policy_controller.lambda_cost,
             "exploration_bonus": self.policy_controller.exploration_bonus,
+            "pacing_epsilon": self.policy_controller.pacing_epsilon,
         }
-        if controller_type == "fixed_linear_acquisition_scorer":
+        if controller_type in {
+            "fixed_linear_acquisition_scorer",
+            "paced_linear_acquisition_scorer",
+        }:
             payload["linear_weights"] = dict(self.policy_controller.linear_weights)
+        if controller_type == "paced_linear_acquisition_scorer":
+            payload["pacing_rule_version"] = 1
+            payload["pacing_rule"] = "remaining_budget_shadow_price"
+            payload["pacing_schedule"] = (
+                "target_remaining_over_remaining_acquisition_cycles"
+            )
         return payload
 
     def _build_action_space(self) -> List[PolicyAction]:
@@ -759,6 +772,7 @@ class DistillationEngine:
             "synthetic_record_budget": getattr(
                 self.cfg, "synthetic_record_budget", None
             ),
+            "remaining_acquisition_cycles": max(0, self.cfg.cycles - cycle - 1),
             "budget": self._budget_snapshot(),
             "features": policy_features or {},
         }
@@ -2032,6 +2046,19 @@ class DistillationEngine:
                                         ),
                                         "all_predicted_costs": all_predicted_costs,
                                     }
+                                    if choice.metadata:
+                                        pacing = dict(choice.metadata)
+                                        decision_metadata["pacing"] = pacing
+                                        for key in (
+                                            "lambda_t",
+                                            "pace_ratio",
+                                            "target_rate",
+                                            "actual_rate",
+                                        ):
+                                            if key in pacing:
+                                                decision_metadata[
+                                                    f"pacing_{key}"
+                                                ] = pacing[key]
                                     if choice.action.is_stop:
                                         if choice.policy_name == "student_only":
                                             action_name = "student_only_skip"
