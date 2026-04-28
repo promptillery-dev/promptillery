@@ -343,6 +343,48 @@ def test_pilot_gate_requires_full_canonical_label_coverage(tmp_path):
     ]
 
 
+def test_pilot_gate_rejects_missing_label_coverage_counts(tmp_path):
+    _write_run(
+        tmp_path,
+        name="missing_label_counts",
+        policy_name="frugalkd_p",
+        heldout_metric=0.17,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_heldout=True,
+        require_full_label_coverage=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "full_canonical_label_coverage"
+    )
+    assert not report["passed"]
+    assert check["failures"] == [
+        {
+            "run_id": "missing_label_counts",
+            "split": "validation",
+            "observed_gold_label_count": None,
+            "canonical_label_count": None,
+        },
+        {
+            "run_id": "missing_label_counts",
+            "split": "test",
+            "observed_gold_label_count": None,
+            "canonical_label_count": None,
+        },
+    ]
+
+
 def test_pilot_gate_accepts_full_canonical_label_coverage(tmp_path):
     _write_run(
         tmp_path,

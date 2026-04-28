@@ -1460,7 +1460,16 @@ def validate_pilot_gate(
         for row in rows:
             canonical_count = _safe_int(row.get("canonical_label_count"))
             observed_count = _safe_int(row.get("observed_gold_label_count"))
-            if canonical_count is not None and observed_count != canonical_count:
+            if canonical_count is None or observed_count is None:
+                missing_label_coverage.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "split": row.get("selection_split"),
+                        "observed_gold_label_count": observed_count,
+                        "canonical_label_count": canonical_count,
+                    }
+                )
+            elif observed_count != canonical_count:
                 missing_label_coverage.append(
                     {
                         "run_id": row.get("run_id"),
@@ -1476,7 +1485,18 @@ def validate_pilot_gate(
             heldout_observed_count = _safe_int(
                 row.get("heldout_observed_gold_label_count")
             )
-            if (
+            if row.get("heldout_split") and (
+                heldout_canonical_count is None or heldout_observed_count is None
+            ):
+                missing_label_coverage.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "split": row.get("heldout_split"),
+                        "observed_gold_label_count": heldout_observed_count,
+                        "canonical_label_count": heldout_canonical_count,
+                    }
+                )
+            elif (
                 heldout_canonical_count is not None
                 and heldout_observed_count != heldout_canonical_count
             ):
