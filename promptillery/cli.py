@@ -320,6 +320,11 @@ def pilot_gate(
         "--same-count-source-policy",
         help="Policy whose final synthetic count same_count controls must match",
     ),
+    same_count_control_policy: str | None = typer.Option(
+        None,
+        "--same-count-control-policy",
+        help="Optional required policy_name for same_count controls",
+    ),
     success_policy: str | None = typer.Option(
         None,
         "--success-policy",
@@ -385,6 +390,7 @@ def pilot_gate(
             require_full_label_coverage=require_full_label_coverage,
             require_same_count_control=require_same_count_control,
             same_count_source_policy=same_count_source_policy,
+            same_count_control_policy=same_count_control_policy,
             success_policy=success_policy,
             success_baselines=_csv_option_values(success_baselines),
             min_auc_win_rate=min_auc_win_rate,

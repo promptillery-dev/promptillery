@@ -358,6 +358,37 @@ def test_materialize_writes_configured_canonical_labels(tmp_path):
     assert payload["normalized_canonical_labels"] == ["a", "b", "c", "d", "e"]
 
 
+def test_materialize_writes_canonical_labels_from_field(tmp_path):
+    source = Dataset.from_dict(
+        {
+            "text": ["a", "b"],
+            "label_text": ["cash_withdrawal", "cash_deposit"],
+        },
+    )
+    config = SimpleNamespace(
+        dataset="mteb/banking77",
+        dataset_subset=None,
+        trainer_config={
+            "materialize_sft": {
+                "canonical_labels_field": "label_text",
+            }
+        },
+    )
+
+    artifact_path = _write_canonical_labels_artifact(
+        config=config,
+        output_path=tmp_path / "train.jsonl",
+        source=source,
+        label_field="label_text",
+        canonical_labels_field="label_text",
+    )
+
+    payload = json.loads((tmp_path / "canonical_labels.json").read_text())
+    assert artifact_path == str(tmp_path / "canonical_labels.json")
+    assert payload["source"] == "dataset field label_text"
+    assert payload["canonical_labels"] == ["cash_deposit", "cash_withdrawal"]
+
+
 def test_select_source_examples_can_stratify_materialization_cap():
     features = Features(
         {

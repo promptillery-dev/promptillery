@@ -1132,9 +1132,14 @@ def _paired_success_check(
         and not _is_same_count_control(row)
     ]
     baseline_names = sorted(
-        {str(row.get("policy_name") or row.get("control_name") or "") for row in baseline_rows}
+        {
+            str(row.get("policy_name") or row.get("control_name") or "")
+            for row in baseline_rows
+        }
     )
-    baselines_by_name_and_key: Dict[str, Dict[tuple[str, ...], List[Dict[str, Any]]]] = {}
+    baselines_by_name_and_key: Dict[
+        str, Dict[tuple[str, ...], List[Dict[str, Any]]]
+    ] = {}
     for row in baseline_rows:
         baseline_name = str(row.get("policy_name") or row.get("control_name") or "")
         baselines_by_name_and_key.setdefault(baseline_name, {}).setdefault(
@@ -1242,6 +1247,7 @@ def validate_pilot_gate(
     require_full_label_coverage: bool = False,
     require_same_count_control: bool = False,
     same_count_source_policy: str = "frugalkd_p",
+    same_count_control_policy: str | None = None,
     success_policy: str | None = None,
     success_baselines: List[str] | None = None,
     min_auc_win_rate: float | None = None,
@@ -1313,25 +1319,36 @@ def validate_pilot_gate(
             for seed in expected_seed_set
             for budget in expected_budget_set
         }
-        found_combos = {
-            (
+        combo_rows: Dict[tuple[str, str, str], List[Dict[str, Any]]] = {}
+        for row in rows:
+            if _is_same_count_control(row):
+                continue
+            combo = (
                 str(row.get("policy_name")),
                 str(row.get("seed")),
                 str(row.get("token_budget")),
             )
-            for row in rows
-            if not _is_same_count_control(row)
-        }
+            combo_rows.setdefault(combo, []).append(row)
+        found_combos = set(combo_rows)
+        duplicate_combos = [
+            {
+                "combo": list(combo),
+                "run_ids": [row.get("run_id") for row in combo_group],
+            }
+            for combo, combo_group in sorted(combo_rows.items())
+            if len(combo_group) > 1
+        ]
         checks.append(
             _gate_check(
                 "expected_policy_seed_budget_grid",
-                expected_combos == found_combos,
+                expected_combos == found_combos and not duplicate_combos,
                 expected_count=len(expected_combos),
-                found_count=len(found_combos),
+                found_count=sum(len(group) for group in combo_rows.values()),
                 missing=[list(combo) for combo in sorted(expected_combos - found_combos)],
                 unexpected=[
                     list(combo) for combo in sorted(found_combos - expected_combos)
                 ],
+                duplicates=duplicate_combos,
             )
         )
 
@@ -1373,11 +1390,22 @@ def validate_pilot_gate(
             if row.get("policy_name") == policy_name and row.get("action_name") != "STOP"
         }
         if expected_operator not in operators:
+            unexpected_operators = sorted(operators - {expected_operator})
             fixed_operator_failures.append(
                 {
                     "policy_name": policy_name,
                     "expected_operator": expected_operator,
                     "found_operators": sorted(operators),
+                    "unexpected_operators": unexpected_operators,
+                }
+            )
+        elif operators != {expected_operator}:
+            fixed_operator_failures.append(
+                {
+                    "policy_name": policy_name,
+                    "expected_operator": expected_operator,
+                    "found_operators": sorted(operators),
+                    "unexpected_operators": sorted(operators - {expected_operator}),
                 }
             )
     checks.append(
@@ -1629,11 +1657,23 @@ def validate_pilot_gate(
             source_counts.setdefault(pair, _safe_int(row.get("final_synthetic_count")))
 
         malformed_controls = []
+        wrong_policy_controls = []
         for row in same_count_rows:
             pair = (str(row.get("seed")), str(row.get("token_budget")))
             final_count = _safe_int(row.get("final_synthetic_count"))
             target_count = _safe_int(row.get("synthetic_record_budget"))
             source_count = source_counts.get(pair)
+            if (
+                same_count_control_policy
+                and str(row.get("policy_name") or "") != same_count_control_policy
+            ):
+                wrong_policy_controls.append(
+                    {
+                        "run_id": row.get("run_id"),
+                        "policy_name": row.get("policy_name"),
+                        "expected_policy_name": same_count_control_policy,
+                    }
+                )
             if (
                 target_count is None
                 or final_count != target_count
@@ -1657,8 +1697,10 @@ def validate_pilot_gate(
                 "same_count_controls_present",
                 target_pairs.issubset(found_pairs)
                 and not missing_source_pairs
+                and not wrong_policy_controls
                 and not malformed_controls,
                 source_policy=same_count_source_policy,
+                control_policy=same_count_control_policy,
                 expected_pairs=[list(pair) for pair in sorted(target_pairs)],
                 found_pairs=[list(pair) for pair in sorted(found_pairs)],
                 missing_pairs=[
@@ -1668,6 +1710,7 @@ def validate_pilot_gate(
                     list(pair) for pair in sorted(missing_source_pairs)
                 ],
                 malformed_controls=malformed_controls,
+                wrong_policy_controls=wrong_policy_controls,
             )
         )
         if success_policy and require_same_count_success:

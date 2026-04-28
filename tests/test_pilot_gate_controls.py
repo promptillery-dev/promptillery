@@ -216,6 +216,151 @@ def test_pilot_gate_accepts_valid_same_count_control(tmp_path):
     assert report["passed"]
 
 
+def test_pilot_gate_rejects_duplicate_policy_seed_budget_runs(tmp_path):
+    _write_run(tmp_path, name="run_a", policy_name="frugalkd_p")
+    _write_run(tmp_path, name="run_b", policy_name="frugalkd_p")
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "expected_policy_seed_budget_grid"
+    )
+    assert not report["passed"]
+    assert check["duplicates"] == [
+        {
+            "combo": ["frugalkd_p", "13", "25000"],
+            "run_ids": ["run_a", "run_b"],
+        }
+    ]
+
+
+def test_pilot_gate_rejects_unexpected_fixed_policy_operator(tmp_path):
+    _write_run(tmp_path, name="fixed", policy_name="fixed_coverage")
+    (tmp_path / "fixed" / "policy_decisions.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "cycle": 0,
+                        "decision_id": "fixed:d0",
+                        "policy_name": "fixed_coverage",
+                        "action_name": "coverage:cheap:b8",
+                        "action": {
+                            "prompt_operator": "coverage",
+                            "teacher_tier": "cheap",
+                            "batch_size": 8,
+                        },
+                        "state": {},
+                        "metadata": {},
+                        "budget_before": {},
+                        "budget_after": {},
+                        "realized_cost": {},
+                        "predicted_cost": {},
+                    }
+                ),
+                json.dumps(
+                    {
+                        "cycle": 1,
+                        "decision_id": "fixed:d1",
+                        "policy_name": "fixed_coverage",
+                        "action_name": "repair:cheap:b8",
+                        "action": {
+                            "prompt_operator": "repair",
+                            "teacher_tier": "cheap",
+                            "batch_size": 8,
+                        },
+                        "state": {},
+                        "metadata": {},
+                        "budget_before": {},
+                        "budget_after": {},
+                        "realized_cost": {},
+                        "predicted_cost": {},
+                    }
+                ),
+            ]
+        )
+        + "\n"
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["fixed_coverage"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "fixed_policies_use_distinct_prompt_operators"
+    )
+    assert not report["passed"]
+    assert check["failures"] == [
+        {
+            "policy_name": "fixed_coverage",
+            "expected_operator": "coverage",
+            "found_operators": ["coverage", "repair"],
+            "unexpected_operators": ["repair"],
+        }
+    ]
+
+
+def test_pilot_gate_rejects_wrong_same_count_control_policy(tmp_path):
+    _write_run(
+        tmp_path,
+        name="main",
+        policy_name="frugalkd_p",
+        final_synthetic_count=3,
+    )
+    _write_run(
+        tmp_path,
+        name="same_count",
+        policy_name="random_feasible",
+        control_name="same_count",
+        synthetic_record_budget=3,
+        final_synthetic_count=3,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+        require_same_count_control=True,
+        same_count_control_policy="cost_heuristic",
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "same_count_controls_present"
+    )
+    assert not report["passed"]
+    assert check["wrong_policy_controls"] == [
+        {
+            "run_id": "same_count",
+            "policy_name": "random_feasible",
+            "expected_policy_name": "cost_heuristic",
+        }
+    ]
+
+
 def test_summarize_run_prefers_manifest_final_synthetic_count(tmp_path):
     _write_run(
         tmp_path,
