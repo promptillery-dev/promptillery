@@ -251,6 +251,22 @@ PAPER_ACTION_FREQUENCY_FIELDS = [
     "count",
     "share",
 ]
+PAPER_ACTION_CYCLE_FREQUENCY_FIELDS = [
+    "dataset",
+    "dataset_subset",
+    "student_model",
+    "student_type",
+    "token_budget",
+    "policy_name",
+    "control_name",
+    "cycle",
+    "action_name",
+    "prompt_operator",
+    "teacher_tier",
+    "batch_size",
+    "count",
+    "share",
+]
 PAPER_BUDGET_AUDIT_FIELDS = [
     "dataset",
     "dataset_subset",
@@ -1686,6 +1702,57 @@ def summarize_paper_action_frequencies(
     return frequency_rows
 
 
+def summarize_paper_action_cycle_frequencies(
+    policy_rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Aggregate policy decision logs by cycle for behavior-over-time plots."""
+    group_totals: Dict[tuple[Any, ...], int] = defaultdict(int)
+    counts: Dict[tuple[Any, ...], int] = defaultdict(int)
+    for row in policy_rows:
+        group_key = (
+            row.get("dataset"),
+            row.get("dataset_subset"),
+            row.get("student_model"),
+            row.get("student_type"),
+            row.get("token_budget"),
+            row.get("policy_name"),
+            row.get("control_name"),
+            row.get("cycle"),
+        )
+        action_key = group_key + (
+            row.get("action_name"),
+            row.get("prompt_operator"),
+            row.get("teacher_tier"),
+            row.get("batch_size"),
+        )
+        group_totals[group_key] += 1
+        counts[action_key] += 1
+
+    frequency_rows = []
+    for key, count in sorted(counts.items(), key=lambda item: tuple(map(str, item[0]))):
+        group_key = key[:8]
+        total = group_totals[group_key]
+        frequency_rows.append(
+            {
+                "dataset": key[0],
+                "dataset_subset": key[1],
+                "student_model": key[2],
+                "student_type": key[3],
+                "token_budget": key[4],
+                "policy_name": key[5],
+                "control_name": key[6],
+                "cycle": key[7],
+                "action_name": key[8],
+                "prompt_operator": key[9],
+                "teacher_tier": key[10],
+                "batch_size": key[11],
+                "count": count,
+                "share": count / total if total else None,
+            }
+        )
+    return frequency_rows
+
+
 def summarize_paper_budget_audit(
     rows: List[Dict[str, Any]],
     calibration_rows: List[Dict[str, Any]],
@@ -1866,7 +1933,8 @@ def _write_paper_report_markdown(
             "`paper_pairwise_summary.csv` for win rates and sign tests, "
             "`paper_quality_cost_points.csv` for quality-cost curves, "
             "`paper_budget_audit.csv` for the accounting table, and "
-            "`paper_action_frequencies.csv` for policy-behavior figures.",
+            "`paper_action_frequencies.csv` plus "
+            "`paper_action_cycle_frequencies.csv` for policy-behavior figures.",
             "",
         ]
     )
@@ -1906,6 +1974,7 @@ def write_paper_report(
     delta_summary_rows = summarize_paper_pairwise_summary(delta_rows)
     point_rows = summarize_paper_quality_cost_points(run_dirs, rows)
     action_rows = summarize_paper_action_frequencies(policy_rows)
+    action_cycle_rows = summarize_paper_action_cycle_frequencies(policy_rows)
     budget_rows = summarize_paper_budget_audit(rows, calibration_rows)
 
     paths = {
@@ -1918,6 +1987,8 @@ def write_paper_report(
         "paper_pairwise_summary": output_dir / "paper_pairwise_summary.csv",
         "paper_quality_cost_points": output_dir / "paper_quality_cost_points.csv",
         "paper_action_frequencies": output_dir / "paper_action_frequencies.csv",
+        "paper_action_cycle_frequencies": output_dir
+        / "paper_action_cycle_frequencies.csv",
         "paper_budget_audit": output_dir / "paper_budget_audit.csv",
         "paper_readiness_report": output_dir / "paper_readiness_report.md",
     }
@@ -1945,6 +2016,11 @@ def write_paper_report(
         action_rows,
         paths["paper_action_frequencies"],
         PAPER_ACTION_FREQUENCY_FIELDS,
+    )
+    _write_rows_csv(
+        action_cycle_rows,
+        paths["paper_action_cycle_frequencies"],
+        PAPER_ACTION_CYCLE_FREQUENCY_FIELDS,
     )
     _write_rows_csv(
         budget_rows,

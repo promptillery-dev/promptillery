@@ -187,12 +187,17 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     assert paths["paper_budget_audit"].exists()
     assert paths["paper_pairwise_summary"].exists()
     assert paths["paper_quality_cost_points"].exists()
+    assert paths["paper_action_cycle_frequencies"].exists()
     with paths["paper_pairwise_deltas"].open(newline="", encoding="utf-8") as f:
         delta_rows = list(csv.DictReader(f))
     with paths["paper_pairwise_summary"].open(newline="", encoding="utf-8") as f:
         summary_rows = list(csv.DictReader(f))
     with paths["paper_quality_cost_points"].open(newline="", encoding="utf-8") as f:
         point_rows = list(csv.DictReader(f))
+    with paths["paper_action_cycle_frequencies"].open(
+        newline="", encoding="utf-8"
+    ) as f:
+        action_cycle_rows = list(csv.DictReader(f))
 
     assert len(delta_rows) == 1
     assert delta_rows[0]["success_policy"] == "frugalkd_p"
@@ -212,6 +217,10 @@ def test_paper_report_writes_reviewer_tables(tmp_path):
     ]
     assert frugal_points[-1]["metric_value"] == "0.75"
     assert frugal_points[-1]["cumulative_online_teacher_total_tokens"] == "15"
+    assert any(
+        row["cycle"] == "1" and row["action_name"] == "final_cycle"
+        for row in action_cycle_rows
+    )
 
 
 def test_paper_report_combines_control_roots(tmp_path):
