@@ -32,7 +32,7 @@ app = typer.Typer(add_completion=False)
 load_dotenv()
 
 # Default teacher model for baseline evaluation
-DEFAULT_BASELINE_TEACHER = "openai/gpt-4.1"
+DEFAULT_BASELINE_TEACHER = "openai/gpt-5-mini"
 
 
 def _csv_option_values(value: str) -> List[str]:
@@ -1014,7 +1014,7 @@ def baseline(
         promptillery baseline examples/text_classification_transformers.yaml -m zero-shot
 
         # Run with a different teacher model
-        promptillery baseline examples/text_classification_transformers.yaml -t openai/gpt-4o-mini
+        promptillery baseline examples/text_classification_transformers.yaml -t openai/gpt-5-mini
     """
     import logging
     from .baseline_eval import run_baseline_evaluation

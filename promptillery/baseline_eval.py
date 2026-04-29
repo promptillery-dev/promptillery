@@ -37,7 +37,7 @@ console = Console()
 
 
 # Default teacher model
-DEFAULT_TEACHER = "openai/gpt-4.1"
+DEFAULT_TEACHER = "openai/gpt-5-mini"
 
 
 class ClassificationResponse(BaseModel):

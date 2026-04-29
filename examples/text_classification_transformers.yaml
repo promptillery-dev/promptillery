@@ -8,7 +8,7 @@
 # =============================================================================
 
 name: "transformers_ag_news"
-teacher: "openai/gpt-4o-mini"
+teacher: "openai/gpt-5-mini"
 student: "google-bert/bert-base-uncased"
 student_type: "transformers"
 

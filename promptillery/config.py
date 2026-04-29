@@ -151,7 +151,7 @@ class ExperimentConfig(BaseModel):
         ...,
         description="Name of the experiment (required, alphanumeric, dashes, underscores only)",
     )
-    teacher: Union[str, List[str]] = "openai/gpt-4o-mini"
+    teacher: Union[str, List[str]] = "openai/gpt-5-mini"
     student: Union[str, List[str]] = "google-bert/bert-base-uncased"
     teacher_revision: Optional[str] = Field(
         default=None,
@@ -559,7 +559,7 @@ class ExperimentConfig(BaseModel):
                     # Scientific notation for small floats, otherwise simple format
                     value_str = f"{value:.0e}" if value < 0.001 else str(value)
                 elif isinstance(value, str):
-                    # Take last part of path-like strings (e.g., "openai/gpt-4o-mini" -> "gpt-4o-mini")
+                    # Take last part of path-like strings (e.g., "openai/gpt-5-mini" -> "gpt-5-mini")
                     value_str = value.split("/")[-1]
                 else:
                     value_str = str(value)

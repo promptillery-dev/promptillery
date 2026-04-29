@@ -162,7 +162,7 @@ Prompts use Jinja2 templating syntax and may contain placeholders referencing da
 
 ```yaml
 name: "tweet_sentiment_analysis"      # Required: experiment name (alphanumeric, dashes, underscores only)
-teacher: "openai/gpt-4o-mini"
+teacher: "openai/gpt-5-mini"
 student: "gerulata/slovakbert"
 dataset: "tweet_eval"
 metrics:
@@ -621,7 +621,7 @@ promptillery baseline [OPTIONS]
 - `--dataset-config`, `-dc`: Dataset config/subset (e.g., 'sentiment', 'plain_text')
 - `--text-column`: Name of the text column (default: "text")
 - `--label-column`: Name of the label column (default: "label")
-- `--teacher`, `-t`: Teacher model to use (default: openai/gpt-4.1)
+- `--teacher`, `-t`: Teacher model to use (default: openai/gpt-5-mini)
 - `--mode`, `-m`: Evaluation modes to run (default: zero-shot, few-shot)
 - `--num-shots`, `-n`: Number of examples per class for few-shot (default: 2)
 - `--max-samples`: Maximum samples to evaluate (useful for testing)
@@ -647,7 +647,7 @@ promptillery baseline -d community-datasets/yahoo_answers_topics \
 promptillery baseline -d stanfordnlp/imdb -dc plain_text -m zero-shot
 
 # Run with a different teacher model
-promptillery baseline -d stanfordnlp/imdb -dc plain_text -t openai/gpt-4o-mini
+promptillery baseline -d stanfordnlp/imdb -dc plain_text -t openai/gpt-5-mini
 ```
 
 **Output:**
@@ -721,7 +721,7 @@ cycles: 3
 
 ```yaml
 name: "teacher_comparison"
-teacher: ["gpt-3.5-turbo", "gpt-4o-mini", "claude-3-haiku"]
+teacher: ["gpt-5-nano", "gpt-5-mini", "claude-3-haiku"]
 student: "bert-base-uncased"
 ```
 

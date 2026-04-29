@@ -8,7 +8,7 @@
 # =============================================================================
 
 name: "early_stopping_imdb"
-teacher: "openai/gpt-4o-mini"
+teacher: "openai/gpt-5-mini"
 student: "distilbert-base-uncased"
 student_type: "transformers"
 
