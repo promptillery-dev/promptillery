@@ -422,6 +422,116 @@ class CausalLMSFTTrainer(BaseTrainer):
         entropy = sum(token_entropies) / len(token_entropies)
         return float(confidence), float(entropy)
 
+    def _score_canonical_label_records(
+        self,
+        trainer: Trainer,
+        split: str,
+        sample_limit: int | None,
+    ) -> List[Dict[str, Any]]:
+        """Classify by scoring each canonical label under the causal LM."""
+        if split not in self.dataset:
+            return []
+        ds = self.dataset[split]
+        if (
+            self.prompt_field not in ds.column_names
+            or self.gold_answer_field not in ds.column_names
+        ):
+            return []
+        if sample_limit is not None:
+            ds = ds.select(range(min(sample_limit, len(ds))))
+
+        canonical_labels = self._canonical_labels()
+        if not canonical_labels:
+            return []
+
+        label_batch_size = int(
+            self.trainer_config.get("canonical_label_score_batch_size", 16)
+        )
+        records: List[Dict[str, Any]] = []
+        model = trainer.model
+        model.eval()
+        device = getattr(model, "device", None)
+        if device is None:
+            device = next(model.parameters()).device
+
+        for index, row in enumerate(ds):
+            prompt = self._format_generation_prompt(str(row[self.prompt_field]))
+            prompt_token_count = len(
+                self.tokenizer(
+                    prompt,
+                    add_special_tokens=True,
+                    truncation=True,
+                    max_length=self.max_seq_length,
+                )["input_ids"]
+            )
+            label_losses: List[float] = []
+            label_token_counts: List[int] = []
+            original_padding_side = self.tokenizer.padding_side
+            try:
+                self.tokenizer.padding_side = "right"
+                for start in range(0, len(canonical_labels), label_batch_size):
+                    labels = canonical_labels[start : start + label_batch_size]
+                    texts = [prompt + label for label in labels]
+                    encoded = self.tokenizer(
+                        texts,
+                        return_tensors="pt",
+                        padding=True,
+                        truncation=True,
+                        max_length=self.max_seq_length,
+                    ).to(device)
+                    with torch.no_grad():
+                        logits = model(**encoded).logits.float()
+                    input_ids = encoded["input_ids"]
+                    attention_mask = encoded["attention_mask"]
+                    shift_logits = logits[:, :-1, :]
+                    shift_labels = input_ids[:, 1:]
+                    shift_attention = attention_mask[:, 1:].bool()
+                    positions = torch.arange(
+                        shift_labels.shape[1], device=shift_labels.device
+                    ).unsqueeze(0)
+                    label_mask = positions >= max(0, prompt_token_count - 1)
+                    label_mask = label_mask & shift_attention
+                    token_losses = torch.nn.functional.cross_entropy(
+                        shift_logits.transpose(1, 2),
+                        shift_labels,
+                        reduction="none",
+                    )
+                    counts = label_mask.sum(dim=1).clamp_min(1)
+                    losses = (token_losses * label_mask).sum(dim=1) / counts
+                    label_losses.extend(float(value) for value in losses.cpu())
+                    label_token_counts.extend(int(value) for value in counts.cpu())
+            finally:
+                self.tokenizer.padding_side = original_padding_side
+
+            scores = torch.tensor([-loss for loss in label_losses], dtype=torch.float)
+            probabilities = torch.softmax(scores, dim=0)
+            best_index = int(torch.argmax(probabilities).item())
+            completion = canonical_labels[best_index]
+            confidence = float(probabilities[best_index].item())
+            entropy = float(
+                -(probabilities * probabilities.clamp_min(1e-12).log()).sum().item()
+            )
+            gold = str(row[self.gold_answer_field])
+            pred_norm = self._normalize_answer(completion)
+            gold_norm = self._normalize_answer(gold)
+            records.append(
+                {
+                    "split": split,
+                    "index": index,
+                    "prompt": prompt,
+                    "completion": completion,
+                    "gold_answer": gold,
+                    "normalized_prediction": pred_norm,
+                    "normalized_gold": gold_norm,
+                    "exact_match": pred_norm == gold_norm,
+                    "generation_confidence": confidence,
+                    "generation_entropy": entropy,
+                    "canonical_label_decoding": "score",
+                    "canonical_label_token_count": label_token_counts[best_index],
+                }
+            )
+        return records
+
     def _generate_eval_records(
         self,
         trainer: Trainer,
@@ -429,6 +539,13 @@ class CausalLMSFTTrainer(BaseTrainer):
         sample_limit: int | None,
     ) -> List[Dict[str, Any]]:
         """Generate deterministic completions and return structured records."""
+        if (
+            self.trainer_config.get("answer_extraction") == "canonical_label"
+            and self.trainer_config.get("canonical_label_decoding", "score")
+            == "score"
+        ):
+            return self._score_canonical_label_records(trainer, split, sample_limit)
+
         if split not in self.dataset:
             return []
         ds = self.dataset[split]
