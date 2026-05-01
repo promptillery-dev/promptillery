@@ -32,7 +32,14 @@ class PolicyDecision(BaseModel):
     reward: Optional[float] = None
     budget_before: Dict[str, Any] = Field(default_factory=dict)
     budget_after: Dict[str, Any] = Field(default_factory=dict)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Free-form per-decision metadata. For cotrain runs, this records "
+            "ProvenanceClass values and per-variant provenance counts; see "
+            "promptillery.cotrain.provenance."
+        ),
+    )
 
 
 class PolicyDecisionLogger:
