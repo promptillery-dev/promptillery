@@ -188,6 +188,16 @@ class CausalLMSFTTrainer(BaseTrainer):
             f"fields, or instruction/output fields. Available columns: {available}"
         )
 
+    def _format_generation_prompt(self, prompt: str) -> str:
+        """Format an inference prompt with the same boundary used for SFT."""
+        template = self.trainer_config.get("generation_prompt_template")
+        if template:
+            return str(template).format(prompt=prompt)
+        train_template = self.trainer_config.get("format_template")
+        if train_template:
+            return str(train_template).format(prompt=prompt, response="")
+        return f"### Instruction:\n{prompt}\n\n### Response:\n"
+
     def prepare_data(self, split: str) -> Dataset:
         """Tokenize SFT data for causal language modeling."""
         ds = self.dataset[split]
@@ -440,28 +450,36 @@ class CausalLMSFTTrainer(BaseTrainer):
 
         for start in range(0, len(ds), batch_size):
             batch = ds.select(range(start, min(start + batch_size, len(ds))))
-            prompts = [str(value) for value in batch[self.prompt_field]]
-            encoded = self.tokenizer(
-                prompts,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-                max_length=self.max_seq_length,
-            )
-            device = getattr(model, "device", None)
-            if device is None:
-                device = next(model.parameters()).device
-            encoded = encoded.to(device)
-            input_width = int(encoded["input_ids"].shape[1])
-            with torch.no_grad():
-                generated = model.generate(
-                    **encoded,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=False,
-                    pad_token_id=self.tokenizer.pad_token_id,
-                    return_dict_in_generate=True,
-                    output_scores=True,
+            raw_prompts = [str(value) for value in batch[self.prompt_field]]
+            prompts = [self._format_generation_prompt(prompt) for prompt in raw_prompts]
+            original_padding_side = self.tokenizer.padding_side
+            try:
+                self.tokenizer.padding_side = self.trainer_config.get(
+                    "generation_padding_side", "left"
                 )
+                encoded = self.tokenizer(
+                    prompts,
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                    max_length=self.max_seq_length,
+                )
+                device = getattr(model, "device", None)
+                if device is None:
+                    device = next(model.parameters()).device
+                encoded = encoded.to(device)
+                input_width = int(encoded["input_ids"].shape[1])
+                with torch.no_grad():
+                    generated = model.generate(
+                        **encoded,
+                        max_new_tokens=max_new_tokens,
+                        do_sample=False,
+                        pad_token_id=self.tokenizer.pad_token_id,
+                        return_dict_in_generate=True,
+                        output_scores=True,
+                    )
+            finally:
+                self.tokenizer.padding_side = original_padding_side
 
             for offset, output_ids in enumerate(generated.sequences):
                 completion_ids = output_ids[input_width:]

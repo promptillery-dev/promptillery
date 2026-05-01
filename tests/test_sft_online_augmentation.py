@@ -65,6 +65,26 @@ def test_sft_text_builder_preserves_explicit_preformatted_text():
     assert texts == ["already formatted"]
 
 
+def test_generation_prompt_uses_sft_response_boundary():
+    trainer = CausalLMSFTTrainer.__new__(CausalLMSFTTrainer)
+    trainer.trainer_config = {}
+
+    prompt = trainer._format_generation_prompt("Classify: hello")
+
+    assert prompt == "### Instruction:\nClassify: hello\n\n### Response:\n"
+
+
+def test_generation_prompt_honors_custom_format_template():
+    trainer = CausalLMSFTTrainer.__new__(CausalLMSFTTrainer)
+    trainer.trainer_config = {
+        "format_template": "<|user|>{prompt}<|assistant|>{response}",
+    }
+
+    prompt = trainer._format_generation_prompt("Classify: hello")
+
+    assert prompt == "<|user|>Classify: hello<|assistant|>"
+
+
 def test_sft_generation_summary_uses_canonical_labels(tmp_path):
     trainer = CausalLMSFTTrainer.__new__(CausalLMSFTTrainer)
     trainer.trainer_config = {
