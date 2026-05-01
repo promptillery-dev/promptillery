@@ -677,6 +677,37 @@ class CausalLMSFTTrainer(BaseTrainer):
                 )
         return records
 
+    def generate_text(
+        self,
+        prompt: str,
+        *,
+        n: int = 1,
+        temperature: float = 0.8,
+        max_new_tokens: int = 512,
+    ) -> List[str]:
+        """Generate raw completions from the current student model.
+
+        Used by the cotrain variant generator. Caller passes a fully built
+        prompt; we return raw decoded strings.
+        """
+        if self.model is None:
+            raise RuntimeError("call train() before generate_text()")
+        tokenizer = self.tokenizer
+        inputs = tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        out_texts: List[str] = []
+        for _ in range(n):
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=temperature > 0,
+                temperature=max(temperature, 1e-3),
+                top_p=0.95,
+                pad_token_id=tokenizer.eos_token_id,
+            )
+            new_ids = output_ids[0, inputs["input_ids"].shape[1]:]
+            out_texts.append(tokenizer.decode(new_ids, skip_special_tokens=True))
+        return out_texts
+
     def _generation_summary(self, records: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Summarize generation records with canonical-label validity metrics."""
         if not records:

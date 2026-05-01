@@ -27,10 +27,13 @@ def test_cli_train_dispatches_to_cotrain_engine(tmp_path, monkeypatch):
     async def fake_run(self):
         called["ran"] = True
 
+    class _FakeEngine:
+        async def run(self):
+            await fake_run(self)
+
     runner = CliRunner()
-    with patch("promptillery.cotrain.engine.CoTrainEngine.run", fake_run), \
-         patch("promptillery.cotrain.engine.CoTrainEngine.__init__",
-               lambda self, *a, **kw: None):
+    with patch("promptillery.cotrain.engine.CoTrainEngine.from_config",
+               classmethod(lambda cls, cfg, **kw: _FakeEngine())):
         result = runner.invoke(app, ["train", str(cfg_path)])
     assert result.exit_code == 0, result.output
     assert called.get("ran") is True

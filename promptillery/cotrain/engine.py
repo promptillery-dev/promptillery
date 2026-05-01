@@ -399,11 +399,18 @@ class CoTrainEngine:
     ) -> "CoTrainEngine":
         """Build a CoTrainEngine from an ExperimentConfig for CLI runs.
 
-        Dataset loading and the student-as-generator wiring are finalized
-        in Task 17; until then, the generators raise NotImplementedError
-        if invoked. The arbiter uses LiteLLM's acompletion under the hood.
+        Loads the dataset via the same helpers DistillationEngine uses, wires
+        the arbiter to LiteLLM acompletion, and binds each student's variant
+        generation to its trainer's generate_text() method.
         """
-        from datasets import Dataset
+        from datasets import load_dataset
+
+        from ..engine import (
+            ensure_class_label,
+            ensure_validation_split,
+            prepare_dataset,
+        )
+        from ..reproducibility import dataset_load_kwargs
 
         out_path = Path(out_dir) if out_dir else (
             Path(config.base_output_dir) / config.name
@@ -423,17 +430,52 @@ class CoTrainEngine:
                 },
             }
 
-        def _placeholder_generate(prompt, *, n, temperature):
-            raise NotImplementedError(
-                "student-as-generator wiring is finalized in Task 17"
-            )
+        # Lazy student-as-generator: at construction time the dual trainer
+        # has not yet been built. We close over a holder that gets the
+        # finished engine after cls(...) returns.
+        engine_holder: Dict[str, "CoTrainEngine"] = {}
 
-        dataset: Dict[str, Dataset] = {
-            "train": Dataset.from_dict({"text": [], "label": []})
-        }
-        return cls(
+        def _student_generate(student_side: str):
+            def _gen(prompt: str, *, n: int, temperature: float):
+                engine = engine_holder.get("engine")
+                if engine is None:
+                    raise RuntimeError(
+                        "student generator invoked before engine construction"
+                    )
+                trainer = (
+                    engine.dual.trainer_a if student_side == "a"
+                    else engine.dual.trainer_b
+                )
+                if trainer is None:
+                    raise RuntimeError(
+                        "student trainer not yet built; cotrain run must train "
+                        "before generating variants"
+                    )
+                if not hasattr(trainer, "generate_text"):
+                    raise RuntimeError(
+                        "trainer does not implement generate_text(); cotrain "
+                        "mode currently requires student_type='causal_lm_sft'"
+                    )
+                return trainer.generate_text(
+                    prompt, n=n, temperature=temperature, max_new_tokens=512,
+                )
+            return _gen
+
+        dataset_kwargs = dataset_load_kwargs(config)
+        if config.dataset_subset:
+            dataset = load_dataset(config.dataset, config.dataset_subset, **dataset_kwargs)
+        else:
+            dataset = load_dataset(config.dataset, **dataset_kwargs)
+        if config.sampling.enabled:
+            dataset = ensure_class_label(dataset, config.sampling.stratify_column)
+        dataset = prepare_dataset(dataset, config.sampling)
+        dataset = ensure_validation_split(dataset, config)
+
+        engine = cls(
             config, dataset=dataset, out_dir=out_path,
-            generate_fn_a=_placeholder_generate,
-            generate_fn_b=_placeholder_generate,
+            generate_fn_a=_student_generate("a"),
+            generate_fn_b=_student_generate("b"),
             arbiter_complete=_arbiter_complete,
         )
+        engine_holder["engine"] = engine
+        return engine
