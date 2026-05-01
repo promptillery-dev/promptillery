@@ -19,6 +19,27 @@ from sklearn.metrics import classification_report as sklearn_classification_repo
 def setup_logging(level: int = logging.INFO) -> None:
     """Configure rich logging."""
     logging.basicConfig(level=level, format="%(message)s", handlers=[RichHandler()])
+    _quiet_noisy_dependency_loggers()
+
+
+def _quiet_noisy_dependency_loggers() -> None:
+    """Keep third-party request logging from overwhelming experiment progress."""
+    for logger_name in (
+        "LiteLLM",
+        "litellm",
+        "litellm.llms",
+        "httpx",
+        "httpcore",
+        "openai",
+        "urllib3",
+    ):
+        logging.getLogger(logger_name).setLevel(logging.WARNING)
+    try:
+        import litellm
+    except Exception:
+        return
+    litellm.suppress_debug_info = True
+    litellm.set_verbose = False
 
 
 def set_seed(seed: int) -> None:

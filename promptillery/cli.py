@@ -169,6 +169,11 @@ def materialize_sft(
         "--allow-partial",
         help="Keep a budget-truncated dataset when preflight stops teacher mode",
     ),
+    progress: bool = typer.Option(
+        True,
+        "--progress/--no-progress",
+        help="Show a compact progress bar while materializing rows",
+    ),
 ) -> None:
     """Materialize audited SFT JSONL records from a dataset split."""
     setup_logging()
@@ -189,6 +194,7 @@ def materialize_sft(
                 overwrite=overwrite,
                 allow_estimated_usage=allow_estimated_usage,
                 allow_partial=allow_partial,
+                show_progress=progress,
             )
         )
     except ValueError as exc:

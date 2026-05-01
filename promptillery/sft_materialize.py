@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
@@ -13,6 +14,15 @@ from typing import Any, Dict, List, Tuple
 from datasets import DatasetDict, load_dataset
 from jinja2 import StrictUndefined
 from litellm import acompletion
+from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TaskID,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 from .config import ExperimentConfig
 from .engine import ensure_class_label, ensure_validation_split, prepare_dataset
@@ -38,6 +48,25 @@ Student prompt:
 {{ student_prompt }}
 """
 SOURCE_INDEX_LIST_LIMIT = 5000
+
+
+def _materialization_progress(enabled: bool) -> Progress | None:
+    """Return a compact progress bar for CLI materialization runs."""
+    if not enabled:
+        return None
+    return Progress(
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        TextColumn("att={task.fields[attempted]}"),
+        TextColumn("rej={task.fields[rejected]}"),
+        TextColumn("tok={task.fields[tokens]}"),
+        TextColumn("{task.fields[status]}"),
+        TimeElapsedColumn(),
+        TextColumn("eta"),
+        TimeRemainingColumn(),
+        console=Console(stderr=True),
+    )
 
 
 def _stable_hash(value: Any) -> str:
@@ -412,6 +441,7 @@ async def materialize_sft_records(
     overwrite: bool = False,
     allow_estimated_usage: bool = False,
     allow_partial: bool = False,
+    show_progress: bool = False,
 ) -> Dict[str, Any]:
     """Write SFT JSONL records for one dataset split."""
     if isinstance(config.teacher, list):
@@ -522,183 +552,227 @@ async def materialize_sft_records(
     stop_reason = "completed"
     materialized_at = datetime.now(timezone.utc).isoformat()
     canonical_labels_path = None
+    progress = _materialization_progress(show_progress)
+    progress_task: TaskID | None = None
+
+    def update_progress(status: str, advance: int = 0) -> None:
+        if progress is None or progress_task is None:
+            return
+        progress.update(
+            progress_task,
+            advance=advance,
+            attempted=attempted,
+            rejected=max(0, attempted - written),
+            tokens=total_tokens,
+            status=status,
+        )
 
     try:
-        with temp_path.open("w", encoding="utf-8") as f:
-            for index, row in enumerate(source):
-                if target_records is not None and written >= target_records:
-                    break
-                attempted += 1
-                source_original_index = selection_info["selected_source_indices"][
-                    index
-                ]
-                predicted_total = 0
-                row_values = dict(row)
-                gold_answer, resolved_gold_field = _label_text(
-                    row_values, config, source, gold_answer_field
+        progress_context = progress if progress is not None else nullcontext()
+        with progress_context:
+            if progress is not None:
+                progress_total = (
+                    min(target_records, len(source))
+                    if target_records is not None
+                    else len(source)
                 )
-                if not gold_answer:
-                    raise ValueError(
-                        f"Gold answer is empty for row {split}/{index} "
-                        f"from field '{resolved_gold_field}'"
-                    )
-                row_values["gold_answer"] = gold_answer
-
-                if config.text_field in row_values:
-                    row_values.setdefault("text", row_values[config.text_field])
-                if config.label_field in row_values:
-                    row_values.setdefault("label", row_values[config.label_field])
-                if template_canonical_labels:
-                    row_values["canonical_labels"] = template_canonical_labels
-
-                student_prompt = _format_template(student_prompt_template, row_values)
-                row_values["student_prompt"] = student_prompt
-                source_id = str(row_values.get("id", f"{split}/{index}"))
-
-                usage = {
-                    "teacher_input_tokens": 0,
-                    "teacher_output_tokens": 0,
-                    "teacher_total_tokens": 0,
-                    "provider_total_tokens": 0,
-                }
-                teacher_prompt = ""
-                teacher_response = gold_answer
-                usage_estimated = False
-
-                if mode == "teacher":
-                    teacher_prompt = _format_template(
-                        teacher_prompt_template, row_values
-                    )
-                    messages = [{"role": "user", "content": teacher_prompt}]
-                    predicted_total = _estimate_input_tokens(
-                        config.teacher, messages
-                    ) + int(config.teacher_max_output_tokens or 0)
-                    if (
-                        config.token_budget is not None
-                        and total_tokens + predicted_total > config.token_budget
-                    ):
-                        stop_reason = "predicted_budget_exhausted"
-                        message = (
-                            "Stopping before row "
-                            f"{source_id}: predicted total "
-                            f"{total_tokens + predicted_total} would exceed "
-                            f"token_budget={config.token_budget}"
-                        )
-                        if not allow_partial:
-                            raise ValueError(
-                                f"{message}. Rerun with --allow-partial to keep a "
-                                "budget-truncated dataset."
-                            )
-                        logger.info(message)
+                progress_task = progress.add_task(
+                    f"{split} {mode}",
+                    total=progress_total,
+                    attempted=0,
+                    rejected=0,
+                    tokens=0,
+                    status="starting",
+                )
+            with temp_path.open("w", encoding="utf-8") as f:
+                for index, row in enumerate(source):
+                    if target_records is not None and written >= target_records:
+                        update_progress("requested records reached")
                         break
-
-                    response = await acompletion(
-                        model=config.teacher,
-                        messages=messages,
-                        max_tokens=config.teacher_max_output_tokens,
-                        temperature=0,
+                    attempted += 1
+                    source_original_index = selection_info["selected_source_indices"][
+                        index
+                    ]
+                    predicted_total = 0
+                    row_values = dict(row)
+                    gold_answer, resolved_gold_field = _label_text(
+                        row_values, config, source, gold_answer_field
                     )
-                    teacher_response = _response_text(response)
-                    if not teacher_response:
+                    if not gold_answer:
                         raise ValueError(
-                            f"Teacher returned an empty response for {source_id}"
+                            f"Gold answer is empty for row {split}/{index} "
+                            f"from field '{resolved_gold_field}'"
                         )
-                    usage = _usage_from_response(response)
-                    if usage["teacher_total_tokens"] <= 0 and not allow_estimated_usage:
-                        raise ValueError(
-                            "Teacher response did not include token usage. "
-                            "Rerun with allow_estimated_usage only for non-paper dry runs."
-                        )
-                    if usage["teacher_total_tokens"] <= 0:
-                        if config.paper_mode:
-                            raise ValueError(
-                                "paper_mode=true requires provider-reported token usage"
-                            )
-                        usage["teacher_input_tokens"] = _estimate_input_tokens(
-                            config.teacher, messages
-                        )
-                        usage["teacher_output_tokens"] = max(
-                            1, len(teacher_response) // 3
-                        )
-                        usage["teacher_total_tokens"] = (
-                            usage["teacher_input_tokens"]
-                            + usage["teacher_output_tokens"]
-                        )
-                        usage_estimated = True
+                    row_values["gold_answer"] = gold_answer
 
-                    if usage["teacher_total_tokens"] > predicted_total:
-                        raise ValueError(
-                            "Realized teacher tokens exceeded preflight estimate for "
-                            f"{source_id}: realized={usage['teacher_total_tokens']} "
-                            f"predicted={predicted_total}"
+                    if config.text_field in row_values:
+                        row_values.setdefault("text", row_values[config.text_field])
+                    if config.label_field in row_values:
+                        row_values.setdefault("label", row_values[config.label_field])
+                    if template_canonical_labels:
+                        row_values["canonical_labels"] = template_canonical_labels
+
+                    student_prompt = _format_template(
+                        student_prompt_template, row_values
+                    )
+                    row_values["student_prompt"] = student_prompt
+                    source_id = str(row_values.get("id", f"{split}/{index}"))
+                    update_progress(f"preparing row {attempted}")
+
+                    usage = {
+                        "teacher_input_tokens": 0,
+                        "teacher_output_tokens": 0,
+                        "teacher_total_tokens": 0,
+                        "provider_total_tokens": 0,
+                    }
+                    teacher_prompt = ""
+                    teacher_response = gold_answer
+                    usage_estimated = False
+
+                    if mode == "teacher":
+                        teacher_prompt = _format_template(
+                            teacher_prompt_template, row_values
                         )
+                        messages = [{"role": "user", "content": teacher_prompt}]
+                        predicted_total = _estimate_input_tokens(
+                            config.teacher, messages
+                        ) + int(config.teacher_max_output_tokens or 0)
+                        if (
+                            config.token_budget is not None
+                            and total_tokens + predicted_total > config.token_budget
+                        ):
+                            stop_reason = "predicted_budget_exhausted"
+                            message = (
+                                "Stopping before row "
+                                f"{source_id}: predicted total "
+                                f"{total_tokens + predicted_total} would exceed "
+                                f"token_budget={config.token_budget}"
+                            )
+                            update_progress("predicted budget exhausted")
+                            if not allow_partial:
+                                raise ValueError(
+                                    f"{message}. Rerun with --allow-partial to keep a "
+                                    "budget-truncated dataset."
+                                )
+                            logger.info(message)
+                            break
+
+                        update_progress(f"calling teacher row {attempted}")
+                        response = await acompletion(
+                            model=config.teacher,
+                            messages=messages,
+                            max_tokens=config.teacher_max_output_tokens,
+                            temperature=0,
+                        )
+                        teacher_response = _response_text(response)
+                        if not teacher_response:
+                            raise ValueError(
+                                f"Teacher returned an empty response for {source_id}"
+                            )
+                        usage = _usage_from_response(response)
+                        if (
+                            usage["teacher_total_tokens"] <= 0
+                            and not allow_estimated_usage
+                        ):
+                            raise ValueError(
+                                "Teacher response did not include token usage. "
+                                "Rerun with allow_estimated_usage only for non-paper dry runs."
+                            )
+                        if usage["teacher_total_tokens"] <= 0:
+                            if config.paper_mode:
+                                raise ValueError(
+                                    "paper_mode=true requires provider-reported token usage"
+                                )
+                            usage["teacher_input_tokens"] = _estimate_input_tokens(
+                                config.teacher, messages
+                            )
+                            usage["teacher_output_tokens"] = max(
+                                1, len(teacher_response) // 3
+                            )
+                            usage["teacher_total_tokens"] = (
+                                usage["teacher_input_tokens"]
+                                + usage["teacher_output_tokens"]
+                            )
+                            usage_estimated = True
+
+                        if usage["teacher_total_tokens"] > predicted_total:
+                            raise ValueError(
+                                "Realized teacher tokens exceeded preflight estimate for "
+                                f"{source_id}: realized={usage['teacher_total_tokens']} "
+                                f"predicted={predicted_total}"
+                            )
+                        if (
+                            config.token_budget is not None
+                            and total_tokens + usage["teacher_total_tokens"]
+                            > config.token_budget
+                        ):
+                            raise ValueError(
+                                "Realized teacher tokens would exceed token_budget for "
+                                f"{source_id}: realized_total="
+                                f"{total_tokens + usage['teacher_total_tokens']} "
+                                f"budget={config.token_budget}"
+                            )
+
+                    teacher_label = _normalize_canonical_label(teacher_response)
+                    gold_label = _normalize_canonical_label(gold_answer)
+                    input_tokens += usage["teacher_input_tokens"]
+                    output_tokens += usage["teacher_output_tokens"]
+                    total_tokens += usage["teacher_total_tokens"]
+                    usage_estimated_records += int(usage_estimated)
                     if (
-                        config.token_budget is not None
-                        and total_tokens + usage["teacher_total_tokens"]
-                        > config.token_budget
+                        mode == "teacher"
+                        and normalized_canonical_labels
+                        and teacher_label not in normalized_canonical_labels
+                    ):
+                        logger.warning(
+                            "Rejecting non-canonical teacher response for %s: %r",
+                            source_id,
+                            teacher_response,
+                        )
+                        update_progress(f"rejected row {attempted}")
+                        continue
+                    if teacher_label and gold_label and teacher_label == gold_label:
+                        teacher_gold_agreement_records += 1
+                    elif teacher_label and gold_label:
+                        teacher_gold_disagreement_records += 1
+                    record = {
+                        "id": f"{config.name}/{split}/{index}",
+                        "task": config.name,
+                        "source_example_id": source_id,
+                        "source_split": split,
+                        "source_index": index,
+                        "source_original_index": source_original_index,
+                        "prompt_operator": prompt_operator,
+                        "teacher_tier": teacher_tier if mode == "teacher" else "gold",
+                        "teacher_model": (
+                            config.teacher if mode == "teacher" else "gold"
+                        ),
+                        "student_prompt": student_prompt,
+                        "teacher_prompt": teacher_prompt,
+                        "teacher_response": teacher_response,
+                        "gold_answer": gold_answer,
+                        "gold_answer_field": resolved_gold_field,
+                        "cycle": 0,
+                        "seed": config.seed,
+                        "materialized_at": materialized_at,
+                        "materialization_mode": mode,
+                        "usage_estimated": usage_estimated,
+                        "predicted_teacher_total_tokens": predicted_total,
+                        **usage,
+                    }
+                    if record["teacher_total_tokens"] < (
+                        record["teacher_input_tokens"]
+                        + record["teacher_output_tokens"]
                     ):
                         raise ValueError(
-                            "Realized teacher tokens would exceed token_budget for "
-                            f"{source_id}: realized_total="
-                            f"{total_tokens + usage['teacher_total_tokens']} "
-                            f"budget={config.token_budget}"
+                            "Invalid token accounting: teacher_total_tokens must be at "
+                            "least teacher_input_tokens + teacher_output_tokens"
                         )
-
-                teacher_label = _normalize_canonical_label(teacher_response)
-                gold_label = _normalize_canonical_label(gold_answer)
-                input_tokens += usage["teacher_input_tokens"]
-                output_tokens += usage["teacher_output_tokens"]
-                total_tokens += usage["teacher_total_tokens"]
-                usage_estimated_records += int(usage_estimated)
-                if (
-                    mode == "teacher"
-                    and normalized_canonical_labels
-                    and teacher_label not in normalized_canonical_labels
-                ):
-                    logger.warning(
-                        "Rejecting non-canonical teacher response for %s: %r",
-                        source_id,
-                        teacher_response,
-                    )
-                    continue
-                if teacher_label and gold_label and teacher_label == gold_label:
-                    teacher_gold_agreement_records += 1
-                elif teacher_label and gold_label:
-                    teacher_gold_disagreement_records += 1
-                record = {
-                    "id": f"{config.name}/{split}/{index}",
-                    "task": config.name,
-                    "source_example_id": source_id,
-                    "source_split": split,
-                    "source_index": index,
-                    "source_original_index": source_original_index,
-                    "prompt_operator": prompt_operator,
-                    "teacher_tier": teacher_tier if mode == "teacher" else "gold",
-                    "teacher_model": config.teacher if mode == "teacher" else "gold",
-                    "student_prompt": student_prompt,
-                    "teacher_prompt": teacher_prompt,
-                    "teacher_response": teacher_response,
-                    "gold_answer": gold_answer,
-                    "gold_answer_field": resolved_gold_field,
-                    "cycle": 0,
-                    "seed": config.seed,
-                    "materialized_at": materialized_at,
-                    "materialization_mode": mode,
-                    "usage_estimated": usage_estimated,
-                    "predicted_teacher_total_tokens": predicted_total,
-                    **usage,
-                }
-                if record["teacher_total_tokens"] < (
-                    record["teacher_input_tokens"] + record["teacher_output_tokens"]
-                ):
-                    raise ValueError(
-                        "Invalid token accounting: teacher_total_tokens must be at "
-                        "least teacher_input_tokens + teacher_output_tokens"
-                    )
-                line = json.dumps(record, sort_keys=True)
-                record_hashes.append(sha256(line.encode("utf-8")).hexdigest())
-                f.write(line + "\n")
-                written += 1
+                    line = json.dumps(record, sort_keys=True)
+                    record_hashes.append(sha256(line.encode("utf-8")).hexdigest())
+                    f.write(line + "\n")
+                    written += 1
+                    update_progress(f"accepted row {attempted}", advance=1)
 
         if written == 0:
             raise ValueError("No SFT records were materialized")
