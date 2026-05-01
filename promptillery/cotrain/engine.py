@@ -392,3 +392,48 @@ class CoTrainEngine:
         (self.out_dir / "cotrain_results.json").write_text(
             json.dumps(self.results, indent=2, sort_keys=True), encoding="utf-8"
         )
+
+    @classmethod
+    def from_config(
+        cls, config: ExperimentConfig, *, out_dir: Optional[Path] = None
+    ) -> "CoTrainEngine":
+        """Build a CoTrainEngine from an ExperimentConfig for CLI runs.
+
+        Dataset loading and the student-as-generator wiring are finalized
+        in Task 17; until then, the generators raise NotImplementedError
+        if invoked. The arbiter uses LiteLLM's acompletion under the hood.
+        """
+        from datasets import Dataset
+
+        out_path = Path(out_dir) if out_dir else (
+            Path(config.base_output_dir) / config.name
+        )
+
+        async def _arbiter_complete(*, model, messages, temperature, max_tokens):
+            from litellm import acompletion
+            resp = await acompletion(
+                model=model, messages=messages,
+                temperature=temperature, max_tokens=max_tokens,
+            )
+            return {
+                "text": resp.choices[0].message.content,
+                "usage": {
+                    "input": resp.usage.prompt_tokens,
+                    "output": resp.usage.completion_tokens,
+                },
+            }
+
+        def _placeholder_generate(prompt, *, n, temperature):
+            raise NotImplementedError(
+                "student-as-generator wiring is finalized in Task 17"
+            )
+
+        dataset: Dict[str, Dataset] = {
+            "train": Dataset.from_dict({"text": [], "label": []})
+        }
+        return cls(
+            config, dataset=dataset, out_dir=out_path,
+            generate_fn_a=_placeholder_generate,
+            generate_fn_b=_placeholder_generate,
+            arbiter_complete=_arbiter_complete,
+        )

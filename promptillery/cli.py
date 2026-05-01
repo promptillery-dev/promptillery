@@ -55,6 +55,12 @@ def train(
     if base_dir != ".":
         cfg.base_output_dir = base_dir
 
+    if getattr(cfg, "acquisition_mode", "legacy") == "cotrain":
+        from .cotrain.engine import CoTrainEngine
+        cot_engine = CoTrainEngine.from_config(cfg)
+        asyncio.run(cot_engine.run())
+        return
+
     engine = DistillationEngine(cfg)
     asyncio.run(engine.run())
 
