@@ -138,6 +138,71 @@ class EarlyStoppingConfig(BaseModel):
         return v
 
 
+class LoRAConfig(BaseModel):
+    r: int = Field(default=16, ge=1)
+    alpha: int = Field(default=32, ge=1)
+    dropout: float = Field(default=0.05, ge=0.0, le=1.0)
+    target_modules: Optional[List[str]] = None
+
+
+class CoTrainStudentConfig(BaseModel):
+    model: str = Field(..., description="HF model id, e.g. Qwen/Qwen2.5-3B-Instruct")
+    operator: str = Field(..., description="One of coverage|boundary (per design §3.1)")
+    lora: LoRAConfig = Field(default_factory=LoRAConfig)
+    learning_rate: float = Field(default=2e-4, gt=0.0)
+    num_train_epochs: int = Field(default=2, ge=1)
+    warmup_steps: int = Field(default=50, ge=0)
+    weight_decay: float = Field(default=0.0, ge=0.0)
+    max_seq_length: int = Field(default=1024, ge=64)
+    per_device_batch_size: int = Field(default=4, ge=1)
+
+
+class CoTrainConfig(BaseModel):
+    student_a: CoTrainStudentConfig
+    student_b: CoTrainStudentConfig
+    strong_teacher: str = Field(..., description="LiteLLM model id for arbitration")
+    bootstrap_size: int = Field(..., ge=4)
+    variants_per_seed: int = Field(default=5, ge=1)
+    operator_choices: List[str] = Field(
+        default_factory=lambda: ["coverage", "boundary", "repair"]
+    )
+    volume_choices: List[int] = Field(default_factory=lambda: [8, 16, 32])
+    tau_choices: List[float] = Field(default_factory=lambda: [0.5, 0.7, 0.9])
+    include_stop: bool = True
+    controller: str = Field(default="frugalkd_cotrain_p")
+    self_consistency_n: int = Field(default=3, ge=1)
+    self_consistency_temperature: float = Field(default=0.7, ge=0.0)
+    task_kind: str = Field(
+        default="classification",
+        description="classification | generation",
+    )
+    asymmetric_flow_high: float = Field(default=1.5, gt=1.0)
+    asymmetric_flow_low: float = Field(default=0.67, gt=0.0, lt=1.0)
+    stop_accept_rate_threshold: float = Field(default=0.95, gt=0.0, le=1.0)
+    stop_patience: int = Field(default=3, ge=1)
+    stop_metric: str = Field(default="macro_f1")
+    rho_stop_threshold: float = Field(default=0.7, gt=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def _validate_operators(self):
+        if self.student_a.operator == self.student_b.operator:
+            raise ValueError(
+                "student_a and student_b must use distinct operators (design §3.1)"
+            )
+        for op in (self.student_a.operator, self.student_b.operator):
+            if op not in self.operator_choices:
+                raise ValueError(
+                    f"student operator {op!r} not in operator_choices {self.operator_choices}"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_task_kind(self):
+        if self.task_kind not in {"classification", "generation"}:
+            raise ValueError(f"unknown task_kind {self.task_kind!r}")
+        return self
+
+
 class ExperimentConfig(BaseModel):
     """Schema for experiment configuration.
 
@@ -211,6 +276,16 @@ class ExperimentConfig(BaseModel):
         default=None,
         ge=1,
         description="Optional max_tokens cap for teacher calls, used for hard token-budget preflight",
+    )
+
+    # Acquisition dispatch (legacy LLM2LLM vs co-training redesign 2026-05-01)
+    acquisition_mode: str = Field(
+        default="legacy",
+        description="legacy | cotrain. legacy = single-student LLM2LLM loop; cotrain = two-student disagreement-driven loop.",
+    )
+    cotrain: Optional[CoTrainConfig] = Field(
+        default=None,
+        description="Required when acquisition_mode == 'cotrain'.",
     )
 
     # Policy settings for budget-aware teacher acquisition
@@ -360,6 +435,14 @@ class ExperimentConfig(BaseModel):
                 raise ValueError(
                     f"Early stopping metric '{self.early_stopping.metric}' must be in metrics list: {self.metrics}"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_acquisition_mode(self):
+        if self.acquisition_mode == "cotrain" and self.cotrain is None:
+            raise ValueError("cotrain block is required when acquisition_mode == 'cotrain'")
+        if self.acquisition_mode not in {"legacy", "cotrain"}:
+            raise ValueError(f"unknown acquisition_mode {self.acquisition_mode!r}")
         return self
 
     @field_validator("token_budget")
