@@ -484,6 +484,11 @@ async def materialize_sft_records(
         selection_strategy=selection_strategy,
         return_metadata=True,
     )
+    template_canonical_labels = list(configured_canonical_labels)
+    if not template_canonical_labels and canonical_labels_field:
+        template_canonical_labels = _field_label_values(source, canonical_labels_field)
+    if not template_canonical_labels:
+        template_canonical_labels = _class_label_names(source, stratify_field)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = output_path.with_name(f".{output_path.name}.tmp")
@@ -529,6 +534,8 @@ async def materialize_sft_records(
                     row_values.setdefault("text", row_values[config.text_field])
                 if config.label_field in row_values:
                     row_values.setdefault("label", row_values[config.label_field])
+                if template_canonical_labels:
+                    row_values["canonical_labels"] = template_canonical_labels
 
                 student_prompt = _format_template(student_prompt_template, row_values)
                 row_values["student_prompt"] = student_prompt
