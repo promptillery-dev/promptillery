@@ -40,7 +40,11 @@ class AblationStudyRunner:
     """Run ablation studies with multiple configurations."""
 
     def __init__(
-        self, base_config: ExperimentConfig, cleanup_metric: Optional[str] = None
+        self,
+        base_config: ExperimentConfig,
+        cleanup_metric: Optional[str] = None,
+        shard_index: Optional[int] = None,
+        shard_count: Optional[int] = None,
     ):
         """Initialize ablation study runner.
 
@@ -50,15 +54,61 @@ class AblationStudyRunner:
                           If None, uses the first metric from config.metrics.
                           After each augmentation_batch_size group completes, only
                           the best-performing config (by this metric) is kept.
+            shard_index: Optional zero-based shard index for splitting generated
+                configurations across independent workers.
+            shard_count: Optional total number of shards.
         """
         self.base_config = base_config
         self.results = []
         self.ablation_dir = None
         self.cleanup_metric = cleanup_metric or base_config.metrics[0]
+        self.shard_index, self.shard_count = self._validate_shard(
+            shard_index, shard_count
+        )
         # Track output directories for cleanup
         self._current_group_dirs: Dict[str, Path] = {}  # config_name -> output_dir
         self._current_group_results: List[Dict[str, Any]] = []
         self._current_batch_size: Optional[int] = None
+
+    @staticmethod
+    def _validate_shard(
+        shard_index: Optional[int],
+        shard_count: Optional[int],
+    ) -> tuple[Optional[int], Optional[int]]:
+        """Validate optional ablation sharding parameters."""
+        if shard_index is None and shard_count is None:
+            return None, None
+        if shard_index is None or shard_count is None:
+            raise ValueError("shard_index and shard_count must be provided together")
+        if shard_count < 1:
+            raise ValueError("shard_count must be at least 1")
+        if shard_index < 0 or shard_index >= shard_count:
+            raise ValueError(
+                "shard_index must be between 0 and shard_count - 1 "
+                f"(got {shard_index}/{shard_count})"
+            )
+        return shard_index, shard_count
+
+    def _select_shard_configs(
+        self,
+        configs: List[ExperimentConfig],
+    ) -> List[ExperimentConfig]:
+        """Return this worker's deterministic subset of ablation configs."""
+        if self.shard_index is None or self.shard_count is None:
+            return configs
+        shard_configs = [
+            config
+            for position, config in enumerate(configs)
+            if position % self.shard_count == self.shard_index
+        ]
+        logger.info(
+            "Selected shard %s/%s with %s of %s configurations",
+            self.shard_index,
+            self.shard_count,
+            len(shard_configs),
+            len(configs),
+        )
+        return shard_configs
 
     async def run_single_config(
         self, config: ExperimentConfig, config_name: str, dataset: DatasetDict = None
@@ -231,8 +281,14 @@ class AblationStudyRunner:
             List of result dictionaries for all configurations.
         """
         # Generate all configurations
-        configs = self.base_config.generate_ablation_configs()
-        logger.info(f"Generated {len(configs)} configurations for ablation study")
+        all_configs = self.base_config.generate_ablation_configs()
+        logger.info(f"Generated {len(all_configs)} configurations for ablation study")
+        configs = self._select_shard_configs(all_configs)
+        if not configs:
+            raise ValueError(
+                f"Shard {self.shard_index}/{self.shard_count} selected no "
+                "configurations"
+            )
 
         if cleanup_after_group:
             logger.info(
@@ -246,6 +302,8 @@ class AblationStudyRunner:
         # Create a dedicated ablation run directory that contains all experiments and summary
         timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
         ablation_name = f"ablation_{self.base_config.name}_{timestamp}"
+        if self.shard_index is not None and self.shard_count is not None:
+            ablation_name += f"_shard{self.shard_index}-of-{self.shard_count}"
         self.ablation_dir = Path(self.base_config.base_output_dir) / ablation_name
         self.ablation_dir.mkdir(parents=True, exist_ok=True)
 

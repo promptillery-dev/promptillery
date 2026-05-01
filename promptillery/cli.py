@@ -76,6 +76,16 @@ def ablation(
         "-m",
         help="Metric to use for selecting best config during cleanup (default: first metric in config)",
     ),
+    shard_index: int | None = typer.Option(
+        None,
+        "--shard-index",
+        help="Zero-based shard index for splitting the generated config grid",
+    ),
+    shard_count: int | None = typer.Option(
+        None,
+        "--shard-count",
+        help="Total shard count for splitting the generated config grid",
+    ),
 ) -> None:
     """Run ablation study with multiple configurations.
 
@@ -92,7 +102,12 @@ def ablation(
     if base_dir != ".":
         cfg.base_output_dir = base_dir
 
-    runner = AblationStudyRunner(cfg, cleanup_metric=cleanup_metric)
+    runner = AblationStudyRunner(
+        cfg,
+        cleanup_metric=cleanup_metric,
+        shard_index=shard_index,
+        shard_count=shard_count,
+    )
     asyncio.run(runner.run(cleanup_after_group=cleanup))
 
 
