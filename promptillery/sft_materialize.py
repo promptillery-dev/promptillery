@@ -453,6 +453,9 @@ async def materialize_sft_records(
     canonical_labels_field = materialize_config.get("canonical_labels_field")
     configured_canonical_labels = _configured_canonical_labels(config)
     stratify_max_samples = bool(materialize_config.get("stratify_max_samples", False))
+    rejection_buffer_samples = int(
+        materialize_config.get("rejection_buffer_samples", 0) or 0
+    )
     configured_selection_strategy = materialize_config.get("selection_strategy")
     if configured_selection_strategy is None:
         selection_strategy = "stratified" if stratify_max_samples else "prefix"
@@ -475,9 +478,15 @@ async def materialize_sft_records(
         raise ValueError(f"Split '{split}' not found. Available splits: {available}")
 
     source = dataset[split]
+    target_records = max_samples
+    source_max_samples = max_samples
+    if mode == "teacher" and max_samples is not None:
+        if rejection_buffer_samples <= 0:
+            rejection_buffer_samples = max(10, int(max_samples * 0.1))
+        source_max_samples = max_samples + rejection_buffer_samples
     source, selection_info = _select_source_examples(
         source,
-        max_samples=max_samples,
+        max_samples=source_max_samples,
         stratify_by=stratify_field if stratify_max_samples else None,
         seed=int(config.seed),
         canonical_labels=configured_canonical_labels,
@@ -489,6 +498,9 @@ async def materialize_sft_records(
         template_canonical_labels = _field_label_values(source, canonical_labels_field)
     if not template_canonical_labels:
         template_canonical_labels = _class_label_names(source, stratify_field)
+    normalized_canonical_labels = {
+        _normalize_canonical_label(label) for label in template_canonical_labels
+    }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = output_path.with_name(f".{output_path.name}.tmp")
@@ -514,6 +526,8 @@ async def materialize_sft_records(
     try:
         with temp_path.open("w", encoding="utf-8") as f:
             for index, row in enumerate(source):
+                if target_records is not None and written >= target_records:
+                    break
                 attempted += 1
                 source_original_index = selection_info["selected_source_indices"][
                     index
@@ -630,12 +644,23 @@ async def materialize_sft_records(
                             f"budget={config.token_budget}"
                         )
 
+                teacher_label = _normalize_canonical_label(teacher_response)
+                gold_label = _normalize_canonical_label(gold_answer)
                 input_tokens += usage["teacher_input_tokens"]
                 output_tokens += usage["teacher_output_tokens"]
                 total_tokens += usage["teacher_total_tokens"]
                 usage_estimated_records += int(usage_estimated)
-                teacher_label = _normalize_canonical_label(teacher_response)
-                gold_label = _normalize_canonical_label(gold_answer)
+                if (
+                    mode == "teacher"
+                    and normalized_canonical_labels
+                    and teacher_label not in normalized_canonical_labels
+                ):
+                    logger.warning(
+                        "Rejecting non-canonical teacher response for %s: %r",
+                        source_id,
+                        teacher_response,
+                    )
+                    continue
                 if teacher_label and gold_label and teacher_label == gold_label:
                     teacher_gold_agreement_records += 1
                 elif teacher_label and gold_label:
@@ -677,6 +702,19 @@ async def materialize_sft_records(
 
         if written == 0:
             raise ValueError("No SFT records were materialized")
+        if (
+            mode == "teacher"
+            and target_records is not None
+            and len(source) >= target_records
+            and written < target_records
+            and not allow_partial
+        ):
+            raise ValueError(
+                "Only materialized "
+                f"{written} accepted records out of requested {target_records}; "
+                "increase materialize_sft.rejection_buffer_samples or inspect "
+                "non-canonical teacher responses."
+            )
 
         canonical_labels_path = _write_canonical_labels_artifact(
             config=config,
@@ -720,6 +758,7 @@ async def materialize_sft_records(
                 "teacher_tier": teacher_tier,
                 "allow_partial": allow_partial,
                 "allow_estimated_usage": allow_estimated_usage,
+                "rejection_buffer_samples": rejection_buffer_samples,
             },
             "source_records_before_selection": selection_info[
                 "source_records_before_selection"

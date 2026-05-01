@@ -588,6 +588,79 @@ def test_materialize_manifest_audits_teacher_gold_disagreements(
     assert manifest["teacher_gold_disagreement_rate"] == 0.5
 
 
+def test_materialize_rejects_noncanonical_teacher_labels_with_buffer(
+    monkeypatch, tmp_path
+):
+    source = Dataset.from_dict(
+        {
+            "text": ["first", "second", "third"],
+            "label_text": ["alpha", "alpha", "beta"],
+        },
+    )
+    dataset = DatasetDict({"train": source})
+    responses = iter(["not_a_label", "alpha", "beta"])
+
+    async def fake_acompletion(**kwargs):
+        return {
+            "choices": [{"message": {"content": next(responses)}}],
+            "usage": {
+                "prompt_tokens": 4,
+                "completion_tokens": 1,
+                "total_tokens": 5,
+            },
+        }
+
+    monkeypatch.setattr(
+        "promptillery.sft_materialize.load_materialization_dataset",
+        lambda config: dataset,
+    )
+    monkeypatch.setattr("promptillery.sft_materialize.acompletion", fake_acompletion)
+
+    config = ExperimentConfig(
+        name="teacher_rejections",
+        dataset="mock",
+        teacher="mock/teacher",
+        teacher_max_output_tokens=16,
+        paper_mode=True,
+        auto_modify_name=False,
+        dataset_config={
+            "name": "mock",
+            "num_classes": 2,
+            "text_field": "text",
+            "label_field": "label_text",
+        },
+        trainer_config={
+            "materialize_sft": {
+                "canonical_labels": ["alpha", "beta"],
+                "gold_answer_field": "label_text",
+                "rejection_buffer_samples": 1,
+            }
+        },
+    )
+
+    result = asyncio.run(
+        materialize_sft_records(
+            config=config,
+            output_path=tmp_path / "train.jsonl",
+            split="train",
+            mode="teacher",
+            max_samples=2,
+        )
+    )
+
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "train.jsonl").read_text().splitlines()
+    ]
+    manifest = json.loads((tmp_path / "train.jsonl.manifest.json").read_text())
+    assert result["records"] == 2
+    assert [row["teacher_response"] for row in rows] == ["alpha", "beta"]
+    assert manifest["attempted_records"] == 3
+    assert manifest["accepted_records"] == 2
+    assert manifest["rejected_records"] == 1
+    assert manifest["teacher_total_tokens"] == 15
+
+
 def test_select_source_examples_can_stratify_materialization_cap():
     features = Features(
         {
