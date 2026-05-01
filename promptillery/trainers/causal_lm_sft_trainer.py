@@ -391,6 +391,55 @@ class CausalLMSFTTrainer(BaseTrainer):
             self._generation_eval_cache = {}
         return self._generation_eval_cache
 
+    def _limited_generation_dataset(
+        self,
+        split: str,
+        sample_limit: int | None,
+    ) -> tuple[Dataset, List[int]]:
+        """Return a capped eval dataset plus original row indices."""
+        ds = self.dataset[split]
+        indices = list(range(len(ds)))
+        if sample_limit is None or sample_limit >= len(ds):
+            return ds, indices
+        if sample_limit <= 0:
+            return ds.select([]), []
+
+        canonical_labels = (
+            self._canonical_labels()
+            if self.trainer_config.get("answer_extraction") == "canonical_label"
+            else []
+        )
+        if not canonical_labels or self.gold_answer_field not in ds.column_names:
+            selected = indices[:sample_limit]
+            return ds.select(selected), selected
+
+        label_order = {label: position for position, label in enumerate(canonical_labels)}
+        grouped: Dict[str, List[int]] = {}
+        for index, gold in enumerate(ds[self.gold_answer_field]):
+            normalized = self._normalize_answer(str(gold))
+            grouped.setdefault(normalized, []).append(index)
+
+        selected: List[int] = []
+        labels = sorted(
+            grouped,
+            key=lambda label: (label_order.get(label, len(label_order)), label),
+        )
+        offset = 0
+        while len(selected) < sample_limit:
+            progressed = False
+            for label in labels:
+                label_indices = grouped[label]
+                if offset < len(label_indices):
+                    selected.append(label_indices[offset])
+                    progressed = True
+                    if len(selected) >= sample_limit:
+                        break
+            if not progressed:
+                break
+            offset += 1
+
+        return ds.select(selected), selected
+
     def _generation_token_stats(
         self,
         generated: Any,
@@ -437,8 +486,7 @@ class CausalLMSFTTrainer(BaseTrainer):
             or self.gold_answer_field not in ds.column_names
         ):
             return []
-        if sample_limit is not None:
-            ds = ds.select(range(min(sample_limit, len(ds))))
+        ds, original_indices = self._limited_generation_dataset(split, sample_limit)
 
         canonical_labels = self._canonical_labels()
         if not canonical_labels:
@@ -454,7 +502,7 @@ class CausalLMSFTTrainer(BaseTrainer):
         if device is None:
             device = next(model.parameters()).device
 
-        for index, row in enumerate(ds):
+        for index, row in zip(original_indices, ds):
             prompt = self._format_generation_prompt(str(row[self.prompt_field]))
             prompt_token_count = len(
                 self.tokenizer(
@@ -554,8 +602,7 @@ class CausalLMSFTTrainer(BaseTrainer):
             or self.gold_answer_field not in ds.column_names
         ):
             return []
-        if sample_limit is not None:
-            ds = ds.select(range(min(sample_limit, len(ds))))
+        ds, original_indices = self._limited_generation_dataset(split, sample_limit)
 
         max_new_tokens = int(self.trainer_config.get("generation_max_new_tokens", 32))
         batch_size = int(
@@ -599,6 +646,7 @@ class CausalLMSFTTrainer(BaseTrainer):
                 self.tokenizer.padding_side = original_padding_side
 
             for offset, output_ids in enumerate(generated.sequences):
+                original_index = original_indices[start + offset]
                 completion_ids = output_ids[input_width:]
                 completion = self.tokenizer.decode(
                     completion_ids,
@@ -616,7 +664,7 @@ class CausalLMSFTTrainer(BaseTrainer):
                 records.append(
                     {
                         "split": split,
-                        "index": start + offset,
+                        "index": original_index,
                         "prompt": prompts[offset],
                         "completion": completion,
                         "gold_answer": gold,

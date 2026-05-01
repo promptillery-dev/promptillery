@@ -85,6 +85,42 @@ def test_generation_prompt_honors_custom_format_template():
     assert prompt == "<|user|>Classify: hello<|assistant|>"
 
 
+def test_limited_generation_dataset_balances_canonical_labels():
+    trainer = CausalLMSFTTrainer.__new__(CausalLMSFTTrainer)
+    trainer.trainer_config = {
+        "answer_extraction": "canonical_label",
+        "canonical_labels": ["alpha", "beta", "gamma", "delta"],
+    }
+    trainer.gold_answer_field = "gold_answer"
+    trainer.dataset = DatasetDict(
+        {
+            "test": Dataset.from_dict(
+                {
+                    "student_prompt": [f"prompt {index}" for index in range(10)],
+                    "gold_answer": [
+                        "alpha",
+                        "alpha",
+                        "alpha",
+                        "alpha",
+                        "beta",
+                        "beta",
+                        "gamma",
+                        "gamma",
+                        "delta",
+                        "delta",
+                    ],
+                }
+            )
+        }
+    )
+    trainer.cfg = SimpleNamespace(num_classes=4, batch_size=1)
+
+    limited, indices = trainer._limited_generation_dataset("test", 4)
+
+    assert indices == [0, 4, 6, 8]
+    assert limited["gold_answer"] == ["alpha", "beta", "gamma", "delta"]
+
+
 def test_sft_generation_summary_uses_canonical_labels(tmp_path):
     trainer = CausalLMSFTTrainer.__new__(CausalLMSFTTrainer)
     trainer.trainer_config = {
