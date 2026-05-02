@@ -2035,6 +2035,118 @@ def test_pilot_gate_rejects_duplicate_policy_seed_budget_runs(tmp_path):
     ]
 
 
+def test_pilot_gate_matches_frontier_across_policy_experiment_names(tmp_path):
+    _write_run(
+        tmp_path,
+        name="fixed",
+        policy_name="fixed_coverage",
+        cycle0_metric=0.4,
+        final_metric=0.5,
+    )
+    (tmp_path / "fixed" / "policy_decisions.jsonl").write_text(
+        json.dumps(
+            {
+                "cycle": 0,
+                "decision_id": "fixed:d0",
+                "policy_name": "fixed_coverage",
+                "action_name": "coverage:cheap:b8",
+                "action": {"prompt_operator": "coverage"},
+                "state": {},
+                "metadata": {},
+                "budget_before": {},
+                "budget_after": {},
+                "realized_cost": {},
+                "predicted_cost": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_run(
+        tmp_path,
+        name="frugal",
+        policy_name="frugalkd_p",
+        cycle0_metric=0.4,
+        final_metric=0.6,
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["fixed_coverage", "frugalkd_p"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=True,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "fixed_policy_frontier_available"
+    )
+    assert check["passed"]
+
+
+def test_pilot_gate_ignores_stop_decisions_for_fixed_policy_operator(tmp_path):
+    _write_run(tmp_path, name="fixed", policy_name="fixed_coverage")
+    (tmp_path / "fixed" / "policy_decisions.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "cycle": 0,
+                        "decision_id": "fixed:d0",
+                        "policy_name": "fixed_coverage",
+                        "action_name": "coverage:cheap:b8",
+                        "action": {"prompt_operator": "coverage"},
+                        "state": {},
+                        "metadata": {},
+                        "budget_before": {},
+                        "budget_after": {},
+                        "realized_cost": {},
+                        "predicted_cost": {},
+                    }
+                ),
+                json.dumps(
+                    {
+                        "cycle": 1,
+                        "decision_id": "fixed:d1",
+                        "policy_name": "fixed_coverage",
+                        "action_name": "stop",
+                        "action": {},
+                        "state": {},
+                        "metadata": {},
+                        "budget_before": {},
+                        "budget_after": {},
+                        "realized_cost": {},
+                        "predicted_cost": {},
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = validate_pilot_gate(
+        tmp_path,
+        metric="macro_f1",
+        expected_policies=["fixed_coverage"],
+        expected_seeds=["13"],
+        expected_budgets=["25000"],
+        require_teacher_attempts=False,
+        require_frontier=False,
+    )
+
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "fixed_policies_use_distinct_prompt_operators"
+    )
+    assert check["passed"]
+
+
 def test_pilot_gate_rejects_unexpected_fixed_policy_operator(tmp_path):
     _write_run(tmp_path, name="fixed", policy_name="fixed_coverage")
     (tmp_path / "fixed" / "policy_decisions.jsonl").write_text(

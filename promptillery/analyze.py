@@ -1968,7 +1968,6 @@ def _is_fixed_policy(row: Dict[str, Any]) -> bool:
 
 def _oracle_group_key(row: Dict[str, Any]) -> tuple[Any, ...]:
     return (
-        row.get("experiment"),
         row.get("dataset"),
         row.get("dataset_subset"),
         row.get("student_model"),
@@ -4922,7 +4921,9 @@ def validate_pilot_gate(
             str(row.get("prompt_operator"))
             for row in policy_rows
             if row.get("policy_name") == policy_name
-            and row.get("action_name") != "STOP"
+            and str(row.get("action_name") or "").lower() != "stop"
+            and str(row.get("acquisition_outcome") or "").lower() != "stop"
+            and row.get("prompt_operator")
         }
         if expected_operator not in operators:
             unexpected_operators = sorted(operators - {expected_operator})

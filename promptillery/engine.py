@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import shutil
 from hashlib import sha256
@@ -47,6 +48,9 @@ from .utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+PREFLIGHT_PROVIDER_TOKEN_SAFETY_RATIO = 0.02
+PREFLIGHT_PROVIDER_TOKEN_SAFETY_MIN = 32
 
 try:
     from litellm import token_counter as _token_counter
@@ -933,8 +937,18 @@ class DistillationEngine:
 
         max_output_tokens = self.cfg.teacher_max_output_tokens
         predicted_total = None
+        preflight_safety_tokens = 0
         if max_output_tokens is not None:
-            predicted_total = input_tokens + max_output_tokens
+            raw_predicted_total = input_tokens + max_output_tokens
+            predicted_total = raw_predicted_total
+            if getattr(self.cfg, "paper_mode", False):
+                preflight_safety_tokens = max(
+                    PREFLIGHT_PROVIDER_TOKEN_SAFETY_MIN,
+                    math.ceil(
+                        raw_predicted_total * PREFLIGHT_PROVIDER_TOKEN_SAFETY_RATIO
+                    ),
+                )
+                predicted_total += preflight_safety_tokens
 
         tokens_remaining = budget_before.get("tokens_remaining")
         token_budget = budget_before.get("token_budget")
@@ -958,6 +972,7 @@ class DistillationEngine:
             "input_tokens": input_tokens,
             "max_output_tokens": max_output_tokens,
             "total_tokens": predicted_total,
+            "safety_margin_tokens": preflight_safety_tokens,
             "tokens_remaining": tokens_remaining,
             "token_budget": token_budget,
             "allowed": allowed,
