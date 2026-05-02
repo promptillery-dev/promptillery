@@ -49,8 +49,8 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
-PREFLIGHT_PROVIDER_TOKEN_SAFETY_RATIO = 0.02
-PREFLIGHT_PROVIDER_TOKEN_SAFETY_MIN = 32
+PREFLIGHT_PROVIDER_TOKEN_SAFETY_RATIO = 0.05
+PREFLIGHT_PROVIDER_TOKEN_SAFETY_MIN = 256
 
 try:
     from litellm import token_counter as _token_counter
@@ -1636,6 +1636,7 @@ class DistillationEngine:
 
         usage_recorded = False
         attempt_logged = False
+        preflight_overrun_metadata: Dict[str, Any] = {}
         try:
             completion_kwargs = {
                 "model": teacher_model,
@@ -1654,27 +1655,6 @@ class DistillationEngine:
                     "paper runs require auditable usage."
                 )
             predicted_total = predicted_cost.get("total_tokens")
-            if predicted_total is not None and usage.total_tokens > predicted_total:
-                self.token_tracker.record_manual_usage(
-                    usage, OperationType.AUGMENTATION_FAILURE
-                )
-                usage_recorded = True
-                self._record_teacher_attempt(
-                    cycle=cycle,
-                    status="budget_violation",
-                    predicted_cost=predicted_cost,
-                    budget_before=budget_before or self._budget_snapshot(),
-                    attempt_id=attempt_id,
-                    decision_id=decision_id,
-                    realized_cost=usage,
-                    failure_type="realized_tokens_exceeded_preflight",
-                    metadata=attempt_metadata,
-                )
-                attempt_logged = True
-                raise ValueError(
-                    "Realized teacher tokens exceeded preflight estimate: "
-                    f"realized={usage.total_tokens} predicted={predicted_total}"
-                )
             tokens_remaining = predicted_cost.get("tokens_remaining")
             if (
                 tokens_remaining is not None
@@ -1699,6 +1679,23 @@ class DistillationEngine:
                 raise ValueError(
                     "Realized teacher tokens exceeded remaining token budget: "
                     f"realized={usage.total_tokens} remaining={tokens_remaining}"
+                )
+            if predicted_total is not None and usage.total_tokens > int(predicted_total):
+                preflight_overrun_metadata = {
+                    "over_preflight_bound": True,
+                    "preflight_bound_tokens": int(predicted_total),
+                    "provider_total_tokens": usage.total_tokens,
+                    "preflight_overage_tokens": (
+                        usage.total_tokens - int(predicted_total)
+                    ),
+                }
+                logger.warning(
+                    "Provider token usage exceeded preflight bound but fit the "
+                    "remaining token budget; accepting response: realized=%s "
+                    "predicted=%s remaining=%s",
+                    usage.total_tokens,
+                    predicted_total,
+                    tokens_remaining,
                 )
             self.token_tracker.record_manual_usage(usage, OperationType.AUGMENTATION)
             usage_recorded = True
@@ -1731,6 +1728,7 @@ class DistillationEngine:
                     failure_type="no_records_parsed",
                     metadata={
                         **attempt_metadata,
+                        **preflight_overrun_metadata,
                         "records_parsed": 0,
                         "records_accepted": 0,
                         "response_sha256": response_sha256,
@@ -1772,6 +1770,7 @@ class DistillationEngine:
             logger.error(f"Batch augmentation failed: {e}")
             failure_metadata = {
                 **attempt_metadata,
+                **preflight_overrun_metadata,
                 "error": str(e),
             }
             if "response_sha256" in locals():
@@ -1833,6 +1832,7 @@ class DistillationEngine:
                 failure_type="no_records_accepted",
                 metadata={
                     **attempt_metadata,
+                    **preflight_overrun_metadata,
                     "records_parsed": len(parsed_records),
                     "records_accepted": 0,
                     "response_sha256": response_sha256,
@@ -1865,6 +1865,7 @@ class DistillationEngine:
                     failure_type="synthetic_record_budget_exhausted",
                     metadata={
                         **attempt_metadata,
+                        **preflight_overrun_metadata,
                         "records_parsed": len(parsed_records),
                         "records_accepted": 0,
                         "synthetic_record_budget": synthetic_record_budget,
@@ -1906,6 +1907,7 @@ class DistillationEngine:
             realized_cost=usage,
             metadata={
                 **attempt_metadata,
+                **preflight_overrun_metadata,
                 "records_parsed": len(parsed_records),
                 "records_accepted": len(aug_rows),
                 "response_sha256": response_sha256,
@@ -1920,6 +1922,7 @@ class DistillationEngine:
                 "records_parsed": len(parsed_records),
                 "records_added": len(aug_rows),
                 "attempt_id": attempt_id,
+                **preflight_overrun_metadata,
                 **attempt_metadata,
             },
         }

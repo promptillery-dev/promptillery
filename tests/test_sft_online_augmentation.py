@@ -1411,8 +1411,8 @@ def test_online_sft_augmentation_appends_teacher_records(monkeypatch, tmp_path):
     )
     engine._estimate_teacher_call_tokens = lambda messages, budget, teacher_model: {
         "input_tokens": 10,
-        "max_output_tokens": 32,
-        "total_tokens": 42,
+        "max_output_tokens": 1,
+        "total_tokens": 12,
         "tokens_remaining": 100,
         "token_budget": 100,
         "allowed": True,
@@ -1453,6 +1453,8 @@ def test_online_sft_augmentation_appends_teacher_records(monkeypatch, tmp_path):
     assert attempts[0]["provider_reported_cost"]["total_tokens"] == 13
     assert attempts[0]["ledger_debit_cost"]["total_tokens"] == 13
     assert attempts[0]["ledger_debit_source"] == "provider_reported"
+    assert attempts[0]["metadata"]["over_preflight_bound"] is True
+    assert attempts[0]["metadata"]["preflight_overage_tokens"] == 1
     assert attempts[0]["metadata"]["records_parsed"] == 1
     assert attempts[0]["metadata"]["records_accepted"] == 1
 
