@@ -114,3 +114,33 @@ def test_engine_stops_when_controller_emits_stop(tmp_path):
     )
     asyncio.run(engine.run())
     assert len(engine.results["cycles"]) == 2
+
+
+def test_engine_accepts_uniform_controller(tmp_path):
+    """Setting controller='frugalkd_cotrain_uniform' must construct and expose controller_uniform."""
+    fake_arb = AsyncMock(return_value={"text": "alpha", "usage": {}})
+    fake_generate = lambda prompt, n, temperature: [
+        json.dumps({"variants": [{"text": "v"}]})
+    ]
+    cfg = _make_cfg(tmp_path)
+    cfg = cfg.model_copy(update={
+        "cotrain": cfg.cotrain.model_copy(update={"controller": "frugalkd_cotrain_uniform"}),
+    })
+    engine = CoTrainEngine(
+        cfg, dataset=_make_dataset(),
+        out_dir=tmp_path / "run",
+        generate_fn_a=fake_generate, generate_fn_b=fake_generate,
+        arbiter_complete=fake_arb,
+    )
+    assert engine.controller_uniform is not None
+    assert engine.controller_bai is None
+    # Smoke-run one cycle to confirm the dispatch path actually selects uniform.
+    cfg_one = cfg.model_copy(update={"cycles": 1})
+    engine_one = CoTrainEngine(
+        cfg_one, dataset=_make_dataset(),
+        out_dir=tmp_path / "run2",
+        generate_fn_a=fake_generate, generate_fn_b=fake_generate,
+        arbiter_complete=fake_arb,
+    )
+    asyncio.run(engine_one.run())
+    assert len(engine_one.results["cycles"]) == 1

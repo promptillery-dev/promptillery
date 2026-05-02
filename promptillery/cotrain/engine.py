@@ -27,6 +27,7 @@ from .arbitration import ArbitrationResult, StrongTeacherArbiter
 from .bootstrap import BootstrapPartition, partition_bootstrap
 from .controller_linearbai import LinearBAIController
 from .controller_p import FrugalKDCoTrainP
+from .controller_uniform import UniformRandomController
 from .dual_trainer import DualStudentTrainer
 from .features import StudentEvalSummary, build_cotrain_features
 from .flow import allocate_volumes
@@ -169,6 +170,10 @@ class CoTrainEngine:
             LinearBAIController(actions=self.actions, feature_dim=8, seed=0)
             if self.cot.controller == "frugalkd_cotrain_linearbai" else None
         )
+        self.controller_uniform: Optional[UniformRandomController] = (
+            UniformRandomController(seed=int(config.seed if isinstance(config.seed, int) else config.seed[0]))
+            if self.cot.controller == "frugalkd_cotrain_uniform" else None
+        )
 
         self.audit_ledger = AuditLedger(
             path=self.out_dir / "cotrain_ledger.jsonl", run_id=self.run_id
@@ -257,6 +262,9 @@ class CoTrainEngine:
                         arm=arm, reward=current_metric or 0.0
                     )
                     choice_action = arm
+                elif self.controller_uniform is not None:
+                    choice = self.controller_uniform.select(features, self.actions)
+                    choice_action = choice.action
                 else:
                     choice = self.controller_p.select(features, self.actions)
                     choice_action = choice.action
