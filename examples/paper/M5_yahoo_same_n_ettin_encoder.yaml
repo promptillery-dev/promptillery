@@ -1,0 +1,60 @@
+# =============================================================================
+# M5 — Yahoo: same-N gold FT baseline, Ettin encoder
+# =============================================================================
+# Volume-matched control for the promptillery (10 cycles)
+# row. One plain supervised fine-tune on out/m5/yahoo/ettin_encoder/train.jsonl
+# = the exact G3 gold seed-train rows (800) + a seeded stratified top-up of
+# REAL gold rows from the unused original train split, size-matched to the
+# actual synthetic count the cycles-10 run accumulated
+# (run_manifest.final_synthetic_count). Build the data first:
+#
+#   (prereq: uv run python scripts/prep_g3_datasets.py --dataset yahoo --seed 13)
+#   uv run python scripts/prep_m5_same_n.py --dataset yahoo --student ettin_encoder \
+#     --run-dir out/g3/ablation_g3_yahoo_ettin_encoder_*/g3_yahoo_ettin_encoder_*_cycles-10_*
+#
+# Then:  uv run promptillery train examples/paper/M5_yahoo_same_n_ettin_encoder.yaml
+# No `prompt:` key -> augmentation disabled -> ZERO teacher calls (GPU-only).
+# Same recipe/seed as the G3 "fine-tuned (1 cycle)" row. NOT CI-verified;
+# run on the remote GPU box. See examples/paper/M5_README.md.
+# =============================================================================
+
+name: "m5_yahoo_same_n_ettin_encoder"
+
+teacher: "openrouter/openai/gpt-4.1"   # nominal: this run never calls the teacher
+
+student: "jhu-clsp/ettin-encoder-150m"
+student_type: "transformers"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "out/m5/yahoo/ettin_encoder/train.jsonl"
+    validation: "out/m5/yahoo/validation.jsonl"
+    test: "out/m5/yahoo/test.jsonl"
+dataset_config:
+  name: "default"
+  num_classes: 10
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+# Single fine-tune: same recipe/seed as the G3 "fine-tuned (1 cycle)" row.
+cycles: 1
+seed: 13
+
+learning_rate: 2e-5
+num_train_epochs: 3
+batch_size: 32
+
+require_validation_split: true
+base_output_dir: "out/m5"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  trust_remote_code: true
+  report_held_out_test: true

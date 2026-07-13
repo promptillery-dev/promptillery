@@ -1,0 +1,66 @@
+name: "policy_stop_tiny"
+teacher: "fixture/manual"
+student: "examples/fixtures/tiny_wordpiece_tokenizer"
+student_type: "causal_lm_sft"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "examples/data/causal_lm_sft_tiny_train.jsonl"
+    validation: "examples/data/causal_lm_sft_tiny_validation.jsonl"
+dataset_config:
+  name: "default"
+  num_classes: 2
+  text_field: "student_prompt"
+  label_field: "gold_answer"
+
+metrics:
+  - eval_loss
+  - perplexity
+  - exact_match
+
+cycles: 2
+seed: 13
+learning_rate: 5e-5
+batch_size: 2
+num_train_epochs: 1
+warmup_steps: 0
+weight_decay: 0.0
+
+policy_name: "STOP"
+token_budget: 100
+budget_stop: true
+require_validation_split: true
+persist_datasets: false
+base_output_dir: "out/examples"
+
+early_stopping:
+  enabled: false
+
+prompt: |
+  Generate {{ augmentation_batch_size }} examples for sentiment classification.
+  Focus: {{ prompt_focus }}.
+
+trainer_config:
+  max_seq_length: 128
+  model_from_config: true
+  model_type: "gpt2"
+  model_config:
+    n_embd: 32
+    n_head: 4
+    n_layer: 2
+    n_positions: 128
+    n_ctx: 128
+  use_lora: false
+  add_eos_token: false
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
+  answer_extraction: "text"
+  generation_max_new_tokens: 4
+  generation_batch_size: 2
+  max_eval_generation_samples: 2
+  budget_splits:
+    - train
+  require_teacher_token_fields: true
+  report_to: []

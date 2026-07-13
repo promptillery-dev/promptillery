@@ -1,0 +1,124 @@
+# =============================================================================
+# G3 — IMDB: materialization SOURCE config
+# =============================================================================
+# Companion to the G3_imdb_{ettin_encoder,ettin_decoder,gemma3_270m}.yaml
+# training configs, which cannot drive materialize-sft themselves: the decoders
+# are `dataset: json` pointing at the JSONL files this step CREATES, and every
+# training config's cycle-level `prompt` references active-learning-only Jinja
+# variables that raise under StrictUndefined during a per-row labeling pass.
+#
+# This config loads stanfordnlp/imdb directly and carries a per-row teacher
+# classification prompt, so it is the SINGLE source for every materialized
+# artifact used by the hub:
+#   - the decoders' GOLD-labeled train/validation SFT files (--mode gold), and
+#   - the decoders' GOLD-labeled TEST SFT file (--mode gold), which the
+#     student generates on and G3's held-out metrics (report_held_out_test:
+#     exact_match/macro_f1) are scored against.
+#
+# All three passes (train/validation/test) use --mode gold and need no
+# teacher API key. No fidelity block is configured in G3, so the test split
+# is never teacher-labeled.
+#
+# GOTCHA 1 -- HF builder config: IMDB's only builder config is "plain_text"
+# (not "default"); dataset_config.name below must be "plain_text".
+#
+# GOTCHA 2 -- label names: IMDB's `label` is a HF ClassLabel with names
+# neg/pos and has NO label_text column, unlike AG News/SST-2. gold_answer_field
+# is "label" (int->name via ClassLabel.int2str), and canonical_labels_field is
+# OMITTED entirely so canonical labels are derived from the neg/pos ClassLabel
+# names instead of a nonexistent label_text column.
+#
+# -----------------------------------------------------------------------------
+# HOW TO MATERIALIZE (run once; artifacts are shared across every IMDB student)
+# -----------------------------------------------------------------------------
+# No teacher API key is needed: every pass below is --mode gold.
+#
+# 1) Decoder train + validation SFT (GOLD-labeled; --mode gold makes no teacher
+#    calls, so this is free; gold materialization maps the int label to its
+#    neg/pos ClassLabel name):
+#
+#      uv run promptillery materialize-sft examples/paper/G3_imdb_materialize.yaml \
+#        --mode gold --split train \
+#        --output out/g3/imdb/train_sft.jsonl --overwrite
+#      uv run promptillery materialize-sft examples/paper/G3_imdb_materialize.yaml \
+#        --mode gold --split validation \
+#        --output out/g3/imdb/validation_sft.jsonl --overwrite
+#
+# 2) Decoder TEST SFT (also GOLD-labeled and free; --mode gold, same as the
+#    train/validation passes above), reused verbatim as the decoders' `test`
+#    data_file:
+#
+#      uv run promptillery materialize-sft examples/paper/G3_imdb_materialize.yaml \
+#        --mode gold --split test \
+#        --output out/g3/imdb/test_sft.jsonl --overwrite
+#
+# Every pass also writes out/g3/imdb/canonical_labels.json (the 2-label
+# neg/pos schema the decoders load via trainer_config.canonical_labels_path).
+# =============================================================================
+
+name: "g3_imdb_materialize"
+
+teacher: "openrouter/openai/gpt-4.1"
+
+# Nominal student: gold mode makes no teacher calls, and the short
+# student_prompt_template below targets the decoder generation path.
+student: "jhu-clsp/ettin-decoder-150m"
+student_type: "slm"
+
+dataset: "stanfordnlp/imdb"
+dataset_kwargs: {}
+dataset_config:
+  # IMDB's only builder config is "plain_text" (not "default").
+  name: "plain_text"
+  num_classes: 2
+  text_field: "text"
+  label_field: "label"
+
+seed: 13
+require_validation_split: true
+
+# 1K-subset protocol: carve 1000 stratified samples from train, 80/20 split.
+sampling:
+  enabled: true
+  sample_size: 1000
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 13
+
+token_budget: 8000000
+budget_stop: true
+
+# Teacher answers with a single sentiment label, so 16 output tokens is ample.
+teacher_max_output_tokens: 16
+
+base_output_dir: "out/g3"
+
+trainer_config:
+  trust_remote_code: true
+  materialize_sft:
+    # Full split (no per-label max-samples cap; the 1K-subset sampling above
+    # already bounds the pool).
+    stratify_max_samples: false
+
+    # IMDB has no label_text column: `label` is a HF ClassLabel (neg/pos), so
+    # gold answers are produced via int->name mapping (ClassLabel.int2str).
+    gold_answer_field: "label"
+    # canonical_labels_field intentionally OMITTED: with no label_text field,
+    # canonical labels are derived from the neg/pos ClassLabel names instead.
+
+    # Per-row teacher prompt: label ONE review with ONE canonical sentiment.
+    # Distinct from the training configs' cycle-level augmentation prompt,
+    # which references AL-only variables and must not be used for per-row
+    # labeling.
+    prompt_template: |
+      Classify the following movie-review into one of the 2 sentiment labels.
+      Text: {{ text }}
+      Respond with exactly one label and nothing else.
+
+    # Short student prompt: the decoders' evaluation scores each canonical
+    # label (canonical_label_decoding: score), so the label list must NOT be
+    # inlined into the student prompt.
+    student_prompt_template: |
+      Classify the movie-review into one of the 2 sentiment labels.
+      Text: {{ text }}
+      Label:

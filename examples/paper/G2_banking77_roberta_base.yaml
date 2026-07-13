@@ -1,0 +1,98 @@
+# =============================================================================
+# G2 — Banking77 cross-architecture hub: RoBERTa-base (encoder reference)
+# =============================================================================
+# The classic encoder reference profile: a well-understood baseline
+# that anchors the ModernBERT / Ettin encoder numbers against a familiar model.
+#
+# Same protocol as G2_banking77_modernbert_base.yaml (see its header): teacher
+# GPT-4.1 via OpenRouter, one monotonic 10-cycle run, single seed, fidelity via
+# the shared out/g2/banking77_teacher_test.jsonl (materialize it once from
+# examples/paper/G2_banking77_materialize.yaml, --mode teacher --split test). NOT
+# CI-verified; run on the remote 2xA100 box.
+# =============================================================================
+
+name: "g2_banking77_roberta_base"
+
+teacher: "openrouter/openai/gpt-4.1"
+
+student: "FacebookAI/roberta-base"
+student_type: "transformers"
+
+dataset: "PolyAI/banking77"
+# PolyAI/banking77 ships a loader script; recent `datasets` refuses to run it
+# without trust_remote_code, so a fresh `train`/`materialize-sft` fails to load
+# the data unless we opt in here.
+dataset_kwargs:
+  trust_remote_code: true
+dataset_config:
+  name: "default"
+  num_classes: 77
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+cycles: 10
+seed: 13
+
+learning_rate: 2e-5
+num_train_epochs: 3
+batch_size: 32
+augmentation_batch_size: 32
+
+# Carve validation from train (Banking77 has only train+test) so cycle
+# selection never touches the held-out test set.
+require_validation_split: true
+
+# Active-learning-loop teacher output cap: must fit augmentation_batch_size
+# record generation, not just one label. Materialization no longer reads this
+# (that moved to examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the AL
+# loop still needs it: with token_budget set, an UNSET cap makes the
+# augmentation preflight mask every teacher call (engine.py:959-961), silently
+# disabling online augmentation.
+teacher_max_output_tokens: 4096
+
+token_budget: 20000000
+budget_stop: true
+base_output_dir: "out/g2"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  # Select on validation, report finals on a clean held-out test pass.
+  report_held_out_test: true
+
+  # Student-vs-teacher fidelity on the held-out test split. Points at the shared
+  # teacher test-label file materialized from examples/paper/G2_banking77_materialize.yaml.
+  fidelity:
+    teacher_labels_path: "out/g2/banking77_teacher_test.jsonl"
+    split: "test"
+
+prompt: |
+  You are a teacher model in a knowledge-distillation pipeline for the Banking77
+  intent-classification task (77 fine-grained customer-banking intents).
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new customer-message / intent-label
+  samples that target the student's weakest and most-confused intents. Each
+  sample must use a valid Banking77 intent as its gold label and cover diverse
+  phrasings within each targeted intent.

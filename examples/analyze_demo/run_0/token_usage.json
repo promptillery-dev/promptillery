@@ -1,0 +1,27 @@
+{
+  "cycles_completed": 2,
+  "grand_total": {
+    "estimated_cost": 0.0,
+    "input_tokens": 8,
+    "output_tokens": 4,
+    "total_tokens": 12
+  },
+  "per_cycle": [
+    {
+      "cycle": 0,
+      "cycle_total": {
+        "input_tokens": 4,
+        "output_tokens": 2,
+        "total_tokens": 6
+      }
+    },
+    {
+      "cycle": 1,
+      "cycle_total": {
+        "input_tokens": 4,
+        "output_tokens": 2,
+        "total_tokens": 6
+      }
+    }
+  ]
+}

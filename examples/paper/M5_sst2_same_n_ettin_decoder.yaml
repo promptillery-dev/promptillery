@@ -1,0 +1,90 @@
+# =============================================================================
+# M5 — SST-2: same-N gold FT baseline (ettin_decoder)
+# =============================================================================
+# Volume-matched control for the promptillery (10 cycles)
+# row. One SFT pass over out/m5/sst2/ettin_decoder/train_sft.jsonl = gold seed-train
+# (800) + matched gold top-up, gold-materialized BY THE PREP SCRIPT (it reuses
+# examples/paper/G3_sst2_materialize.yaml, so the prompt format is identical to the
+# promptillery arms by construction). validation/test SFT and canonical labels
+# are the G3 files (identical evaluation to the promptillery arms).
+#
+# Run order (see examples/paper/M5_README.md):
+#   1) uv run python scripts/prep_m5_same_n.py --dataset sst2 --student ettin_decoder \
+#        --run-dir <the cell's completed g3 cycles-10 run dir>
+#      (writes train.jsonl AND gold-materializes train_sft.jsonl; free)
+#   2) uv run promptillery train examples/paper/M5_sst2_same_n_ettin_decoder.yaml
+#
+# No `prompt:` key -> augmentation disabled -> ZERO teacher calls (GPU-only).
+# Same recipe/seed as the G3 "fine-tuned (1 cycle)" row. Full-test eval:
+# max_eval_generation_samples is intentionally UNSET.
+# =============================================================================
+
+name: "m5_sst2_same_n_ettin_decoder"
+
+teacher: "openrouter/openai/gpt-4.1"   # nominal: this run never calls the teacher
+
+student: "jhu-clsp/ettin-decoder-150m"
+student_type: "slm"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "out/m5/sst2/ettin_decoder/train_sft.jsonl"
+    validation: "out/g3/sst2/validation_sft.jsonl"
+    test: "out/g3/sst2/test_sft.jsonl"
+dataset_config:
+  name: "default"
+  num_classes: 2
+  text_field: "student_prompt"
+  label_field: "gold_answer"
+
+metrics:
+  - eval_loss
+  - perplexity
+  - exact_match
+  - macro_f1
+
+# Single fine-tune: same recipe/seed as the G3 "fine-tuned (1 cycle)" row.
+cycles: 1
+seed: 13
+
+learning_rate: 2e-4
+num_train_epochs: 3
+batch_size: 16
+warmup_steps: 10
+weight_decay: 0.0
+
+require_validation_split: true
+base_output_dir: "out/m5"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  max_seq_length: 256
+  trust_remote_code: true
+  report_held_out_test: true
+
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules: "all-linear"
+
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
+
+  answer_extraction: "canonical_label"
+  canonical_label_decoding: "score"
+  canonical_labels_path: "out/g3/sst2/canonical_labels.json"
+  task_metric: "macro_f1"
+
+  completion_only_loss: true
+
+  generation_max_new_tokens: 16
+  generation_batch_size: 16
+  # max_eval_generation_samples intentionally UNSET -> full-test held-out eval
+
+  budget_splits: ["train"]
+  require_teacher_token_fields: true

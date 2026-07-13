@@ -1,0 +1,152 @@
+# =============================================================================
+# G3 — HuffPost: Ettin decoder (decoder SLM student)
+# =============================================================================
+# The decoder half of Ettin's matched encoder/decoder pair. Same 1K-subset
+# scale/recipe/data as G3_huffpost_ettin_encoder.yaml, so encoder-vs-decoder
+# isolates architecture. Classification-via-generation: the SLM scores each
+# canonical HuffPost category label. Full-test eval: max_eval_generation_samples
+# is unset, so held-out reporting scores the whole materialized test split (not
+# a per-cycle capped sample).
+#
+# NOT CI-verified: needs a GPU, HF hub access, and a real teacher key. Run on
+# the remote GPU box.
+#
+# -----------------------------------------------------------------------------
+# HOW TO RUN
+# -----------------------------------------------------------------------------
+# 0) export OPENROUTER_API_KEY=sk-or-...
+#
+# 1) Materialize all SFT artifacts from the shared companion config
+#    examples/paper/G3_huffpost_materialize.yaml (this config cannot drive
+#    materialize-sft itself: its `dataset: json` points at the JSONL files the
+#    step creates, and its cycle-level `prompt` references AL-only variables).
+#    See that config's header for the full commands (including the
+#    scripts/prep_g3_datasets.py --dataset huffpost prep step). It writes:
+#      out/g3/huffpost/train_sft.jsonl
+#      out/g3/huffpost/validation_sft.jsonl
+#      out/g3/huffpost/test_sft.jsonl
+#      out/g3/huffpost/canonical_labels.json
+#
+# 2) uv run promptillery train examples/paper/G3_huffpost_ettin_decoder.yaml
+# 3) uv run promptillery analyze out/g3 --metric macro_f1
+# =============================================================================
+
+name: "g3_huffpost_ettin_decoder"
+
+teacher: "openrouter/openai/gpt-4.1"
+
+student: "jhu-clsp/ettin-decoder-150m"
+student_type: "slm"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "out/g3/huffpost/train_sft.jsonl"
+    validation: "out/g3/huffpost/validation_sft.jsonl"
+    # The held-out test split (gold-labeled, --mode gold; same as train/
+    # validation). It carries student_prompt + gold_answer; the student
+    # generates on it and held-out metrics are scored against gold_answer.
+    # No teacher labels here and no fidelity block is configured in G3.
+    test: "out/g3/huffpost/test_sft.jsonl"
+dataset_config:
+  # HF builder config name passed to load_dataset("json", name, ...); must be
+  # a valid builder name (not the source slug, which HF would reject).
+  name: "default"
+  num_classes: 41
+  # The AL loop builds the teacher augmentation context from the TRAIN split
+  # every cycle. The decoder's train split is the materialized SFT JSONL,
+  # whose columns are student_prompt/gold_answer/teacher_response -- there is
+  # no text/label.
+  text_field: "student_prompt"
+  label_field: "gold_answer"
+
+metrics:
+  - eval_loss
+  - perplexity
+  - exact_match
+  - macro_f1
+
+cycles: [1, 5, 10]
+seed: 13
+
+learning_rate: 2e-4
+num_train_epochs: 3
+batch_size: 16
+warmup_steps: 10
+weight_decay: 0.0
+augmentation_batch_size: 32
+
+# Active-learning-loop teacher output cap: must fit augmentation_batch_size
+# record generation, not just one label. With token_budget set, an UNSET cap
+# makes the augmentation preflight mask every teacher call (engine.py:959-961),
+# silently disabling online augmentation.
+teacher_max_output_tokens: 4096
+
+token_budget: 20000000
+budget_stop: true
+require_validation_split: true
+base_output_dir: "out/g3"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  max_seq_length: 256
+
+  # Enable remote code in case a checkpoint declares custom modeling code.
+  trust_remote_code: true
+
+  # Cycle selection uses the validation split; report final metrics on the
+  # held-out test split.
+  report_held_out_test: true
+
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules: "all-linear"
+
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
+
+  answer_extraction: "canonical_label"
+  canonical_label_decoding: "score"
+  canonical_labels_path: "out/g3/huffpost/canonical_labels.json"
+  task_metric: "macro_f1"
+
+  completion_only_loss: true
+
+  generation_max_new_tokens: 16
+  generation_batch_size: 16
+  # max_eval_generation_samples intentionally UNSET: full-test eval, not a
+  # per-cycle capped sample.
+
+  budget_splits: ["train"]
+  require_teacher_token_fields: true
+
+prompt: |
+  You are a teacher model in a knowledge-distillation pipeline for the HuffPost
+  news-category task (41 fine-grained news-headline categories).
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new news-headline / label SFT records
+  that target the student's weakest and most-confused classes. Each record must
+  use a valid HuffPost category label as its gold answer and cover diverse
+  phrasings within each targeted class.

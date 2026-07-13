@@ -1,0 +1,28 @@
+# Per-device on-demand serving rates (USD / GPU-hour), keyed on the profile's
+# `gpu_name` hardware stamp (falling back to `device`). Consumed by
+# pareto.serving_cost_per_call:
+#
+#     serving_cost_per_call = usd_per_hour / 3600 / throughput_calls_per_sec
+#
+# (throughput is profiled at batch size 1; profiler.py). Prices are a PER-DEVICE
+# table, not a scalar: profiler.py pins FastText to CPU and every torch student
+# to CUDA, so a single GPU rate would bill FastText at GPU rates and destroy the
+# cheap end of the frontier.
+#
+# PROVENANCE. The students were profiled on 2x RTX 4090. The RTX 4090 is
+# a consumer card, absent from every hyperscaler on-demand catalog; its only
+# published list rate comes from GPU rental / neocloud marketplaces (RunPod,
+# Lambda, TensorDock, Vast.ai). That rental rate is the correct, stamp-consistent
+# source for the exact silicon we profiled -- pricing this throughput at an
+# A100/L4 rate it was never measured on would violate the profile stamp guard.
+# Use a stable published on-demand rate and snapshot its source + date
+# BEFORE looking at any held-out numbers; do not nudge it to shape the
+# regret curve. The $0.40/GPU-hr below is the paper's declared placeholder and
+# sits mid-band for real 4090 neocloud rates (~$0.34-0.50/hr); it stays put --
+# only its provenance label is being finalized (keep-$0.40 decision).
+usd_per_hour:
+  "NVIDIA GeForce RTX 4090": 0.40   # neocloud on-demand list rate; TODO: pin source+date
+
+  # FastText serves on CPU. CPU/vCPU rate is a placeholder pending a later pass
+  # (a scalar GPU rate here would misprice the cheap end of the frontier).
+  "cpu": 0.05                       # TODO: dated vCPU on-demand list rate

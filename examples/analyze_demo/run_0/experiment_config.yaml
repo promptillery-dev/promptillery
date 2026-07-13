@@ -1,0 +1,5 @@
+# A completed two-cycle run, checked in so `promptillery analyze` has something
+# to summarize before you have trained anything yourself. The numbers are
+# invented; only the artifact layout is real.
+name: analyze_demo
+token_budget: 20

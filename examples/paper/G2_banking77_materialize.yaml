@@ -1,0 +1,131 @@
+# =============================================================================
+# G2 — Banking77 cross-architecture hub: materialization SOURCE config
+# =============================================================================
+# Companion to the six G2_banking77_*.yaml training configs, which cannot drive
+# materialize-sft themselves:
+#   - the decoders are `dataset: json` pointing at the JSONL files this step
+#     CREATES (materialize-sft loads config.dataset directly and never reads
+#     dataset_config.name), and
+#   - every training config's cycle-level `prompt` references active-learning-
+#     only Jinja variables (few_shot_samples, classification_report, ...) that
+#     raise under StrictUndefined during a per-row labeling pass.
+#
+# This config loads PolyAI/banking77 directly and carries a per-row teacher
+# classification prompt, so it is the SINGLE source for every materialized
+# artifact used by the hub:
+#   - the decoders' GOLD-labeled train/validation SFT files (--mode gold), and
+#   - the shared teacher TEST-label file that EVERY student (encoders, decoders,
+#     FastText) scores student-vs-teacher fidelity against (--mode teacher).
+#
+# The gold train/validation passes need no key; the teacher TEST pass does.
+# Run on the remote 2xA100 box (or anywhere -- materialization never needs a GPU).
+#
+# -----------------------------------------------------------------------------
+# HOW TO MATERIALIZE (run once; artifacts are shared across every student)
+# -----------------------------------------------------------------------------
+# 0) export OPENROUTER_API_KEY=sk-or-...   (the CLI auto-loads .env)
+#
+# 1) Decoder train + validation SFT (GOLD-labeled; --mode gold makes no teacher
+#    calls, so this is free). The decoders train on the SAME gold supervision as
+#    the encoders (gold seed split + per-cycle teacher augmentation), so the
+#    cross-architecture comparison -- in particular the Ettin matched pair --
+#    isolates architecture instead of confounding it with label source, and the
+#    fidelity column is not biased toward students trained on teacher labels.
+#    Every student then runs the identical AL loop (same 20M-token budget cap)
+#    spending teacher tokens purely on augmentation:
+#
+#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#        --mode gold --split train \
+#        --output out/g2/banking77_sft_train.jsonl --overwrite
+#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#        --mode gold --split validation \
+#        --output out/g2/banking77_sft_validation.jsonl --overwrite
+#
+# 2) Shared teacher TEST-label file (student-independent). Scored by every
+#    student for fidelity, and reused verbatim as the decoders' `test`
+#    data_file. Materialize the FULL test split so the fidelity denominator is
+#    the whole test set:
+#
+#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#        --mode teacher --split test --token-budget 5000000 \
+#        --output out/g2/banking77_teacher_test.jsonl --overwrite
+#
+# Every pass also writes out/g2/canonical_labels.json (the 77-label schema the
+# decoders load via trainer_config.canonical_labels_path).
+# =============================================================================
+
+name: "g2_banking77_materialize"
+
+# Teacher: GPT-4.1 routed through OpenRouter (matches every training config).
+teacher: "openrouter/openai/gpt-4.1"
+
+# Nominal student: the teacher test labels are student-independent, and the
+# short student_prompt_template below targets the decoder generation path. Any
+# student works here since materialization only calls the teacher.
+student: "jhu-clsp/ettin-decoder-150m"
+student_type: "slm"
+
+# Source dataset (77 banking intents; train + test upstream). PolyAI/banking77
+# ships a loading script, so recent `datasets` refuses to run it without
+# trust_remote_code.
+dataset: "PolyAI/banking77"
+dataset_kwargs:
+  trust_remote_code: true
+dataset_config:
+  name: "default"
+  num_classes: 77
+  text_field: "text"
+  label_field: "label"
+
+seed: 13
+
+# Banking77 has no upstream validation split; carve one from train (train_ratio
+# default 0.8) so --split validation works and matches the training configs.
+require_validation_split: true
+
+# Materialization-only budget for the one-time teacher TEST pass (~3,080 rows),
+# separate from each run's active-learning budget. The gold train/validation
+# passes make no teacher calls and never touch it. Per-pass --token-budget
+# overrides this (the header uses --token-budget 5000000 for the test pass).
+token_budget: 8000000
+budget_stop: true
+
+# Teacher answers with a single intent label, so 16 output tokens is ample.
+# (The training configs keep their own larger cap for AL-loop batch generation;
+# see the note there.)
+teacher_max_output_tokens: 16
+
+base_output_dir: "out/g2"
+
+trainer_config:
+  materialize_sft:
+    # Per-label stratified selection, so --max-samples N == N/77 per label.
+    # (Only applies when --max-samples is passed; a full split ignores it.)
+    stratify_max_samples: true
+
+    # Per-row teacher prompt: label ONE message with ONE canonical intent, with
+    # all 77 valid intents listed verbatim ("respond with exactly one") to
+    # minimize non-canonical (rejected) teacher responses. Distinct from the
+    # training configs' cycle-level augmentation prompt, which references
+    # AL-only variables and must not be used for per-row labeling. canonical_labels
+    # is auto-populated from Banking77's ClassLabel names during materialization.
+    prompt_template: |
+      You label customer-banking messages for the Banking77 intent
+      classification task.
+
+      Valid intents (respond with exactly one, verbatim):
+      {% for label in canonical_labels %}- {{ label }}
+      {% endfor %}
+      Customer message:
+      {{ text }}
+
+      Respond with exactly one intent label from the list above and nothing
+      else.
+
+    # Short student prompt: the decoders' max_seq_length is 256/512 and
+    # evaluation scores each canonical label (canonical_label_decoding: score),
+    # so the 77-label list must NOT be inlined into the student prompt.
+    student_prompt_template: |
+      Classify the banking customer message into one of the Banking77 intents.
+      Message: {{ text }}
+      Intent:

@@ -1,0 +1,1307 @@
+"""Command line interface for promptillery."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from pathlib import Path
+from typing import List
+
+import typer
+from dotenv import load_dotenv
+
+from .ablation import AblationStudyRunner
+from .analyze import (
+    analyze_runs,
+    plan_same_count_control_configs,
+    validate_fixed_scorer_gate,
+    validate_paper_gate,
+    validate_pilot_gate,
+    write_audit_csvs,
+    write_paper_report,
+    write_summary_csv,
+)
+from .config import ExperimentConfig
+from .engine import DistillationEngine, evaluate_model
+from .figures import write_paper_figures
+from .policy_controller import PolicyController, enumerate_actions
+from .profiler import profile_model
+from .sft_materialize import materialize_sft_records
+from .utils import setup_logging
+
+app = typer.Typer(add_completion=False)
+load_dotenv()
+
+# Default teacher model for baseline evaluation
+DEFAULT_BASELINE_TEACHER = "openai/gpt-5-mini"
+
+
+def _csv_option_values(value: str) -> List[str]:
+    """Parse a comma-separated CLI option into stable string values."""
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+@app.command()
+def train(
+    config: str,
+    base_dir: str = typer.Option(
+        ".", "--base-dir", "-d", help="Base directory for experiment outputs"
+    ),
+) -> None:
+    """Run training given a config YAML."""
+    setup_logging()
+    cfg = ExperimentConfig.from_yaml(config)
+
+    # Override config with CLI parameters if provided
+    if base_dir != ".":
+        cfg.base_output_dir = base_dir
+
+    engine = DistillationEngine(cfg)
+    asyncio.run(engine.run())
+
+
+@app.command()
+def ablation(
+    config: str,
+    base_dir: str = typer.Option(
+        ".", "--base-dir", "-d", help="Base directory for experiment outputs"
+    ),
+    cleanup: bool = typer.Option(
+        True,
+        "--cleanup/--no-cleanup",
+        help="Clean up after each augmentation_batch_size group, keeping only best performer",
+    ),
+    cleanup_metric: str = typer.Option(
+        None,
+        "--cleanup-metric",
+        "-m",
+        help="Metric to use for selecting best config during cleanup (default: first metric in config)",
+    ),
+    shard_index: int | None = typer.Option(
+        None,
+        "--shard-index",
+        help="Zero-based shard index for splitting the generated config grid",
+    ),
+    shard_count: int | None = typer.Option(
+        None,
+        "--shard-count",
+        help="Total shard count for splitting the generated config grid",
+    ),
+) -> None:
+    """Run ablation study with multiple configurations.
+
+    By default, enables cleanup mode which keeps only the best-performing
+    configuration for each augmentation_batch_size group. This dramatically
+    reduces disk usage (e.g., from 120GB to ~3GB for a 144-config study).
+
+    Use --no-cleanup to keep all experiment results.
+    """
+    setup_logging()
+    cfg = ExperimentConfig.from_yaml(config)
+
+    # Override config with CLI parameters if provided
+    if base_dir != ".":
+        cfg.base_output_dir = base_dir
+
+    runner = AblationStudyRunner(
+        cfg,
+        cleanup_metric=cleanup_metric,
+        shard_index=shard_index,
+        shard_count=shard_count,
+    )
+    asyncio.run(runner.run(cleanup_after_group=cleanup))
+
+
+@app.command("materialize-sft")
+def materialize_sft(
+    config: str,
+    output: str = typer.Option(
+        "generated_sft_records.jsonl",
+        "--output",
+        "-o",
+        help="Output JSONL path for materialized SFT records",
+    ),
+    split: str = typer.Option("train", "--split", "-s", help="Dataset split to read"),
+    mode: str = typer.Option(
+        "gold",
+        "--mode",
+        help="Materialization mode: 'gold' for zero-cost dry runs or 'teacher' for LLM calls",
+    ),
+    max_samples: int | None = typer.Option(
+        None,
+        "--max-samples",
+        help="Maximum number of source examples to materialize",
+    ),
+    student_prompt_template: str | None = typer.Option(
+        None,
+        "--student-prompt-template",
+        help=(
+            "Override the config's student prompt template; dataset fields are "
+            "available"
+        ),
+    ),
+    teacher_prompt_template: str | None = typer.Option(
+        None,
+        "--teacher-prompt-template",
+        help="Jinja template for teacher calls; defaults to the built-in prompt",
+    ),
+    prompt_operator: str = typer.Option(
+        "coverage",
+        "--prompt-operator",
+        help="Prompt operator label to write into each record",
+    ),
+    teacher_tier: str = typer.Option(
+        "cheap",
+        "--teacher-tier",
+        help="Teacher tier label to write into each teacher-mode record",
+    ),
+    overwrite: bool = typer.Option(
+        False,
+        "--overwrite",
+        help="Replace the output JSONL if it already exists",
+    ),
+    allow_estimated_usage: bool = typer.Option(
+        False,
+        "--allow-estimated-usage",
+        help="Allow estimated token usage if the provider response omits usage fields",
+    ),
+    allow_partial: bool = typer.Option(
+        False,
+        "--allow-partial",
+        help="Keep a budget-truncated dataset when preflight stops teacher mode",
+    ),
+    token_budget: int | None = typer.Option(
+        None,
+        "--token-budget",
+        help=(
+            "Override the config's token_budget for this materialization only. "
+            "Use for the one-time teacher test-label file (fidelity) so it can "
+            "cover the full split without touching the run's AL-loop budget."
+        ),
+    ),
+    progress: bool = typer.Option(
+        True,
+        "--progress/--no-progress",
+        help="Show a compact progress bar while materializing rows",
+    ),
+) -> None:
+    """Materialize audited SFT JSONL records from a dataset split."""
+    setup_logging()
+    cfg = ExperimentConfig.from_yaml(config)
+    try:
+        summary = asyncio.run(
+            materialize_sft_records(
+                config=cfg,
+                output_path=Path(output),
+                split=split,
+                mode=mode,
+                max_samples=max_samples,
+                student_prompt_template=student_prompt_template,
+                teacher_prompt_template=teacher_prompt_template
+                or None,
+                prompt_operator=prompt_operator,
+                teacher_tier=teacher_tier,
+                overwrite=overwrite,
+                allow_estimated_usage=allow_estimated_usage,
+                allow_partial=allow_partial,
+                show_progress=progress,
+                token_budget=token_budget,
+            )
+        )
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(
+        "Wrote {records} SFT records to {output_path} "
+        "({teacher_total_tokens} teacher tokens, stop_reason={stop_reason}; "
+        "manifest: {manifest_path})".format(**summary)
+    )
+
+
+@app.command()
+def analyze(
+    path: str,
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional CSV output path; prints CSV to stdout when omitted",
+    ),
+    audit_dir: str | None = typer.Option(
+        None,
+        "--audit-dir",
+        help="Optional directory for policy_actions, teacher_calibration, and oracle_frontier CSVs",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to summarize; defaults to the first recognized run metric",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+) -> None:
+    """Summarize quality-cost artifacts from one run directory or a parent."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        rows = analyze_runs(Path(path), metric=metric, mode=mode)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+    if not rows:
+        typer.echo(f"Error: no run artifacts found under {path}", err=True)
+        raise typer.Exit(code=1)
+    if metric and not any(row["metric"] == metric for row in rows):
+        typer.echo(f"Error: metric '{metric}' was not found in any run", err=True)
+        raise typer.Exit(code=1)
+
+    if output:
+        write_summary_csv(rows, Path(output))
+        typer.echo(f"Wrote analysis summary to {output}")
+        if audit_dir:
+            audit_paths = write_audit_csvs(Path(path), rows, Path(audit_dir))
+            typer.echo(
+                "Wrote audit CSVs to "
+                + ", ".join(str(value) for value in audit_paths.values())
+            )
+        return
+
+    if audit_dir:
+        audit_paths = write_audit_csvs(Path(path), rows, Path(audit_dir))
+        typer.echo(
+            "Wrote audit CSVs to "
+            + ", ".join(str(value) for value in audit_paths.values()),
+            err=True,
+        )
+
+    import csv
+    import sys
+
+    writer = csv.DictWriter(sys.stdout, fieldnames=list(rows[0].keys()))
+    writer.writeheader()
+    writer.writerows(rows)
+
+
+@app.command()
+def audit(
+    run_dirs: List[str] = typer.Argument(
+        ..., help="One or more completed run directories to audit"
+    ),
+    verifier_model: str | None = typer.Option(
+        None,
+        "--verifier-model",
+        help="Gold-only HF classifier checkpoint dir for Lbl-c (verifier)",
+    ),
+    probe: bool = typer.Option(
+        False,
+        "--probe",
+        help="Run the teacher-on-gold API probe for Lbl-c (teacher); spends tokens",
+    ),
+    probe_k: int = typer.Option(
+        100, "--probe-k", help="Number of gold rows the probe labels"
+    ),
+    probe_split: str = typer.Option(
+        "validation",
+        "--probe-split",
+        help="Gold split the probe samples from: validation or test",
+    ),
+    seed: int = typer.Option(13, "--seed", help="Probe sampling seed"),
+    latex: bool = typer.Option(
+        False, "--latex", help="Also print LaTeX-ready audit table rows"
+    ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output-dir",
+        help="Audit output directory (default: <run_dir>/audit/)",
+    ),
+    force_reconstruction: bool = typer.Option(
+        False,
+        "--force-reconstruction",
+        help="Rebuild rows from raw teacher responses even when dataset_cycle_* exists",
+    ),
+) -> None:
+    """Gold-anchored synthetic-data audit over completed run directories."""
+    import csv as csv_module
+
+    from rich.console import Console
+
+    from .audit import (
+        CSV_FIELDS,
+        audit_run,
+        csv_rows,
+        latex_rows,
+        print_audit_table,
+    )
+
+    setup_logging()
+    if probe_split not in {"validation", "test"}:
+        typer.echo(
+            "Error: --probe-split must be 'validation' or 'test'", err=True
+        )
+        raise typer.Exit(code=1)
+
+    console = Console()
+    combined: List[dict] = []
+    for run_dir in run_dirs:
+        try:
+            result = audit_run(
+                run_dir,
+                verifier_model=verifier_model,
+                probe=probe,
+                probe_k=probe_k,
+                probe_split=probe_split,
+                seed=seed,
+                output_dir=output_dir,
+                force_reconstruction=force_reconstruction,
+            )
+        except (FileNotFoundError, ValueError, RuntimeError) as exc:
+            # ReconstructionError subclasses RuntimeError.
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(code=1)
+        print_audit_table(result, console)
+        if latex:
+            typer.echo(latex_rows(result))
+        for row in csv_rows(result):
+            combined.append({"run": result.experiment, **row})
+
+    if len(run_dirs) > 1:
+        combined_path = Path(output_dir or ".") / "audit_combined.csv"
+        combined_path.parent.mkdir(parents=True, exist_ok=True)
+        with combined_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv_module.DictWriter(f, fieldnames=["run", *CSV_FIELDS])
+            writer.writeheader()
+            writer.writerows(combined)
+        typer.echo(f"Wrote combined audit CSV to {combined_path}")
+
+
+@app.command("paper-report")
+def paper_report(
+    paths: List[str] = typer.Argument(
+        ...,
+        help=(
+            "One or more run roots. Passing multiple roots combines core and "
+            "control runs in the same paper tables."
+        ),
+    ),
+    output_dir: str = typer.Option(
+        "paper_report",
+        "--output-dir",
+        "-o",
+        help="Directory for reviewer-facing tables and report",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to summarize; defaults to the first recognized run metric",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+    success_policy: str = typer.Option(
+        "frugalkd_p",
+        "--success-policy",
+        help="Policy to compare against paired baselines",
+    ),
+    success_baselines: str = typer.Option(
+        "cost_heuristic,random_feasible",
+        "--success-baselines",
+        help="Comma-separated baseline policy_name values for paired deltas",
+    ),
+    success_control_baselines: str = typer.Option(
+        "",
+        "--success-control-baselines",
+        help="Comma-separated baseline control_name values for paired deltas",
+    ),
+) -> None:
+    """Write paper-facing result, delta, budget, and behavior tables."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    source_paths = [Path(path) for path in paths]
+    try:
+        rows = [
+            row
+            for source_path in source_paths
+            for row in analyze_runs(source_path, metric=metric, mode=mode)
+        ]
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+    if not rows:
+        typer.echo(
+            "Error: no run artifacts found under "
+            + ", ".join(str(path) for path in source_paths),
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    if metric and not any(row["metric"] == metric for row in rows):
+        typer.echo(f"Error: metric '{metric}' was not found in any run", err=True)
+        raise typer.Exit(code=1)
+
+    report_paths = write_paper_report(
+        source_paths,
+        rows,
+        Path(output_dir),
+        success_policy=success_policy,
+        baseline_policies=_csv_option_values(success_baselines),
+        baseline_control_names=_csv_option_values(success_control_baselines),
+    )
+    typer.echo(
+        "Wrote paper report tables to "
+        + ", ".join(str(value) for value in report_paths.values())
+    )
+
+
+@app.command()
+def recommend(
+    main_results: str = typer.Option(
+        ..., "--main-results", help="paper_main_results.csv (candidate cells)"
+    ),
+    profile_dir: str = typer.Option(
+        ..., "--profile-dir", help="Directory of student profile.json files"
+    ),
+    prices: str = typer.Option(
+        "prices.yaml", "--prices", help="Per-device serving-rate table"
+    ),
+    targets: str = typer.Option(
+        "targets.yaml", "--targets", help="Pre-registered deployment-target grid"
+    ),
+    output_dir: str = typer.Option(
+        "paper_report", "--output-dir", "-o", help="Directory for recommender tables"
+    ),
+) -> None:
+    """Score each selector against the held-out oracle.
+
+    Runs off frozen artifacts only -- no live training, no teacher calls, no GPU.
+    Emits recommender_table.csv, regret_curve.csv, and recommendation.json.
+    """
+    from .recommender_io import load_cells, load_prices, load_targets
+    from .recommender_report import write_recommender_report
+
+    try:
+        config = load_targets(Path(targets))
+        price_table = load_prices(Path(prices))
+        cells = load_cells(
+            Path(main_results),
+            Path(profile_dir),
+            expect_gpu_name=config.expect_gpu_name,
+        )
+    except (KeyError, ValueError, FileNotFoundError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+    if not cells:
+        typer.echo(f"Error: no candidate cells loaded from {main_results}", err=True)
+        raise typer.Exit(code=1)
+
+    paths = write_recommender_report(cells, price_table, config, Path(output_dir))
+    typer.echo(
+        "Wrote recommender tables to "
+        + ", ".join(str(value) for value in paths.values())
+    )
+
+
+@app.command("paper-figures")
+def paper_figures(
+    report_dir: str = typer.Argument(
+        ...,
+        help="Directory produced by `promptillery paper-report`",
+    ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Directory for figure files; defaults to REPORT_DIR/figures",
+    ),
+    fmt: str = typer.Option(
+        "pdf",
+        "--format",
+        help="Matplotlib output format, e.g. pdf, png, or svg",
+    ),
+) -> None:
+    """Write paper-facing figures from paper-report CSVs."""
+    try:
+        manifest = write_paper_figures(
+            Path(report_dir),
+            Path(output_dir) if output_dir else None,
+            fmt=fmt,
+        )
+    except RuntimeError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    created = manifest.get("created", [])
+    if created:
+        typer.echo("Wrote paper figures to " + ", ".join(created))
+    else:
+        typer.echo("No paper figures were created", err=True)
+    typer.echo(f"Figure manifest: {manifest['manifest']}")
+
+
+@app.command("paper-gate")
+def paper_gate(
+    report_dir: str = typer.Argument(
+        ...,
+        help="Directory produced by `promptillery paper-report`",
+    ),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional JSON gate report output path",
+    ),
+    required_baselines: str = typer.Option(
+        "fixed_coverage,fixed_boundary,fixed_repair,random_feasible,cost_heuristic,active_uncertainty,student_deficiency",
+        "--required-baselines",
+        help="Comma-separated baseline policy_name values required in all-budget paired summaries",
+    ),
+    required_reported_baselines: str = typer.Option(
+        "",
+        "--required-reported-baselines",
+        help=(
+            "Comma-separated baseline policy_name values required in paired "
+            "summaries without applying success thresholds"
+        ),
+    ),
+    required_control_names: str = typer.Option(
+        "",
+        "--required-control-names",
+        help="Comma-separated baseline control_name values required in all-budget paired summaries",
+    ),
+    required_figures: str = typer.Option(
+        "quality_cost,paired_deltas,policy_behavior,token_calibration,budget_tokens",
+        "--required-figures",
+        help="Comma-separated figure filename prefixes required in the figure manifest",
+    ),
+    min_auc_win_rate: float | None = typer.Option(
+        0.67,
+        "--min-auc-win-rate",
+        help="Minimum all-budget paired win rate on quality-cost AUC",
+    ),
+    min_heldout_win_rate: float | None = typer.Option(
+        0.67,
+        "--min-heldout-win-rate",
+        help="Minimum all-budget paired win rate on held-out metric",
+    ),
+    min_final_win_rate: float | None = typer.Option(
+        None,
+        "--min-final-win-rate",
+        help="Optional minimum all-budget paired win rate on final validation metric",
+    ),
+    min_auc_delta: float = typer.Option(
+        0.0,
+        "--min-auc-delta",
+        help="Minimum mean AUC delta for required comparisons",
+    ),
+    min_heldout_delta: float = typer.Option(
+        0.0,
+        "--min-heldout-delta",
+        help="Minimum mean held-out delta for required comparisons",
+    ),
+    min_final_delta: float = typer.Option(
+        0.0,
+        "--min-final-delta",
+        help="Minimum mean final-metric delta for required comparisons",
+    ),
+    max_seed_baseline_delta: float | None = typer.Option(
+        1e-9,
+        "--max-seed-baseline-delta",
+        help="Maximum absolute seed-only metric delta in required comparisons",
+    ),
+    require_provider_reported_usage: bool = typer.Option(
+        True,
+        "--require-provider-reported-usage/--no-require-provider-reported-usage",
+        help="Reject reserved or estimated teacher-usage rows in paper budget audit",
+    ),
+    require_figures: bool = typer.Option(
+        True,
+        "--require-figures/--no-require-figures",
+        help="Require a paper_figures_manifest.json with expected figures",
+    ),
+) -> None:
+    """Validate paper-report outputs against reviewer-facing go/no-go checks."""
+    report = validate_paper_gate(
+        Path(report_dir),
+        required_baselines=_csv_option_values(required_baselines),
+        required_reported_baselines=_csv_option_values(required_reported_baselines),
+        required_control_names=_csv_option_values(required_control_names),
+        required_figures=_csv_option_values(required_figures),
+        min_auc_win_rate=min_auc_win_rate,
+        min_heldout_win_rate=min_heldout_win_rate,
+        min_final_win_rate=min_final_win_rate,
+        min_auc_delta=min_auc_delta,
+        min_heldout_delta=min_heldout_delta,
+        min_final_delta=min_final_delta,
+        max_seed_baseline_delta=max_seed_baseline_delta,
+        require_provider_reported_usage=require_provider_reported_usage,
+        require_figures=require_figures,
+    )
+
+    report_json = json.dumps(report, indent=2, sort_keys=True)
+    if output:
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        Path(output).write_text(report_json + "\n", encoding="utf-8")
+        typer.echo(f"Wrote paper gate report to {output}")
+    else:
+        typer.echo(report_json)
+
+    if not report["passed"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("fixed-scorer-gate")
+def fixed_scorer_gate(
+    path: str = typer.Argument(..., help="Fixed-scorer sensitivity run root"),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional JSON gate report output path",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to summarize; defaults to the first recognized run metric",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+    control_names: str = typer.Option(
+        "fixed_scorer_paced,fixed_scorer_no_cost,"
+        "fixed_scorer_single_operator,fixed_scorer_single_batch,"
+        "fixed_scorer_no_stop",
+        "--control-names",
+        help="Comma-separated fixed-scorer control_name values required",
+    ),
+    seeds: str = typer.Option(
+        "",
+        "--seeds",
+        help="Comma-separated seeds required for each control",
+    ),
+    budgets: str = typer.Option(
+        "",
+        "--budgets",
+        help="Comma-separated token budgets required for each control",
+    ),
+    require_heldout: bool = typer.Option(
+        True,
+        "--require-heldout/--no-require-heldout",
+        help="Require held-out test metrics for every sensitivity run",
+    ),
+    require_paper_mode: bool = typer.Option(
+        True,
+        "--require-paper-mode/--no-require-paper-mode",
+        help="Require completed paper_mode runs",
+    ),
+    require_provider_reported_usage: bool = typer.Option(
+        True,
+        "--require-provider-reported-usage/--no-require-provider-reported-usage",
+        help="Reject estimated seed usage and non-provider teacher debits",
+    ),
+) -> None:
+    """Validate fixed-scorer sensitivity controls without action parity."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        report = validate_fixed_scorer_gate(
+            Path(path),
+            metric=metric,
+            mode=mode,
+            required_control_names=_csv_option_values(control_names),
+            expected_seeds=_csv_option_values(seeds),
+            expected_budgets=_csv_option_values(budgets),
+            require_heldout=require_heldout,
+            require_paper_mode=require_paper_mode,
+            require_provider_reported_usage=require_provider_reported_usage,
+        )
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    report_json = json.dumps(report, indent=2, sort_keys=True)
+    if output:
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        Path(output).write_text(report_json + "\n", encoding="utf-8")
+        typer.echo(f"Wrote fixed-scorer gate report to {output}")
+    else:
+        typer.echo(report_json)
+
+    if not report["passed"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("pilot-gate")
+def pilot_gate(
+    path: str,
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional JSON report output path",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to use for final and AUC checks",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+    policies: str = typer.Option(
+        "fixed_coverage,fixed_boundary,fixed_repair,random_feasible,"
+        "cost_heuristic,frugalkd_p,frugalkd_paced",
+        "--policies",
+        help="Comma-separated expected policy_name values",
+    ),
+    seeds: str = typer.Option(
+        "13,42,101",
+        "--seeds",
+        help="Comma-separated expected seed values",
+    ),
+    budgets: str = typer.Option(
+        "25000,50000,100000",
+        "--budgets",
+        help="Comma-separated expected token_budget values",
+    ),
+    require_teacher_attempts: bool = typer.Option(
+        True,
+        "--require-teacher-attempts/--no-require-teacher-attempts",
+        help="Require at least one teacher attempt row",
+    ),
+    require_frontier: bool = typer.Option(
+        True,
+        "--require-frontier/--no-require-frontier",
+        help="Require matched fixed-policy frontier rows for every run",
+    ),
+    require_heldout: bool = typer.Option(
+        False,
+        "--require-heldout/--no-require-heldout",
+        "--require-held-out/--no-require-held-out",
+        help="Require final held-out test metrics for every summarized run",
+    ),
+    require_full_label_coverage: bool = typer.Option(
+        False,
+        "--require-full-label-coverage/--no-require-full-label-coverage",
+        help="Require observed gold labels to cover every canonical label",
+    ),
+    require_same_count_control: bool = typer.Option(
+        False,
+        "--require-same-count-controls/--no-require-same-count-controls",
+        "--require-same-count-control/--no-require-same-count-control",
+        help="Require same_count control rows for every seed/budget pair",
+    ),
+    require_same_count_plan: bool = typer.Option(
+        False,
+        "--require-same-count-plan/--no-require-same-count-plan",
+        help="Require same_count controls to match same_count_plan.json",
+    ),
+    same_count_plan: str | None = typer.Option(
+        None,
+        "--same-count-plan",
+        help="Optional path to same_count_plan.json",
+    ),
+    same_count_source_policy: str = typer.Option(
+        "frugalkd_p",
+        "--same-count-source-policy",
+        help="Policy whose final synthetic count same_count controls must match",
+    ),
+    same_count_control_policy: str | None = typer.Option(
+        None,
+        "--same-count-control-policy",
+        help="Optional required policy_name for same_count controls",
+    ),
+    require_paper_mode: bool = typer.Option(
+        False,
+        "--require-paper-mode/--no-require-paper-mode",
+        help="Require paper_mode=true and reviewer-facing cycle metadata",
+    ),
+    require_provider_reported_usage: bool = typer.Option(
+        False,
+        "--require-provider-reported-usage/--no-require-provider-reported-usage",
+        help="Reject estimated seed usage and non-provider teacher debits",
+    ),
+    success_policy: str | None = typer.Option(
+        None,
+        "--success-policy",
+        help="Policy that must beat matched baselines for scientific-success gates",
+    ),
+    success_baselines: str = typer.Option(
+        "",
+        "--success-baselines",
+        help="Comma-separated baseline policy_name values for success checks",
+    ),
+    min_auc_win_rate: float | None = typer.Option(
+        None,
+        "--min-auc-win-rate",
+        help="Minimum paired win rate on cycle_quality_cost_auc",
+    ),
+    min_heldout_win_rate: float | None = typer.Option(
+        None,
+        "--min-heldout-win-rate",
+        help="Minimum paired win rate on heldout_metric",
+    ),
+    min_final_win_rate: float | None = typer.Option(
+        None,
+        "--min-final-win-rate",
+        help="Minimum paired win rate on final_metric",
+    ),
+    min_auc_delta: float = typer.Option(
+        0.0,
+        "--min-auc-delta",
+        help="Minimum paired AUC delta counted as a win",
+    ),
+    min_heldout_delta: float = typer.Option(
+        0.0,
+        "--min-heldout-delta",
+        help="Minimum paired heldout delta counted as a win",
+    ),
+    min_final_delta: float = typer.Option(
+        0.0,
+        "--min-final-delta",
+        help="Minimum paired final-metric delta counted as a win",
+    ),
+    require_same_count_success: bool = typer.Option(
+        False,
+        "--require-same-count-success/--no-require-same-count-success",
+        help="Require success_policy to beat matched same_count controls",
+    ),
+) -> None:
+    """Validate cheap-pilot artifacts against reviewer-facing gate checks."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        report = validate_pilot_gate(
+            Path(path),
+            metric=metric,
+            mode=mode,
+            expected_policies=_csv_option_values(policies),
+            expected_seeds=_csv_option_values(seeds),
+            expected_budgets=_csv_option_values(budgets),
+            require_teacher_attempts=require_teacher_attempts,
+            require_frontier=require_frontier,
+            require_heldout=require_heldout,
+            require_full_label_coverage=require_full_label_coverage,
+            require_same_count_control=require_same_count_control,
+            require_same_count_plan=require_same_count_plan,
+            same_count_plan_path=Path(same_count_plan) if same_count_plan else None,
+            same_count_source_policy=same_count_source_policy,
+            same_count_control_policy=same_count_control_policy,
+            require_paper_mode=require_paper_mode,
+            require_provider_reported_usage=require_provider_reported_usage,
+            success_policy=success_policy,
+            success_baselines=_csv_option_values(success_baselines),
+            min_auc_win_rate=min_auc_win_rate,
+            min_heldout_win_rate=min_heldout_win_rate,
+            min_final_win_rate=min_final_win_rate,
+            min_auc_delta=min_auc_delta,
+            min_heldout_delta=min_heldout_delta,
+            min_final_delta=min_final_delta,
+            require_same_count_success=require_same_count_success,
+        )
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    report_json = json.dumps(report, indent=2, sort_keys=True)
+    if output:
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        Path(output).write_text(report_json + "\n", encoding="utf-8")
+        typer.echo(f"Wrote pilot gate report to {output}")
+    else:
+        typer.echo(report_json)
+
+    if not report["passed"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("plan-same-count-controls")
+def plan_same_count_controls(
+    pilot_dir: str,
+    base_config: str,
+    output_dir: str = typer.Option(
+        "same_count_configs",
+        "--output-dir",
+        "-o",
+        help="Directory for generated same_count control configs",
+    ),
+    metric: str | None = typer.Option(
+        None,
+        "--metric",
+        "-m",
+        help="Metric to read while summarizing source runs",
+    ),
+    mode: str = typer.Option(
+        "auto",
+        "--mode",
+        help="Use 'auto', 'max' for accuracy/F1-like metrics, or 'min' for losses",
+    ),
+    source_policy: str = typer.Option(
+        "frugalkd_p",
+        "--source-policy",
+        help="Policy whose final_synthetic_count should define the matched cap",
+    ),
+    control_policy: str = typer.Option(
+        "cost_heuristic",
+        "--control-policy",
+        help="Policy to rerun under the matched synthetic-record cap",
+    ),
+    control_base_output_dir: str | None = typer.Option(
+        None,
+        "--control-base-output-dir",
+        help="Optional base_output_dir override for generated control configs",
+    ),
+) -> None:
+    """Generate matched same_count control configs from source pilot runs."""
+    if mode not in {"auto", "max", "min"}:
+        typer.echo("Error: --mode must be 'auto', 'max', or 'min'", err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        planned = plan_same_count_control_configs(
+            Path(pilot_dir),
+            Path(base_config),
+            Path(output_dir),
+            metric=metric,
+            mode=mode,
+            source_policy=source_policy,
+            control_policy=control_policy,
+            control_base_output_dir=control_base_output_dir,
+        )
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(
+        f"Wrote {len(planned)} same_count control config(s) to {output_dir}"
+    )
+    typer.echo(f"Plan manifest: {Path(output_dir) / 'same_count_plan.json'}")
+
+
+@app.command("policy-smoke")
+def policy_smoke(
+    policy: str = typer.Option(
+        "cost_heuristic",
+        "--policy",
+        help=(
+            "Policy to smoke test: student_only, random_feasible, "
+            "cost_heuristic, frugalkd_p, frugalkd_paced, active_uncertainty, "
+            "student_deficiency, fixed_mixed_teacher, or fixed_*"
+        ),
+    ),
+    tokens_remaining: int = typer.Option(
+        4096,
+        "--tokens-remaining",
+        help="Synthetic remaining token budget for the hard action mask",
+    ),
+    seed: int = typer.Option(13, "--seed", help="Random seed for random_feasible"),
+) -> None:
+    """Smoke test the budget-aware policy action contract."""
+    state = {
+        "budget": {
+            "token_budget": 10000,
+            "tokens_remaining": tokens_remaining,
+            "total_tokens": 10000 - tokens_remaining,
+        },
+        "features": {
+            "eval_error_rate": 0.35,
+            "eval_entropy_normalized_mean": 0.42,
+            "eval_hard_error_rate": 0.18,
+            "eval_max_confusion_rate": 0.12,
+            "synthetic_ratio": 0.20,
+            "token_budget_remaining_frac": tokens_remaining / 10000,
+        },
+    }
+    predicted_costs = {
+        action.name: {
+            "total_tokens": 48 * action.batch_size
+            * (2 if action.teacher_tier == "strong" else 1)
+        }
+        for action in enumerate_actions(include_stop=False)
+    }
+    controller = PolicyController(policy, seed=seed)
+    choice = controller.select(state, predicted_costs=predicted_costs)
+    if choice.predicted_cost.get("total_tokens", 0) > tokens_remaining:
+        typer.echo("Error: selected action exceeds hard budget mask", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(json.dumps(choice.model_dump(), indent=2, sort_keys=True))
+
+
+@app.command()
+def eval(
+    config: str,
+    model_path: str = typer.Option(
+        None,
+        "--model-path",
+        "-m",
+        help="Path to trained model checkpoint (auto-detects latest if not provided)",
+    ),
+    split: str = typer.Option(
+        "test", "--split", "-s", help="Dataset split to evaluate (test/validation)"
+    ),
+    base_dir: str = typer.Option(
+        ".", "--base-dir", "-d", help="Base directory to search for experiment outputs"
+    ),
+) -> None:
+    """Evaluate a trained model on the specified dataset split."""
+    setup_logging()
+
+    # Load configuration
+    cfg = ExperimentConfig.from_yaml(config)
+
+    # Auto-detect model path if not provided
+    if model_path is None:
+        model_path_obj = _find_latest_model(cfg.name, base_dir)
+        if model_path_obj is None:
+            typer.echo(
+                f"Error: No model found for experiment '{cfg.name}' in '{base_dir}'. "
+                "Use --model-path to specify explicitly.",
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        typer.echo(f"Auto-detected model: {model_path_obj}")
+    else:
+        model_path_obj = Path(model_path)
+        if not model_path_obj.exists():
+            typer.echo(f"Error: Model path does not exist: {model_path}", err=True)
+            raise typer.Exit(code=1)
+
+    # Run evaluation
+    try:
+        evaluate_model(cfg, model_path_obj, split)
+    except ValueError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def profile(
+    config: str,
+    model_path: str = typer.Option(
+        None,
+        "--model-path",
+        "-m",
+        help="Path to trained model checkpoint (auto-detects latest if not provided)",
+    ),
+    split: str = typer.Option(
+        "test", "--split", "-s", help="Dataset split to profile (test/validation)"
+    ),
+    device: str = typer.Option(
+        None,
+        "--device",
+        help="Device to profile on: cpu | cuda | cuda:N | mps "
+        "(default: cuda, then mps, else cpu)",
+    ),
+    iterations: int = typer.Option(
+        50, "--iterations", "-n", help="Number of measured single-request calls"
+    ),
+    warmup: int = typer.Option(
+        5, "--warmup", help="Untimed warmup calls before measurement"
+    ),
+    teacher_calls: int = typer.Option(
+        None,
+        "--teacher-calls",
+        help="Teacher call count to amortize cost over (for cost-per-1K)",
+    ),
+    base_dir: str = typer.Option(
+        ".", "--base-dir", "-d", help="Base directory to search for experiment outputs"
+    ),
+) -> None:
+    """Profile a trained student's inference latency/throughput on fixed hardware."""
+    setup_logging()
+
+    cfg = ExperimentConfig.from_yaml(config)
+
+    # Auto-detect model path if not provided (same resolution as `eval`).
+    if model_path is None:
+        model_path_obj = _find_latest_model(cfg.name, base_dir)
+        if model_path_obj is None:
+            typer.echo(
+                f"Error: No model found for experiment '{cfg.name}' in '{base_dir}'. "
+                "Use --model-path to specify explicitly.",
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        typer.echo(f"Auto-detected model: {model_path_obj}")
+    else:
+        model_path_obj = Path(model_path)
+        if not model_path_obj.exists():
+            typer.echo(f"Error: Model path does not exist: {model_path}", err=True)
+            raise typer.Exit(code=1)
+
+    try:
+        result = profile_model(
+            cfg,
+            model_path_obj,
+            split=split,
+            device=device,
+            iterations=iterations,
+            warmup=warmup,
+            n_teacher_calls=teacher_calls,
+        )
+    except (ValueError, RuntimeError) as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(code=1)
+
+    student = result["student"]
+    typer.echo(
+        f"student: p50={student['p50_latency_ms']:.2f}ms "
+        f"p95={student['p95_latency_ms']:.2f}ms "
+        f"throughput={student['throughput_calls_per_sec']:.1f} calls/s"
+    )
+    teacher_cost = result["teacher"]["cost_per_1k_calls"]
+    if teacher_cost is not None:
+        typer.echo(f"teacher: ${teacher_cost:.4f} per 1K calls")
+    typer.echo(f"Profile saved to: {model_path_obj / 'profile.json'}")
+
+
+def _find_latest_model(experiment_name: str, base_dir: str) -> Path | None:
+    """Find the most recent model directory for an experiment.
+
+    Searches for directories matching {experiment_name}_* pattern and returns
+    the model/ subdirectory of the most recent one (by directory name timestamp).
+    """
+    base_path = Path(base_dir)
+    if not base_path.exists():
+        return None
+
+    # Find all matching experiment directories
+    # Pattern: {name}_{timestamp} where name might have _transformers etc appended
+    matching_dirs = []
+    for d in base_path.iterdir():
+        if d.is_dir() and d.name.startswith(experiment_name):
+            model_dir = d / "model"
+            if model_dir.exists():
+                matching_dirs.append(model_dir)
+
+    if not matching_dirs:
+        return None
+
+    # Sort by directory name (timestamp is in the name) and return most recent
+    matching_dirs.sort(key=lambda p: p.parent.name, reverse=True)
+    return matching_dirs[0]
+
+
+@app.command()
+def baseline(
+    config: str = typer.Argument(
+        None, help="Path to experiment config YAML file"
+    ),
+    dataset: str = typer.Option(
+        None, "--dataset", "-d", help="Dataset name (e.g., 'tweet_eval', 'stanfordnlp/imdb') - alternative to config"
+    ),
+    dataset_config: str = typer.Option(
+        None, "--dataset-config", "-dc", help="Dataset config/subset (e.g., 'sentiment', 'plain_text')"
+    ),
+    text_column: str = typer.Option(
+        "text", "--text-column", help="Name of the text column in the dataset"
+    ),
+    label_column: str = typer.Option(
+        "label", "--label-column", help="Name of the label column in the dataset"
+    ),
+    teacher: str = typer.Option(
+        DEFAULT_BASELINE_TEACHER,
+        "--teacher",
+        "-t",
+        help=f"Teacher model to use (default: {DEFAULT_BASELINE_TEACHER})",
+    ),
+    modes: List[str] = typer.Option(
+        ["zero-shot", "few-shot"],
+        "--mode",
+        "-m",
+        help="Evaluation modes to run (can specify multiple)",
+    ),
+    num_shots: int = typer.Option(
+        2, "--num-shots", "-n", help="Number of examples per class for few-shot"
+    ),
+    max_samples: int = typer.Option(
+        None, "--max-samples", help="Maximum samples to evaluate (for testing)"
+    ),
+    output_dir: str = typer.Option(
+        "baseline_results", "--output-dir", "-o", help="Output directory for results"
+    ),
+    seed: int = typer.Option(42, "--seed", "-s", help="Random seed"),
+    concurrency: int = typer.Option(
+        10, "--concurrency", help="Maximum concurrent API calls"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"),
+) -> None:
+    """Run baseline zero-shot and few-shot evaluation with teacher models.
+
+    This command evaluates teacher models (e.g., GPT-4.1) directly on classification
+    tasks to establish baseline performance for comparison against promptillery
+    distillation results.
+
+    Examples:
+
+        # Using an experiment config file (recommended)
+        promptillery baseline examples/text_classification_transformers.yaml
+
+        # Using a specific dataset directly (alternative)
+        promptillery baseline -d stanfordnlp/imdb -dc plain_text
+
+        # Using a dataset with custom column names
+        promptillery baseline -d community-datasets/yahoo_answers_topics \\
+            --text-column question_title --label-column topic
+
+        # Run only zero-shot evaluation
+        promptillery baseline examples/text_classification_transformers.yaml -m zero-shot
+
+        # Run with a different teacher model
+        promptillery baseline examples/text_classification_transformers.yaml -t openai/gpt-5-mini
+    """
+    import logging
+    from .baseline_eval import run_baseline_evaluation
+
+    setup_logging(level=logging.DEBUG if verbose else logging.INFO)
+
+    # Validate arguments
+    if not config and not dataset:
+        typer.echo("Error: Either config file or --dataset must be provided", err=True)
+        raise typer.Exit(code=1)
+
+    # Validate modes
+    valid_modes = {"zero-shot", "few-shot"}
+    for mode in modes:
+        if mode not in valid_modes:
+            typer.echo(f"Error: Invalid mode '{mode}'. Must be one of: {valid_modes}", err=True)
+            raise typer.Exit(code=1)
+
+    # Run evaluation
+    asyncio.run(run_baseline_evaluation(
+        config_path=config,
+        dataset_name=dataset,
+        dataset_config=dataset_config,
+        text_column=text_column,
+        label_column=label_column,
+        teacher=teacher,
+        modes=list(modes),
+        num_shots=num_shots,
+        max_samples=max_samples,
+        output_dir=output_dir,
+        seed=seed,
+        concurrency=concurrency,
+    ))
+
+
+if __name__ == "__main__":
+    app()

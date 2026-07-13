@@ -1,0 +1,126 @@
+# =============================================================================
+# G4 — GSM8K: Gemma-3-270M full fine-tune (decoder SLM)
+# =============================================================================
+# Sub-300M decoder for the generative table — capacity-floor arm.
+# Free-generation eval (answer_extraction: number, no canonical labels),
+# 512-token CoT decoding, self-consistency screening on synthetic problems,
+# cycles:[1,5,10] ablation. Full fine-tune (no LoRA) at this model size.
+#
+# Requires accepting the Gemma license and running `hf auth login` first.
+# NOT CI-verified: needs the H100, HF hub access, and a real teacher key.
+# Run (after prep + materialize, see examples/paper/G4_G5_README.md):
+#   uv run promptillery ablation examples/paper/G4_gsm8k_gemma3_270m.yaml --no-cleanup
+# =============================================================================
+
+name: "g4_gsm8k_gemma3_270m"
+
+teacher: "openrouter/openai/gpt-4.1"
+
+student: "google/gemma-3-270m-it"
+student_type: "slm"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "out/g4/gsm8k/train_sft.jsonl"
+    validation: "out/g4/gsm8k/validation_sft.jsonl"
+    test: "out/g4/gsm8k/test_sft.jsonl"
+dataset_config:
+  name: "default"
+  # AL context wiring (engine._prepare_sample_context), as in the G2 decoders:
+  # the SFT columns are student_prompt/gold_answer, not text/label.
+  text_field: "student_prompt"
+  label_field: "gold_answer"
+
+metrics:
+  - eval_loss
+  - perplexity
+  - exact_match
+  # no macro_f1: label-free task (it would compute over ~700 pseudo-classes)
+
+cycles: [1, 5, 10]
+seed: 13
+
+learning_rate: 1e-4
+num_train_epochs: 3
+batch_size: 8
+warmup_steps: 10
+weight_decay: 0.0
+augmentation_batch_size: 32
+
+# Whole problem+solution records per augmentation call (32 records x ~200
+# CoT tokens), plus screening solves.
+teacher_max_output_tokens: 8192
+
+token_budget: 20000000
+budget_stop: true
+require_validation_split: true
+base_output_dir: "out/g4"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  max_seq_length: 1024
+  report_held_out_test: true
+  bf16: true
+
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
+
+  answer_extraction: "number"
+  task_metric: "exact_match"
+
+  completion_only_loss: true
+
+  # CoT needs room; the 32-token default truncates mid-reasoning.
+  generation_max_new_tokens: 512
+  generation_batch_size: 8
+  # Bound the per-cycle train-split CoT pass (entropy/hard-negative context).
+  max_detailed_prediction_samples: 256
+  # max_eval_generation_samples omitted: validation is only 200 rows, and the
+  # final report_held_out_test pass then covers the full 1,319-row test split.
+
+  # Synthetic problems have no gold answers; the gold-anchored audit cannot
+  # apply. Majority self-consistency (fail closed) replaces it here.
+  augmentation_screening:
+    enabled: true
+    mode: self_consistency
+    k: 3
+    agreement: 2
+    temperature: 0.7
+
+  # Wrap teacher-emitted bare problems in the SAME solve scaffold the seed/eval
+  # rows carry (G4_gsm8k_materialize.yaml student_prompt_template) — deterministic
+  # engine-side wrap, so augmented and seed rows are prompt-identical at train time.
+  augmentation_student_prompt_template: |
+    Solve the grade-school math problem. Think step by step, then give the
+    final answer on its own line in the form "#### <answer>".
+    Problem: {{ question }}
+    Solution:
+
+  budget_splits: ["train"]
+  require_teacher_token_fields: true
+
+prompt: |
+  You are a teacher model in a knowledge-distillation pipeline for grade-school
+  math word problems (GSM8K style).
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples[:6], include_prediction=False) }}
+
+  # Student Errors — High Uncertainty
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  # Student Errors — Confident Wrong Answers
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} NEW grade-school math word problems
+  targeting the skills the student gets wrong (multi-step arithmetic, unit
+  conversions, fractions and percentages seen above). For each record:
+  student_prompt = the problem text only (the pipeline wraps it in the solve
+  template automatically); teacher_response = a step-by-step solution ending
+  with "#### <answer>"; gold_answer = the same solution text.
+  Vary numbers, entities, and phrasing; do not copy the reference problems.

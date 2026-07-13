@@ -1,0 +1,70 @@
+# =============================================================================
+# G4 — GSM8K: materialization SOURCE config
+# =============================================================================
+# Companion to the G4_gsm8k_* training configs. Reads the prep-script JSONL
+# (scripts/prep_gsm8k.py --seed 13; the engine has no unstratified sampling
+# path, so the 1K carve happened there) and emits GOLD SFT for all decoders.
+# Label-free task: no canonical_labels_field, so canonical_labels.json is
+# intentionally NOT written (sft_materialize skips it gracefully).
+#
+# All passes are --mode gold (free, no teacher key):
+#   uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+#     --mode gold --split train      --output out/g4/gsm8k/train_sft.jsonl      --overwrite
+#   uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+#     --mode gold --split validation --output out/g4/gsm8k/validation_sft.jsonl --overwrite
+#   uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+#     --mode gold --split test       --output out/g4/gsm8k/test_sft.jsonl       --overwrite
+# =============================================================================
+
+name: "g4_gsm8k_materialize"
+
+teacher: "openrouter/openai/gpt-4.1"
+
+# Nominal student: gold mode makes no teacher calls.
+student: "Qwen/Qwen3-4B-Instruct-2507"
+student_type: "slm"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "out/g4/gsm8k/train.jsonl"
+    validation: "out/g4/gsm8k/validation.jsonl"
+    test: "out/g4/gsm8k/test.jsonl"
+dataset_config:
+  name: "default"
+  text_field: "question"
+  label_field: "answer"
+  # num_classes omitted: label-free generative task.
+
+seed: 13
+require_validation_split: true
+
+sampling:
+  enabled: false   # scripts/prep_gsm8k.py already carved the 1K subset
+
+token_budget: 8000000
+budget_stop: true
+teacher_max_output_tokens: 1024
+base_output_dir: "out/g4"
+
+trainer_config:
+  trust_remote_code: true
+  materialize_sft:
+    stratify_max_samples: false
+    # Full CoT solution as the gold answer; answer_extraction "number" reads
+    # the final "#### N" (last number) at eval time.
+    gold_answer_field: "answer"
+
+    # Per-row teacher prompt (unused in gold mode; required schema-wise).
+    prompt_template: |
+      Solve the grade-school math problem. Think step by step, then give the
+      final answer on its own line in the form "#### <answer>".
+      Problem: {{ question }}
+      Solution:
+
+    # MUST stay in sync with scripts/g5_generate_teacher_solutions.py SOLVE_PROMPT.
+    student_prompt_template: |
+      Solve the grade-school math problem. Think step by step, then give the
+      final answer on its own line in the form "#### <answer>".
+      Problem: {{ question }}
+      Solution:

@@ -1,0 +1,86 @@
+# =============================================================================
+# G5 — logit-KD probe, GSM8K: KD arm
+# =============================================================================
+# Single fine-tune of Qwen3-4B on Qwen3-32B-generated solutions (rejection-
+# filtered against gold; scripts/g5_generate_teacher_solutions.py). No cycles,
+# no teacher API calls (student_only policy). The SFT arm is byte-identical
+# except for its missing trainer_config.kd block — never compare across teachers.
+#
+# NOT CI-verified: needs two 80GB GPUs (student + the ~66GB bf16 Qwen3-32B
+# teacher on its own card; see kd.teacher_device_map below). Run:
+#   uv run promptillery train examples/paper/G5_gsm8k_kd_logit.yaml
+# =============================================================================
+
+name: "g5_gsm8k_kd_logit"
+
+teacher: "openrouter/openai/gpt-4.1"   # never called: student_only, 1 cycle
+
+student: "Qwen/Qwen3-4B-Instruct-2507"
+student_type: "slm"
+policy_name: "student_only"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "out/g5/gsm8k/train_teacher_sft.jsonl"
+    validation: "out/g5/gsm8k/validation_teacher_sft.jsonl"
+    test: "out/g5/gsm8k/test_teacher_sft.jsonl"  # same rows, normalized schema
+dataset_config:
+  name: "default"
+  text_field: "student_prompt"
+  label_field: "gold_answer"
+
+metrics:
+  - eval_loss
+  - perplexity
+  - exact_match
+
+cycles: 1
+seed: 13
+
+learning_rate: 1e-4
+num_train_epochs: 3
+batch_size: 4
+warmup_steps: 10
+weight_decay: 0.0
+
+require_validation_split: true
+base_output_dir: "out/g5"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  max_seq_length: 1024
+  report_held_out_test: true
+  bf16: true
+
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules: "all-linear"
+
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
+
+  answer_extraction: "number"
+  task_metric: "exact_match"
+
+  completion_only_loss: true
+  generation_max_new_tokens: 512
+  generation_batch_size: 4
+
+  # Token-level forward KL against a frozen Qwen3-32B (full vocab,
+  # on-the-fly). Pure-KL arm: ce_weight 0.0. Tokenizer identity hard-asserted.
+  kd:
+    enabled: true
+    teacher_model: "Qwen/Qwen3-32B"
+    teacher_dtype: bfloat16
+    temperature: 1.0
+    ce_weight: 0.0
+    # Teacher pinned to its own 80GB GPU: ~66GB bf16 cannot co-locate with
+    # the student on one 80GB card. Drop this key only if running a
+    # single-GPU box with a smaller teacher.
+    teacher_device_map: "cuda:1"

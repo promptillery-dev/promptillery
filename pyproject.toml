@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "promptillery"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "typer[all]",
+    "pydantic>=2",
+    "datasets",
+    # >=4.54 for the modernbert-decoder architecture (jhu-clsp/ettin-decoder-*);
+    # 4.53 raises "model type 'modernbert-decoder' ... not recognized". Capped
+    # below 5.0: transformers 5.x is a major break incompatible with the pinned
+    # trl>=0.19.1,<0.20 and the current Trainer usage.
+    "transformers[torch]>=4.54,<5",
+    "evaluate",
+    "rich",
+    "tensorboard",
+    "litellm",
+    "torch",
+    "numpy",
+    "PyYAML",
+    "scikit-learn",
+    "python-dotenv",
+    "jinja2",
+    "pandas",
+    "tabulate",
+    "peft",
+    "trl>=0.19.1,<0.20",
+    # MinHash near-duplicate detection for the synthetic-data audit
+    "datasketch",
+]
+
+[project.optional-dependencies]
+fasttext = [
+    "fasttext-numpy2>=0.10.4",
+]
+paper = [
+    "matplotlib>=3.8",
+]
+
+[project.scripts]
+promptillery = "promptillery.cli:app"
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["promptillery*"]
+exclude = ["out*", "*.egg-info*"]
+[tool.uv]
+managed = true
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: slow integration tests that load real model checkpoints",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.12.1",
+    "pytest",
+]

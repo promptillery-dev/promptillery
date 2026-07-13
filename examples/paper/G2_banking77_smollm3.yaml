@@ -1,0 +1,145 @@
+# =============================================================================
+# G2 — Banking77 cross-architecture hub: SmolLM3-3B LoRA (decoder SLM)
+# =============================================================================
+# The mid/high-capacity open decoder student (Apache-2.0, fully reproducible):
+# a 3B SLM, LoRA-tuned via classification-via-generation (score each canonical
+# Banking77 label). Sits between Gemma-3-270M and Qwen3-4B on the cost/quality
+# frontier. Fits on the remote 2xA100 box.
+#
+# NOT CI-verified: needs GPUs, HF hub access, and a real teacher key. The
+# offline CI proxy for this code path is examples/causal_lm_sft_tiny.yaml.
+#
+# Materialize all SFT artifacts from the shared companion config
+# examples/paper/G2_banking77_materialize.yaml (decoder train/validation SFT + the
+# shared teacher TEST-label file + out/g2/canonical_labels.json), then train,
+# then analyze -- same flow as G2_banking77_qwen3_4b_lora.yaml (see its header
+# for the exact materialize-sft commands).
+# Confirm the exact SmolLM3-3B revision on the hub before running.
+# =============================================================================
+
+name: "g2_banking77_smollm3"
+
+teacher: "openrouter/openai/gpt-4.1"
+
+student: "HuggingFaceTB/SmolLM3-3B"
+student_type: "slm"
+
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "out/g2/banking77_sft_train.jsonl"
+    validation: "out/g2/banking77_sft_validation.jsonl"
+    # Shared teacher test-label file: this split's data (student_prompt +
+    # gold_answer) and the fidelity reference (teacher label per row) in one.
+    # Without a test split, decoder fidelity/held-out never fire.
+    test: "out/g2/banking77_teacher_test.jsonl"
+dataset_config:
+  # This is the HF builder config name passed to load_dataset("json", name, ...).
+  # It must be a valid builder name: the source slug "PolyAI/banking77" contains
+  # a "/", which HF rejects (InvalidConfigName) before a row is read. Use the
+  # json builder's "default" config, like every other dataset: json example.
+  name: "default"
+  num_classes: 77
+  # The AL loop builds the teacher augmentation context from the TRAIN split
+  # every cycle (engine._prepare_sample_context reads these two fields). The
+  # decoder's train split is the materialized SFT JSONL, whose columns are
+  # student_prompt / gold_answer / teacher_response -- there is no text/label.
+  # Pointing these at the encoder's text/label raises KeyError('label') the
+  # moment cycle 1's augmentation prompt is prepared.
+  text_field: "student_prompt"
+  label_field: "gold_answer"
+
+metrics:
+  - eval_loss
+  - perplexity
+  - exact_match
+  - macro_f1
+
+cycles: 10
+seed: 13
+
+learning_rate: 1e-4
+num_train_epochs: 3
+batch_size: 8
+warmup_steps: 10
+weight_decay: 0.0
+augmentation_batch_size: 32
+
+# Active-learning-loop teacher output cap: must fit augmentation_batch_size
+# record generation, not just one label. Materialization no longer reads this
+# (that moved to examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the
+# AL loop still needs it: with token_budget set, an UNSET cap makes the
+# augmentation preflight mask every teacher call (engine.py:959-961), silently
+# disabling online augmentation.
+teacher_max_output_tokens: 4096
+
+token_budget: 20000000
+budget_stop: true
+require_validation_split: true
+base_output_dir: "out/g2"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  max_seq_length: 512
+
+  # Cycle selection uses validation; report final metrics (incl. fidelity) on
+  # the held-out test split. The fidelity split is
+  # scored in full despite max_eval_generation_samples, so its denominator
+  # matches the encoders.
+  report_held_out_test: true
+
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules: "all-linear"
+
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
+
+  answer_extraction: "canonical_label"
+  canonical_label_decoding: "score"
+  canonical_labels_path: "out/g2/canonical_labels.json"
+  task_metric: "macro_f1"
+
+  completion_only_loss: true
+
+  generation_max_new_tokens: 16
+  generation_batch_size: 2
+  max_eval_generation_samples: 500
+
+  budget_splits: ["train"]
+  require_teacher_token_fields: true
+
+  fidelity:
+    teacher_labels_path: "out/g2/banking77_teacher_test.jsonl"
+    split: "test"
+
+prompt: |
+  You are a teacher model in a knowledge-distillation pipeline for the Banking77
+  intent-classification task (77 fine-grained customer-banking intents).
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new customer-message / intent-label SFT
+  records that target the student's weakest and most-confused intents. Each
+  record must use a valid Banking77 intent as its gold answer and cover diverse
+  phrasings within each targeted intent.

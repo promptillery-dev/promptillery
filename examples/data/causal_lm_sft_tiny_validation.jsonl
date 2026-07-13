@@ -1,0 +1,2 @@
+{"id":"tiny/val/0","student_prompt":"Classify the sentiment of this sentence as positive or negative: The tool saved me an hour.","teacher_response":"positive","gold_answer":"positive","teacher_input_tokens":0,"teacher_output_tokens":0,"teacher_total_tokens":0}
+{"id":"tiny/val/1","student_prompt":"Classify the sentiment of this sentence as positive or negative: The result was confusing and brittle.","teacher_response":"negative","gold_answer":"negative","teacher_input_tokens":0,"teacher_output_tokens":0,"teacher_total_tokens":0}

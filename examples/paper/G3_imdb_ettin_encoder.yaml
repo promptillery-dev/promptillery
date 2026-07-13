@@ -1,0 +1,102 @@
+# =============================================================================
+# G3 — IMDB: Ettin encoder (encoder student)
+# =============================================================================
+# Cross-dataset main-results hub (issue: G3 main-results cross-architecture
+# configs): the 1K-subset protocol (1000 samples, 80/20 stratified train/val
+# carve, single monotonic 10-cycle run read off at cycles {1,5,10}) applied to
+# IMDB's binary sentiment classification (neg vs pos full-length movie
+# reviews). Pair with G3_imdb_ettin_decoder.yaml (same scale/recipe, matched
+# encoder/decoder architecture comparison). NOT CI-verified: run on the remote
+# GPU box.
+#
+# GOTCHA: IMDB's only HF builder config is "plain_text" (not "default") --
+# dataset_config.name below must be "plain_text" or load_dataset rejects it.
+# =============================================================================
+
+name: "g3_imdb_ettin_encoder"
+
+teacher: "openrouter/openai/gpt-4.1"
+
+student: "jhu-clsp/ettin-encoder-150m"
+student_type: "transformers"
+
+dataset: "stanfordnlp/imdb"
+dataset_kwargs: {}
+dataset_config:
+  # IMDB's only builder config is "plain_text" (not "default").
+  name: "plain_text"
+  num_classes: 2
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+# 1K-subset protocol: carve 1000 stratified samples from train, 80/20 split.
+sampling:
+  enabled: true
+  sample_size: 1000
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 13
+
+cycles: [1, 5, 10]
+seed: 13
+
+learning_rate: 2e-5
+num_train_epochs: 3
+batch_size: 32
+augmentation_batch_size: 32
+
+# Carve validation from train so cycle selection never touches the held-out
+# test set. The sampling block above already carves one from the
+# 1000-sample subset; this is a defensive no-op if it's already present.
+require_validation_split: true
+
+# Active-learning-loop teacher output cap: must fit augmentation_batch_size
+# record generation, not just one label. With token_budget set, an UNSET cap
+# makes the augmentation preflight mask every teacher call (engine.py:959-961),
+# silently disabling online augmentation.
+teacher_max_output_tokens: 4096
+
+token_budget: 20000000
+budget_stop: true
+base_output_dir: "out/g3"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  # Ettin ships as a native (ModernBERT-family) architecture, but enable
+  # remote code so the config is robust if a checkpoint declares custom code.
+  trust_remote_code: true
+
+  # Select on validation, report finals on a clean held-out test pass.
+  report_held_out_test: true
+
+prompt: |
+  You are a teacher model in a knowledge-distillation pipeline for the IMDB
+  binary sentiment task (neg vs pos full-length movie reviews).
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new movie-review samples that target
+  the student's weakest and most-confused classes. Each sample must use a
+  valid sentiment label (neg/pos) as its gold label and cover diverse
+  phrasings within each targeted class.
