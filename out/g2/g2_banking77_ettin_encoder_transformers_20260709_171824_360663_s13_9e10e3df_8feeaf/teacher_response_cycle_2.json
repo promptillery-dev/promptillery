@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783610614-vJZ8jF1hUmRvJCp6WOMK",
+  "created": 1783610614,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"My card stopped working because it's expired, what steps should I follow next?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"I've just realized my card expired yesterday, what do I do now?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"Is there a way to continue using my account if my card is past its expiration date?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"When my card is expired, will it still work for online purchases?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"What happens to my automatic payments if my card expires?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"I need to get a new card because mine expired\u2014how do I request a replacement?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"Who can help me if my card expired and I need a new one urgently?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"I forgot to update my card details before expiry, can you help?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"Which documents do I need to upload to verify my identity?\",\n      \"label\": 69\n    },\n    {\n      \"text\": \"What identification is acceptable for your verification process?\",\n      \"label\": 69\n    },\n    {\n      \"text\": \"Can I use a health insurance card as proof of identity?\",\n      \"label\": 69\n    },\n    {\n      \"text\": \"My passport is expired, what else can I use to prove my identity?\",\n      \"label\": 69\n    },\n    {\n      \"text\": \"Are digital scans of my ID cards accepted for verification?\",\n      \"label\": 69\n    },\n    {\n      \"text\": \"Can a recent utility bill be used for identity verification?\",\n      \"label\": 69\n    },\n    {\n      \"text\": \"Do you need both a photo and proof of address?\",\n      \"label\": 69\n    },\n    {\n      \"text\": \"Can I use a driver's license from another country to verify?\",\n      \"label\": 69\n    },\n    {\n      \"text\": \"My transfer keeps failing, how do I complete it successfully?\",\n      \"label\": 27\n    },\n    {\n      \"text\": \"What can I do to fix a failed transfer in the app?\",\n      \"label\": 27\n    },\n    {\n      \"text\": \"Why do my transfers always say 'declined' and how do I resolve this?\",\n      \"label\": 27\n    },\n    {\n      \"text\": \"Is there something I need to change for my transfers to work?\",\n      \"label\": 27\n    },\n    {\n      \"text\": \"I keep getting transfer errors, is there a setting I missed?\",\n      \"label\": 27\n    },\n    {\n      \"text\": \"Which PIN should I use for unlocking my account?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"How can I retrieve my card's PIN if I lost it?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Is there a way to see my PIN securely within the app?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Can I request my PIN to be sent to my email?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"I don't remember my PIN, how can I get it back?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Do I need to set up a new PIN if I forgot mine?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Where can I go to top up my account with cash?\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"Are there specific locations for topping up my balance?\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"Can I use a bank branch to top up my account?\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"Is it possible to add funds at a partner store?\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"Can I top up my account at an ATM and how?\",\n      \"label\": 58\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 935,
+    "prompt_tokens": 6005,
+    "total_tokens": 6940,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 1280,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.01757,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.01757,
+      "upstream_inference_prompt_cost": 0.01009,
+      "upstream_inference_completions_cost": 0.00748
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

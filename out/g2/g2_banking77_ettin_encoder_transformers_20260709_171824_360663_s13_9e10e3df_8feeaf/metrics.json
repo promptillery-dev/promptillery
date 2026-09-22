@@ -1,0 +1,121 @@
+{
+  "0": {
+    "accuracy": 0.8885557221389305,
+    "f1": 0.8893724331710116,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.9055472263868066,
+    "f1": 0.9068465776479834,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 6238,
+    "_teacher_output_tokens_at_eval": 835,
+    "_teacher_tokens_at_eval": 7073,
+    "_teacher_cost_at_eval": null
+  },
+  "2": {
+    "accuracy": 0.912543728135932,
+    "f1": 0.9152950411596329,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 12506,
+    "_teacher_output_tokens_at_eval": 1626,
+    "_teacher_tokens_at_eval": 14132,
+    "_teacher_cost_at_eval": null
+  },
+  "3": {
+    "accuracy": 0.9140429785107447,
+    "f1": 0.9172758182730435,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 18511,
+    "_teacher_output_tokens_at_eval": 2561,
+    "_teacher_tokens_at_eval": 21072,
+    "_teacher_cost_at_eval": null
+  },
+  "4": {
+    "accuracy": 0.9165417291354323,
+    "f1": 0.9185879621872134,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 24586,
+    "_teacher_output_tokens_at_eval": 3285,
+    "_teacher_tokens_at_eval": 27871,
+    "_teacher_cost_at_eval": null
+  },
+  "5": {
+    "accuracy": 0.9150424787606197,
+    "f1": 0.9180441046730815,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 30635,
+    "_teacher_output_tokens_at_eval": 4296,
+    "_teacher_tokens_at_eval": 34931,
+    "_teacher_cost_at_eval": null
+  },
+  "6": {
+    "accuracy": 0.9165417291354323,
+    "f1": 0.9190728906495569,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 36760,
+    "_teacher_output_tokens_at_eval": 5257,
+    "_teacher_tokens_at_eval": 42017,
+    "_teacher_cost_at_eval": null
+  },
+  "7": {
+    "accuracy": 0.9220389805097451,
+    "f1": 0.9241149153175159,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 42997,
+    "_teacher_output_tokens_at_eval": 6097,
+    "_teacher_tokens_at_eval": 49094,
+    "_teacher_cost_at_eval": null
+  },
+  "8": {
+    "accuracy": 0.9185407296351824,
+    "f1": 0.9221288597863013,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 49045,
+    "_teacher_output_tokens_at_eval": 6953,
+    "_teacher_tokens_at_eval": 55998,
+    "_teacher_cost_at_eval": null
+  },
+  "9": {
+    "accuracy": 0.9180409795102449,
+    "f1": 0.9214994315839361,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+    "_teacher_input_tokens_at_eval": 55212,
+    "_teacher_output_tokens_at_eval": 8047,
+    "_teacher_tokens_at_eval": 63259,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.9188311688311688,
+    "f1": 0.9189098918612102,
+    "teacher_fidelity": 0.7844155844155845,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 63259,
+    "total_cycles": 10
+  }
+}

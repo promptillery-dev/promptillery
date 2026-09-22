@@ -33,7 +33,7 @@ class TrainerFactory:
         "transformers": TransformersTrainer,
         "transformers_ner": TransformersTraiNER,
         "causal_lm_sft": CausalLMSFTTrainer,
-        # 'slm' is the paper's name for the causal decoder student;
+        # 'slm' is the milestone/paper name for the causal decoder student;
         # kept as an alias so existing 'causal_lm_sft' configs keep working.
         "slm": CausalLMSFTTrainer,
     }

@@ -29,7 +29,7 @@ dependencies = [
     "tabulate",
     "peft",
     "trl>=0.19.1,<0.20",
-    # MinHash near-duplicate detection for the synthetic-data audit
+    # MinHash near-duplicate detection for the synthetic-data audit (issue #7)
     "datasketch",
 ]
 

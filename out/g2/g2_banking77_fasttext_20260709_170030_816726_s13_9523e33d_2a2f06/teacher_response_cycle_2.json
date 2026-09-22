@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609266-xeRuUmDzvBJFguoTBDHN",
+  "created": 1783609266,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"Why does my card keep getting declined at checkout in the supermarket?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"My card payment failed online but worked in person. What's going on?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Is there a reason why my card isn\u2019t authorising payment for an online purchase?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Tried to use my card just now, got declined twice. What should I do?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Why would my contactless card payment not be accepted at multiple stores?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Can you explain why I keep getting a fee every time I do a transfer?\",\n      \"label\": 64\n    },\n    {\n      \"text\": \"What determines the extra fee I'm charged for sending money?\",\n      \"label\": 64\n    },\n    {\n      \"text\": \"Every transfer from my account is incurring additional charges. Can you clarify?\",\n      \"label\": 64\n    },\n    {\n      \"text\": \"Is there a list of when transfer fees apply so I can avoid them?\",\n      \"label\": 64\n    },\n    {\n      \"text\": \"Do you always charge a fee for transfers, or are there exceptions?\",\n      \"label\": 64\n    },\n    {\n      \"text\": \"I made a top up but it's not going through. Can you help?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Why does it say top up failed every time I try?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"I keep getting an error when adding funds with my card. What does that mean?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Top up keeps failing. Is there a problem with my card?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"My account says top up unsuccessful, but the money left my other bank. Where is it?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"I tried to make a transfer and it hasn't been received. Can you trace it?\",\n      \"label\": 66\n    },\n    {\n      \"text\": \"Sent money to my landlord but it's not showing as cleared. What now?\",\n      \"label\": 66\n    },\n    {\n      \"text\": \"Payment to a friend was initiated, but the funds are not in their account. Why?\",\n      \"label\": 66\n    },\n    {\n      \"text\": \"I'm not seeing my transfer in the recipient's account yet. Was there an issue?\",\n      \"label\": 66\n    },\n    {\n      \"text\": \"Why hasn\u2019t my outgoing bank transfer arrived yet?\",\n      \"label\": 66\n    },\n    {\n      \"text\": \"Why can\u2019t I change the PIN on my card when traveling?\",\n      \"label\": 21\n    },\n    {\n      \"text\": \"The option to reset my PIN isn't available in the app. Is there another way?\",\n      \"label\": 21\n    },\n    {\n      \"text\": \"How can I update my card\u2019s PIN while overseas?\",\n      \"label\": 21\n    },\n    {\n      \"text\": \"I need to set a new PIN for my card, but my attempts keep failing.\",\n      \"label\": 21\n    },\n    {\n      \"text\": \"Can I choose a custom PIN for my card and how do I do that?\",\n      \"label\": 21\n    },\n    {\n      \"text\": \"I see a transaction on my account, but I definitely didn\u2019t make it. What do I do?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"My bank app is showing direct debits I\u2019m not familiar with. Should I be worried?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"A payment is listed in my current transactions but I\u2019m sure it\u2019s not mine.\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"There are outgoing payments from my account I don\u2019t recognise. What is this?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"A mysterious transaction appeared on my statement. Help me investigate.\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"I see repeated attempts for verification, but my account won\u2019t verify. Why?\",\n      \"label\": 68\n    },\n    {\n      \"text\": \"My identity check keeps failing even though my documents are clear. What can I do?\",\n      \"label\": 68\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 1014,
+    "prompt_tokens": 6422,
+    "total_tokens": 7436,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3712,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.015388,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.015388,
+      "upstream_inference_prompt_cost": 0.007276,
+      "upstream_inference_completions_cost": 0.008112
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

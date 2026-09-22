@@ -1,34 +1,33 @@
-# Deployment-target grid for the recommender table + the regret figure.
+# Deployment-target grid for tab:recommender (§8) + the regret figure (§9).
 #
-# RESEARCHER DEGREES OF FREEDOM. The accuracy floors, the volume-threshold
+# RESEARCHER DEGREES OF FREEDOM (§12.5). The accuracy floors, the volume-threshold
 # baseline's threshold, and the price table (prices.yaml) all decide where the
 # recommender wins. Pre-register them from the VALIDATION distribution / a stated
 # rule BEFORE looking at any G2/G3 held-out numbers -- picking floors where the
 # recommender happens to win, or hand-tuning the threshold to make the baseline
 # look bad, is test-set tuning. The values below are pre-registration placeholders
-# to be finalized in the pre-registration pass; they are declared here,
-# paper-visible.
+# to be finalized in the §12.5 pass; they are declared here, paper-visible.
 
 # Teacher-API fallback: dollars per call if no student is deployed.
 teacher:
-  usd_per_call: 0.002        # GPT-4.1 few-shot per-call order of magnitude; TODO: source+date
+  usd_per_call: 0.0011   # 1,624,664 in + 15,315 out tokens over 3,080 Banking77 test calls at $2/$8 per 1M
 
 # The profiled GPU. Every joined profile's hardware stamp is asserted against
-# this so wrong-GPU latency can never reach the table.
+# this so wrong-GPU latency can never reach the table (#22).
 expect_gpu_name: "NVIDIA GeForce RTX 4090"
 
 # Crossed into the target grid (floors x latency budgets x volumes).
-accuracy_floors: [0.85, 0.90, 0.92]        # TODO: derive from the validation-accuracy distribution
+accuracy_floors: [0.89, 0.91, 0.92]   # quartiles of the six cells' selection accuracies (scripts/derive_targets.py)
 latency_budgets_ms: [null, 50, 10]         # null = no latency constraint
 volumes: [1000, 10000, 100000, 1000000, 10000000, 100000000]
 
 # Volume-threshold baseline: below this volume it calls the teacher, above it it
 # deploys the cheapest-to-serve cell. Derive from a stated rule, never hand-tuned.
-volume_threshold: 100000     # TODO: set to the break-even volume of the median student
+volume_threshold: 263     # median break-even volume across cells (scripts/derive_targets.py)
 random_seed: 0
 
 # The single target whose full cost receipt is written to recommendation.json.
 primary_target:
-  accuracy_floor: 0.90
+  accuracy_floor: 0.91
   latency_budget_ms: null
   volume: 1000000

@@ -1,4 +1,4 @@
-"""Tests for the student-vs-teacher fidelity metric."""
+"""Tests for the student-vs-teacher fidelity metric (issue #3)."""
 
 import json
 from pathlib import Path
@@ -295,7 +295,7 @@ def test_evaluate_reports_teacher_fidelity_for_fasttext(tmp_path):
     # FastText predicts integer class ids per row just like the encoder, so it
     # reuses the same id->name->index fidelity join. Seed the teacher with the
     # student's own predicted label names -> perfect self-agreement == 1.0. This
-    # fills the reference-profile row of the deployment table.
+    # fills the reference-profile row of tab:deployment (issue #3 story 28).
     fasttext = pytest.importorskip("fasttext")  # noqa: F841
     teacher_path = tmp_path / "teacher_test.jsonl"
     trainer = _tiny_fasttext_trainer(tmp_path, teacher_labels_path=teacher_path)

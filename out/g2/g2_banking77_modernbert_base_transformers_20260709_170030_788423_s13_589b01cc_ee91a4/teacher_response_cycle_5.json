@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609833-OTkkt9RXCPeY5G2cbdp6",
+  "created": 1783609833,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"It's been almost two hours since I added money to my account, but it's still not showing up. Should I be worried?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"I did a top-up a bit ago, but nothing has changed in my account balance. Any idea why?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"I want to know what's causing my card top-up to be delayed.\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"My top-up isn't reflecting in my available funds\u2014who do I contact?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"My top-up hasn't posted yet, and I need to use the funds soon. Can you assist?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"The money I added still isn't available. How much longer might it take?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Your app says my top-up is in process. Should I try again or wait?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Do failed top-ups get reversed back to my card automatically?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"I got a failed top-up notification. Does that mean my money is safe?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"I'm not sure if my cryptocurrency top-up went through or was declined.\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"If a top-up is reversed, how long should I wait for the funds to return?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"Why would a card top-up get declined after the payment was initially accepted?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"What causes a reversal on a top-up I tried to make?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"The balance didn't increase after my top-up attempt, was it rejected?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"Can I view a list of currencies I can deposit into my account?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Which foreign currencies are allowed for deposit?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Is it possible to fund my account using currencies other than GBP or EUR?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"What are the accepted currencies for adding funds to my account?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Do you support JPY or CHF deposits?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"If I have a US dollar card, can I use it to add money?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Can I deposit money into my account using CAD?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"If my top-up still says processing after an hour, what should I do?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"The top-up hasn't reached my account yet, and I'm seeing a pending message.\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"It's been longer than usual for my balance to update after topping up. Any advice?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Why is my account not reflecting the money I just added?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"My balance didn't increase after topping up from my credit card. Is there a problem?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Is there a specific time I should expect my top-up to finish processing?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"What happens if my top-up is stuck in a processing state for a whole day?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Do I need to retry the top-up if it hasn't arrived within one hour?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Are there any special rules if my top-up is delayed due to a bank holiday?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"After a reversal, how soon will my card be credited for the failed top-up?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"The app says my top-up was not successful. Who can I contact for more details?\",\n      \"label\": 61\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 1014,
+    "prompt_tokens": 6133,
+    "total_tokens": 7147,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.020378,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.020378,
+      "upstream_inference_prompt_cost": 0.012266,
+      "upstream_inference_completions_cost": 0.008112
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

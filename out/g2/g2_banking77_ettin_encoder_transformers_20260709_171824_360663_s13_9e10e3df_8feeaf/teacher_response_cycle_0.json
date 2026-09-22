@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783610415-NFtf858LP53WSwotwAC8",
+  "created": 1783610415,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  { \"text\": \"How long is my card valid for before I need to get a new one?\", \"label\": 14 },\n  { \"text\": \"Is there an expiration date on my card, and where do I find it?\", \"label\": 14 },\n  { \"text\": \"My card says it's valid until 09/25. Can I use it on that day?\", \"label\": 14 },\n  { \"text\": \"Will I be notified before my card validity period ends?\", \"label\": 14 },\n  { \"text\": \"What do I do when my card expires?\", \"label\": 14 },\n  { \"text\": \"What should I do if the ATM keeps my card?\", \"label\": 18 },\n  { \"text\": \"My card was swallowed by the ATM, how do I get it back?\", \"label\": 18 },\n  { \"text\": \"The machine took my card and didn't return it. What action should I take?\", \"label\": 18 },\n  { \"text\": \"Do I need to call support immediately after my card is retained by an ATM?\", \"label\": 18 },\n  { \"text\": \"What contact details do I use to report a card lost in an ATM?\", \"label\": 18 },\n  { \"text\": \"Is there a customer service number to freeze my card straight away?\", \"label\": 41 },\n  { \"text\": \"How do I instantly block my stolen card using my phone?\", \"label\": 41 },\n  { \"text\": \"What's the process to freeze my card if I can\u2019t access the app?\", \"label\": 41 },\n  { \"text\": \"What\u2019s the emergency number for lost or stolen cards?\", \"label\": 41 },\n  { \"text\": \"How quickly can a card be deactivated if it was just stolen?\", \"label\": 41 },\n  { \"text\": \"Why didn\u2019t my recent card top-up go through?\", \"label\": 59 },\n  { \"text\": \"I tried adding money to my card, but nothing happened. Why?\", \"label\": 59 },\n  { \"text\": \"My top-up failed multiple times. Could you tell me the reason?\", \"label\": 59 },\n  { \"text\": \"There was a problem with my card top up and the funds haven't arrived.\", \"label\": 59 },\n  { \"text\": \"Why do I see an error on every top up attempt?\", \"label\": 59 },\n  { \"text\": \"I got a fraud warning on my top up, what does that mean?\", \"label\": 59 },\n  { \"text\": \"A fraud alert appeared after my last card reload. How do I resolve this?\", \"label\": 59 },\n  { \"text\": \"Your system flagged my latest top up. What should I check or do?\", \"label\": 59 },\n  { \"text\": \"Is there a way to get more info about an unsuccessful top up marked suspicious?\", \"label\": 59 },\n  { \"text\": \"There\u2019s a transaction on my account statement that seems wrong. What should I do?\", \"label\": 28 },\n  { \"text\": \"Noticed an unfamiliar debit, can you investigate it for me?\", \"label\": 28 },\n  { \"text\": \"There is a payment I don't recognize on my account.\", \"label\": 28 },\n  { \"text\": \"I found a strange direct debit on my account and need clarification.\", \"label\": 28 },\n  { \"text\": \"I'm seeing a direct debit I've never set up. Please help.\", \"label\": 28 },\n  { \"text\": \"Why is my payment still on hold even though it\u2019s been days?\", \"label\": 48 },\n  { \"text\": \"My transfer's status won't update to complete\u2014what causes this delay?\", \"label\": 48 },\n  { \"text\": \"Pending transfer hasn\u2019t cleared yet, can you check why?\", \"label\": 48 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 835,
+    "prompt_tokens": 6238,
+    "total_tokens": 7073,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3840,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.013396,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.013396,
+      "upstream_inference_prompt_cost": 0.006716,
+      "upstream_inference_completions_cost": 0.00668
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

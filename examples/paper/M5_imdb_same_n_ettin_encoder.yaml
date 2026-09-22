@@ -1,7 +1,7 @@
 # =============================================================================
-# M5 — IMDB: same-N gold FT baseline, Ettin encoder
+# M5 — tab:main-results, IMDB: same-N gold FT baseline, Ettin encoder
 # =============================================================================
-# Volume-matched control for the promptillery (10 cycles)
+# Issue #8 (part a): volume-matched control for the promptillery (10 cycles)
 # row. One plain supervised fine-tune on out/m5/imdb/ettin_encoder/train.jsonl
 # = the exact G3 gold seed-train rows (800) + a seeded stratified top-up of
 # REAL gold rows from the unused original train split, size-matched to the
@@ -11,10 +11,10 @@
 #   uv run python scripts/prep_m5_same_n.py --dataset imdb --student ettin_encoder \
 #     --run-dir out/g3/ablation_g3_imdb_ettin_encoder_*/g3_imdb_ettin_encoder_*_cycles-10_*
 #
-# Then:  uv run promptillery train examples/paper/M5_imdb_same_n_ettin_encoder.yaml
+# Then:  uv run promptillery train examples/M5_imdb_same_n_ettin_encoder.yaml
 # No `prompt:` key -> augmentation disabled -> ZERO teacher calls (GPU-only).
 # Same recipe/seed as the G3 "fine-tuned (1 cycle)" row. NOT CI-verified;
-# run on the remote GPU box. See examples/paper/M5_README.md.
+# run on the remote GPU box. See examples/M5_README.md.
 # =============================================================================
 
 name: "m5_imdb_same_n_ettin_encoder"

@@ -1,4 +1,4 @@
-"""Target-conditioned deployment recommender.
+"""Target-conditioned deployment recommender (issue #6, M4).
 
 Given a deployment target ``(accuracy_floor, latency_budget, volume)``, return
 the cheapest deployable student plus a cost receipt and a break-even volume.
@@ -52,6 +52,8 @@ class CostReceipt:
     teacher_total_usd: float
     savings_ratio: Optional[float]  # 1 - total/teacher_total; None if teacher is free
     break_even_volume: Optional[float]
+    teacher_labelling_usd: float = 0.0
+    training_usd: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -61,7 +63,7 @@ class Selection:
     cell: Optional[Cell]
     receipt: CostReceipt
     cells_evaluated: tuple[Cell, ...]  # the prefix a selector had to train
-    reason: str  # cheapest_feasible | no_feasible_cell
+    reason: str  # cheapest_feasible | no_feasible_cell | teacher_cheaper_at_volume
 
 
 def total_cost(cell: Cell, prices: HardwarePrices, volume: int) -> float:
@@ -123,6 +125,7 @@ def _receipt(
     serving = serving_cost_per_call(cell, prices) * target.volume
     total = cell.distillation_usd + serving
     savings = (1.0 - total / teacher_total) if teacher_total > 0 else None
+    teacher_labelling = cell.teacher_usd or (cell.distillation_usd - cell.training_usd)
     return CostReceipt(
         distillation_usd=cell.distillation_usd,
         serving_usd=serving,
@@ -130,6 +133,8 @@ def _receipt(
         teacher_total_usd=teacher_total,
         savings_ratio=savings,
         break_even_volume=break_even_volume(cell, prices, teacher),
+        teacher_labelling_usd=teacher_labelling,
+        training_usd=cell.training_usd,
     )
 
 
@@ -177,6 +182,15 @@ def recommend(
     for cell in survivors:
         evaluated.append(cell)
         if cell.selection_accuracy >= target.accuracy_floor:
+            # The teacher is a candidate too: below the break-even volume the
+            # sunk distillation cost is not recovered, so keep calling the API.
+            if total_cost(cell, prices, target.volume) > teacher_cost(teacher, target.volume):
+                return Selection(
+                    cell=None,
+                    receipt=_receipt(None, target, prices, teacher),
+                    cells_evaluated=tuple(evaluated),
+                    reason="teacher_cheaper_at_volume",
+                )
             return Selection(
                 cell=cell,
                 receipt=_receipt(cell, target, prices, teacher),
@@ -199,7 +213,7 @@ class CrossoverReport:
     A crossover located entirely by an intercept difference smaller than the
     across-seed cost wobble (``distillation_usd_std``) is not a finding: it would
     move under a different seed. Such a crossover is *suppressed* and reported as
-    volume-independent.
+    volume-independent (§5.3).
     """
 
     volume_independent: bool

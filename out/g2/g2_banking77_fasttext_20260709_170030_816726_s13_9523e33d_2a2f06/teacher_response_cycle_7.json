@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609349-5MgedJ68r0FcTxENQJdR",
+  "created": 1783609349,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"I tried paying by card but the store said my transaction was declined. Why won't my payment process?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"My card tap-to-pay isn't working for some reason, any idea why it's failing?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Why are my purchases at restaurants being rejected even though other transactions work?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Each time I try to pay with my card in-store, it gets declined. How do I solve this?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"I'm not able to use my card in shops, it just keeps getting refused by the machine.\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"The direct debit entries on my statement seem strange. What could they mean?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"Why do I see a debit transaction I don't understand on my activity list?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"There is a transaction I do not recall authorizing. What could this be?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"My account statement shows a mysterious debit for a certain amount. Any idea what this is about?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"What's the explanation for this unfamiliar direct debit to my account?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"I can't use my disposable card for online purchases. Is there a reason it's not going through?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"My virtual disposable card doesn\u2019t seem to be usable for payments, what\u2019s happening?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"For some reason, my single-use card is rejected when I try to shop online.\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Payment with my disposable card isn\u2019t successful\u2014can you help?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Is there a reason my transaction keeps failing when I use my temporary card?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"I\u2019m waiting for my ID check to finish so I can use all features\u2014how long does the process take?\",\n      \"label\": 68\n    },\n    {\n      \"text\": \"I cannot finish my signup because the app can\u2019t verify my identity. What can I do?\",\n      \"label\": 68\n    },\n    {\n      \"text\": \"The document upload didn\u2019t work and my account isn\u2019t verified. What\u2019s next?\",\n      \"label\": 68\n    },\n    {\n      \"text\": \"I can't get past the identity verification step in the app.\",\n      \"label\": 68\n    },\n    {\n      \"text\": \"I keep failing the verification step so I can't finish creating my account.\",\n      \"label\": 68\n    },\n    {\n      \"text\": \"How do I unblock my card PIN if I entered it incorrectly too many times?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"I entered the wrong PIN several times and now my PIN is locked, what do I do?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"My card PIN is blocked after too many failed attempts. How can I resolve this?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"What is the process to unblock my card if I forgot my PIN?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"I can\u2019t use my card because my PIN isn\u2019t working anymore. How can I regain access?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Can you help me with a payment I don\u2019t recognize on my statement?\",\n      \"label\": 16\n    },\n    {\n      \"text\": \"Someone else might have used my card\u2014I found an unknown charge. What steps should I take?\",\n      \"label\": 16\n    },\n    {\n      \"text\": \"What do I do if my card shows an unfamiliar payment?\",\n      \"label\": 16\n    },\n    {\n      \"text\": \"There\u2019s a transaction on my account I never initiated. Who do I contact?\",\n      \"label\": 16\n    },\n    {\n      \"text\": \"How should I handle seeing a strange payment appear on my history?\",\n      \"label\": 16\n    },\n    {\n      \"text\": \"I am unable to locate my PIN for the card. Where do I look?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"Where can I retrieve my card PIN if I cannot remember it?\",\n      \"label\": 38\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 1047,
+    "prompt_tokens": 6427,
+    "total_tokens": 7474,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 1152,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.019502,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.019502,
+      "upstream_inference_prompt_cost": 0.011126,
+      "upstream_inference_completions_cost": 0.008376
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

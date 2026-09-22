@@ -1,0 +1,938 @@
+You are a teacher model in a knowledge-distillation pipeline for the Banking77
+intent-classification task (77 fine-grained customer-banking intents).
+
+# Reference Examples
+Example 1:
+Text: I just got a new card how do I get it to start working?
+Label: 0
+
+
+Example 2:
+Text: I need to do a card activation.
+Label: 0
+
+
+Example 3:
+Text: What's the youngest I can be to open an account?
+Label: 1
+
+
+Example 4:
+Text: What are the age limits for your service?
+Label: 1
+
+
+Example 5:
+Text: Can I use American express with apple pay? Why does it make my top up not work?
+Label: 2
+
+
+Example 6:
+Text: How can I get my Google pay top up to work?
+Label: 2
+
+
+Example 7:
+Text: Which ATM's can I use to make a withdrawal?
+Label: 3
+
+
+Example 8:
+Text: what are the locations i can withdraw money
+Label: 3
+
+
+Example 9:
+Text: Can I have money transferred into my account at different intervals along my trip?
+Label: 4
+
+
+Example 10:
+Text: What is the maximum for auto top-up?
+Label: 4
+
+
+Example 11:
+Text: I've made a transfer from France two days ago but I was wondering if international transfers take longer to arrive because it hasn't made it yet.
+Label: 5
+
+
+Example 12:
+Text: What is the time frame that transfers normally take from a UK account? I just completed a transfer and nothing shows up. I need to know if everything is alright.
+Label: 5
+
+
+Example 13:
+Text: My mother deposited a cheque into my account last week, why is it still not showing up?
+Label: 6
+
+
+Example 14:
+Text: Why isn't my deposit in my account?
+Label: 6
+
+
+Example 15:
+Text: I got a message that my transfer is not possible.  What is happening?  I need this to go through please.
+Label: 7
+
+
+Example 16:
+Text: why didnt my account allow a transfer
+Label: 7
+
+
+Example 17:
+Text: Cancelling a transaction
+Label: 8
+
+
+Example 18:
+Text: I needed to make a payment on my account, but I typed in the incorrect number.  The app won't allow me to cancel this transaction.  I need it cancelled ASAP!!
+Label: 8
+
+
+Example 19:
+Text: What do I do about my expired card?
+Label: 9
+
+
+Example 20:
+Text: What is the process when my card is due to expire?
+Label: 9
+
+
+Example 21:
+Text: Can I pay with my card anywhere?
+Label: 10
+
+
+Example 22:
+Text: Can I use my card while on vacation overseas?
+Label: 10
+
+
+Example 23:
+Text: How can I check on the status of my new card?
+Label: 11
+
+
+Example 24:
+Text: Can I get an update on my replacement card?
+Label: 11
+
+
+Example 25:
+Text: How long is the delivery time to the US?
+Label: 12
+
+
+Example 26:
+Text: When can I expect my new card to get here?
+Label: 12
+
+
+Example 27:
+Text: My card is no longer lost. How do I enter it back into the app?
+Label: 13
+
+
+Example 28:
+Text: Okay, I found my card, can I put it back in the app?
+Label: 13
+
+
+Example 29:
+Text: Currently my card is broken.
+Label: 14
+
+
+Example 30:
+Text: What do I do now that I can't use this card?
+Label: 14
+
+
+Example 31:
+Text: Why am I being charged a hidden fee?
+Label: 15
+
+
+Example 32:
+Text: Was I charged extra for using my card?
+Label: 15
+
+
+Example 33:
+Text: There are some card payments that I haven't done myself. What is going on with my card and does somebody else have access to my card?
+Label: 16
+
+
+Example 34:
+Text: I have a payment that I didn't make.
+Label: 16
+
+
+Example 35:
+Text: I feel as though I have been over charged for the exchange rate on my payment on last Saturday.
+Label: 17
+
+
+Example 36:
+Text: The exchange rate on my payment doesn't look right
+Label: 17
+
+
+Example 37:
+Text: The ATM stole my card!
+Label: 18
+
+
+Example 38:
+Text: The ATM won't give me my card back. I need it back now!
+Label: 18
+
+
+Example 39:
+Text: I was recently charged for withdrawing money from my bank ATM. How can that be possible when I haven't been charged for using it before?
+Label: 19
+
+
+Example 40:
+Text: While getting cash, I was charged a fee.
+Label: 19
+
+
+Example 41:
+Text: Someone has copied my card. I have my card with me, but someone just made a 500£ cash withdrawal. Please help now.
+Label: 20
+
+
+Example 42:
+Text: I have a cash withdrawal that I don't recognize.
+Label: 20
+
+
+Example 43:
+Text: I need to change my card PIN.
+Label: 21
+
+
+Example 44:
+Text: Is it possible to change my pin if i am out of the country?
+Label: 21
+
+
+Example 45:
+Text: I think someone has hacked my card!
+Label: 22
+
+
+Example 46:
+Text: What do I do if someone used my card without my permission?
+Label: 22
+
+
+Example 47:
+Text: How can I fix my card if the contactless function didn't work this morning?
+Label: 23
+
+
+Example 48:
+Text: Help me to set up contactless payments.
+Label: 23
+
+
+Example 49:
+Text: Which countries does your service work in?
+Label: 24
+
+
+Example 50:
+Text: I'm not in the UK, but can I still get a card?
+Label: 24
+
+
+Example 51:
+Text: Card payment didn't go through.
+Label: 25
+
+
+Example 52:
+Text: My card payment has been declined, why?
+Label: 25
+
+
+Example 53:
+Text: Why is the ATM not allowing me to get cash?
+Label: 26
+
+
+Example 54:
+Text: I tried to use my card to withdrawal money from the ATM in Notting Hill but it didn't work. This is the first time I've tried using it. Is my card working?
+Label: 26
+
+
+Example 55:
+Text: Tell me why my transfer is declined.
+Label: 27
+
+
+Example 56:
+Text: I'm having problems making a transfer to another account. I keep getting a declined message. I know that the information I'm putting in is accurate because I have checked it more than once.
+Label: 27
+
+
+Example 57:
+Text: A couple weeks ago there was a debit taken from my account from a transaction I don't recall. Is it possible to trace this transaction to make sure I'm not being scammed?
+Label: 28
+
+
+Example 58:
+Text: In the app I see a direct debit that I don't recognize.
+Label: 28
+
+
+Example 59:
+Text: Are there any places that I can't use the disposable cards at?
+Label: 29
+
+
+Example 60:
+Text: how many transactions can go on a disposable card?
+Label: 29
+
+
+Example 61:
+Text: I am here to change my adress.
+Label: 30
+
+
+Example 62:
+Text: Changed details is essential, what steps do I take to do so?
+Label: 30
+
+
+Example 63:
+Text: What is the exchange fee that is charged?
+Label: 31
+
+
+Example 64:
+Text: What is the rate for exchange fees?
+Label: 31
+
+
+Example 65:
+Text: What factors determine your exchange rate?
+Label: 32
+
+
+Example 66:
+Text: I would like to know how exchange rates are calculated when transferring funds.
+Label: 32
+
+
+Example 67:
+Text: Is it possible to exchange currencies using the app?
+Label: 33
+
+
+Example 68:
+Text: How do I change to a different currency?
+Label: 33
+
+
+Example 69:
+Text: There is a 1£ charge that appears as pending on my statement. What is that? I haven't purchased anything for a pound there.
+Label: 34
+
+
+Example 70:
+Text: I am seeing and extra 1$ charged to my account and wanted to know about it.
+Label: 34
+
+
+Example 71:
+Text: Can you tell my why my funds transfer did not work properly?
+Label: 35
+
+
+Example 72:
+Text: I can't seem to make a standard bank transfer. I have tried at least five times already but none of them are going through. Please tell me what is wrong?
+Label: 35
+
+
+Example 73:
+Text: Do you allow exchanges of EUR?
+Label: 36
+
+
+Example 74:
+Text: What type of fiat currencies do you support?
+Label: 36
+
+
+Example 75:
+Text: Can you tell me how to get a disposable virtual card?
+Label: 37
+
+
+Example 76:
+Text: I want a virtual card that is disposable
+Label: 37
+
+
+Example 77:
+Text: How do I know what my PIN is?
+Label: 38
+
+
+Example 78:
+Text: Where can I find my card PIN?
+Label: 38
+
+
+Example 79:
+Text: I need a new card.
+Label: 39
+
+
+Example 80:
+Text: Can I give a second card for this account to my daughter?
+Label: 39
+
+
+Example 81:
+Text: I ordered a virtual card but it hasn't come through yet
+Label: 40
+
+
+Example 82:
+Text: I would love one of the virtual cards!
+Label: 40
+
+
+Example 83:
+Text: I want to block my card or deactivate it or something, it's been stolen and I don't want it misused. I want this handled right away.
+Label: 41
+
+
+Example 84:
+Text: What should I do if my card is stolen?
+Label: 41
+
+
+Example 85:
+Text: I just replaced my phone but how do I use my card information?
+Label: 42
+
+
+Example 86:
+Text: Yesterday I had my phone stolen.  Please advise what I should do.
+Label: 42
+
+
+Example 87:
+Text: Do I get a card to keep in my wallet?
+Label: 43
+
+
+Example 88:
+Text: How do I order a card?
+Label: 43
+
+
+Example 89:
+Text: I want to reset my passcode, how can I do that?
+Label: 44
+
+
+Example 90:
+Text: I've completely forgot the code to get into the app.
+Label: 44
+
+
+Example 91:
+Text: My payment's stuck on pending.
+Label: 45
+
+
+Example 92:
+Text: Why hasn't my payment shown up yet?
+Label: 45
+
+
+Example 93:
+Text: Hey, I tried to withdraw some cash earlier and it's saying it's pending? Will I be charged for this?
+Label: 46
+
+
+Example 94:
+Text: Please cancel the latest ATM charge on my card as my card was declined earlier today and I did not receive that cash.
+Label: 46
+
+
+Example 95:
+Text: How long does a top-up take to go through?
+Label: 47
+
+
+Example 96:
+Text: Can you explain to me why a top-up would still be pending?
+Label: 47
+
+
+Example 97:
+Text: My account says I have a pending transfer.
+Label: 48
+
+
+Example 98:
+Text: My transfer has been pending for a long time now. I already double checked my account info and it is correct. Why is it taking so long in 2018 to transfer money?
+Label: 48
+
+
+Example 99:
+Text: Can someone assist me with explaining how I can unblock my pin?
+Label: 49
+
+
+Example 100:
+Text: If my PIN number is rejected, how do I solve it?
+Label: 49
+
+
+Example 101:
+Text: Can I directly deposit my salary to this account?
+Label: 50
+
+
+Example 102:
+Text: My salary is received in the form of GBP. Is it necessary to configure this? If so, where is this done?
+Label: 50
+
+
+Example 103:
+Text: My refund is not showing up in my account. Where is it?
+Label: 51
+
+
+Example 104:
+Text: My refund has not shown up in my account.   Where is it?
+Label: 51
+
+
+Example 105:
+Text: I'm going to cancel a purchase.
+Label: 52
+
+
+Example 106:
+Text: Are refunds allowed for certain items.
+Label: 52
+
+
+Example 107:
+Text: I'm not sure what is going on here. I've received payment back into my account  for an item I've already received, from about 2 weeks ago.
+Label: 53
+
+
+Example 108:
+Text: My payment has not been accepted.
+Label: 53
+
+
+Example 109:
+Text: What are the acceptable currencies for adding funds?
+Label: 54
+
+
+Example 110:
+Text: Which foreign currencies do you accept for adding money?
+Label: 54
+
+
+Example 111:
+Text: I would like to close my account, as I'm not happy.
+Label: 55
+
+
+Example 112:
+Text: This place has been too much work so I'd just like to close out my account & be done.
+Label: 55
+
+
+Example 113:
+Text: Do you take SWIFT transfers?
+Label: 56
+
+
+Example 114:
+Text: Will I be charged for topping up by transfer?
+Label: 56
+
+
+Example 115:
+Text: Are there fees for adding money with an International card?
+Label: 57
+
+
+Example 116:
+Text: Which US cards have top up charges?
+Label: 57
+
+
+Example 117:
+Text: How do I top up with a cheque?
+Label: 58
+
+
+Example 118:
+Text: Is it possible for me to top up with cash?
+Label: 58
+
+
+Example 119:
+Text: I'm confused as to why my top-up did not go through.
+Label: 59
+
+
+Example 120:
+Text: I think the top up failed
+Label: 59
+
+
+Example 121:
+Text: How much is ok for me to top up with?
+Label: 60
+
+
+Example 122:
+Text: What is the top-up limit for my card?
+Label: 60
+
+
+Example 123:
+Text: What happened to my top-up? I think it was cancelled.
+Label: 61
+
+
+Example 124:
+Text: I want to know why my top-up was reverted
+Label: 61
+
+
+Example 125:
+Text: How do i set up my credit card to send transfers?
+Label: 62
+
+
+Example 126:
+Text: Is it possible for friends to top up my account?
+Label: 62
+
+
+Example 127:
+Text: I have a transaction showing up more than once.
+Label: 63
+
+
+Example 128:
+Text: I think I got charged twice for the same thing
+Label: 63
+
+
+Example 129:
+Text: Why was I charged an extra fee when doing a transfer?
+Label: 64
+
+
+Example 130:
+Text: I was charged a fee for the transfer, but can you tell me why?
+Label: 64
+
+
+Example 131:
+Text: Can I top-up my card using a bank transfer.
+Label: 65
+
+
+Example 132:
+Text: Is a bank transfer acceptable for topping up my account?
+Label: 65
+
+
+Example 133:
+Text: the money i transferred didnt arrive
+Label: 66
+
+
+Example 134:
+Text: I'm trying to make a payment to my new landlord. Even though the payment was sent a few days ago, it isn't clearing on their side. Can you verify that payment has been made?
+Label: 66
+
+
+Example 135:
+Text: I must quickly transfer something from China, and I need to know how long it will take.
+Label: 67
+
+
+Example 136:
+Text: I have been waiting for my transfer, shouldn't it be here already?
+Label: 67
+
+
+Example 137:
+Text: I am having a problem with verifying my identity.
+Label: 68
+
+
+Example 138:
+Text: Help me verify my identify?
+Label: 68
+
+
+Example 139:
+Text: How can you assist on verifying my identity?
+Label: 69
+
+
+Example 140:
+Text: For the identity verification, what do you need?
+Label: 69
+
+
+Example 141:
+Text: How do I see my source of funds?
+Label: 70
+
+
+Example 142:
+Text: I would like to verify my source of funds.
+Label: 70
+
+
+Example 143:
+Text: How do i verify my card?
+Label: 71
+
+
+Example 144:
+Text: Help me verify the card used on a top-up.
+Label: 71
+
+
+Example 145:
+Text: My disposable virtual card wouldn't process my payment?
+Label: 72
+
+
+Example 146:
+Text: My disposable virtual card was rejected.
+Label: 72
+
+
+Example 147:
+Text: Please give me both Visa and MasterCard, is it possible?
+Label: 73
+
+
+Example 148:
+Text: Do you only use Visa or do you have Mastercard too?
+Label: 73
+
+
+Example 149:
+Text: What if I don't want to disclose all of my identity details?
+Label: 74
+
+
+Example 150:
+Text: Can I use my account before my Identity verification has passed?
+Label: 74
+
+
+Example 151:
+Text: I was given the wrong amount of cash
+Label: 75
+
+
+Example 152:
+Text: The ATM is messed up. It gave me less than I wanted.
+Label: 75
+
+
+Example 153:
+Text: Can i get money in my home currency at my ATM ?I am on holiday and bit concerned because i do not have any cash with me .Is it possible to withdraw without any additional cost.
+Label: 76
+
+
+Example 154:
+Text: Whats wrong with my currency exchange?
+Label: 76
+
+# Student Model Performance
+```
+              precision    recall  f1-score   support
+
+           0       0.81      0.75      0.78        28
+           1       0.78      0.95      0.86        19
+           2       0.96      0.90      0.93        29
+           3       0.93      0.87      0.90        15
+           4       0.94      0.88      0.91        17
+           5       0.71      0.74      0.72        23
+           6       0.93      0.90      0.91        29
+           7       0.72      0.74      0.73        31
+           8       0.91      0.94      0.92        32
+           9       0.78      0.88      0.82        24
+          10       0.80      0.86      0.83        14
+          11       0.75      0.89      0.81        27
+          12       0.80      0.73      0.76        22
+          13       0.87      0.90      0.89        30
+          14       0.48      0.56      0.52        25
+          15       0.82      0.68      0.74        34
+          16       0.80      0.74      0.77        47
+          17       0.90      0.75      0.82        36
+          18       0.78      0.64      0.70        11
+          19       0.80      0.83      0.81        29
+          20       0.77      0.83      0.80        29
+          21       1.00      0.84      0.91        31
+          22       0.69      0.55      0.61        20
+          23       0.50      0.25      0.33         8
+          24       0.91      0.83      0.87        24
+          25       0.47      0.64      0.54        25
+          26       0.80      0.93      0.86        30
+          27       0.86      0.60      0.71        30
+          28       0.70      0.81      0.75        32
+          29       0.71      0.83      0.77        18
+          30       0.97      0.97      0.97        31
+          31       0.84      0.81      0.83        32
+          32       0.83      0.88      0.86        17
+          33       0.83      0.80      0.82        25
+          34       0.66      0.76      0.71        38
+          35       0.53      0.64      0.58        25
+          36       0.79      0.93      0.86        29
+          37       0.90      0.75      0.82        24
+          38       0.96      0.96      0.96        26
+          39       0.72      0.91      0.81        23
+          40       0.85      0.85      0.85        20
+          41       0.56      0.83      0.67        12
+          42       0.96      0.92      0.94        25
+          43       0.80      0.76      0.78        21
+          44       0.67      0.92      0.77        13
+          45       0.84      0.81      0.83        32
+          46       0.96      0.74      0.84        31
+          47       0.77      0.79      0.78        29
+          48       0.74      0.66      0.70        35
+          49       0.79      0.83      0.81        23
+          50       0.79      0.85      0.81        13
+          51       0.93      0.93      0.93        29
+          52       1.00      0.83      0.91        35
+          53       0.80      0.69      0.74        29
+          54       0.83      0.69      0.75        29
+          55       0.84      0.89      0.86        18
+          56       0.87      0.80      0.83        25
+          57       1.00      0.81      0.89        21
+          58       0.80      0.94      0.86        17
+          59       0.67      0.69      0.68        32
+          60       0.76      0.95      0.84        20
+          61       0.81      0.65      0.72        40
+          62       0.57      0.65      0.60        20
+          63       0.80      0.84      0.82        38
+          64       0.84      0.81      0.83        32
+          65       0.63      0.85      0.72        20
+          66       0.81      0.81      0.81        32
+          67       0.82      0.85      0.84        27
+          68       0.79      0.79      0.79        24
+          69       0.67      0.80      0.73        20
+          70       0.96      0.83      0.89        29
+          71       0.96      0.89      0.92        27
+          72       0.88      0.70      0.78        10
+          73       0.86      0.86      0.86        22
+          74       0.74      0.74      0.74        31
+          75       0.98      0.96      0.97        47
+          76       0.88      0.85      0.87        34
+
+    accuracy                           0.80      2001
+   macro avg       0.80      0.80      0.80      2001
+weighted avg       0.81      0.80      0.81      2001
+
+```
+
+# Student Model Errors
+
+## High Uncertainty Samples
+Example 1:
+Text: It can take between 10 minutes to an hour before you hear back from us about the verification result.  Please try again if your verification fails.  Make sure you double check that images are clear and all document photos are readable without blur or glare. You have to be 18 or older and live in the European Economic area or live in Switzerland to be able to open an account.
+Label: 68
+
+Predicted: 74 (confidence: 0.08, entropy: 4.045)
+
+
+Example 2:
+Text: You will hear back from us about your verification results in 10 minutes to a one hour timeframe.  If these verification results do fail, please double-check to make sure your images are clear and have no glare or blur; your photos need to be fully readable.  You need to be 18 years of age or older and a resident of Switzerland or the European Economic Area to create an account.
+Label: 68
+
+Predicted: 68 (confidence: 0.08, entropy: 3.981)
+
+
+Example 3:
+Text: Hearing about your verification results from us may take anywhere from 10 minutes to approximately one hour.  If this verification has in fact, failed, double-check to make sure that your images are clear.  Also make sure that your document photos have no blur or glare. They need to be readable.  You must also be 18 years of age or older and be a resident of Switzerland or the European Economic Area to open an account.
+Label: 68
+
+Predicted: 68 (confidence: 0.09, entropy: 3.963)
+
+
+Example 4:
+Text: Hearing back from us regarding your important verification results may take 10 minutes to one hour time.  If verification results do fail, double-check to make sure all of your images are clear --  make sure your photos have no glare or blurring. Note: These photos need to be readable as well.  You also need to be 18 years of age or older.  You must be a resident of Switzerland or the European Economic Area to open a new account.
+Label: 68
+
+Predicted: 68 (confidence: 0.10, entropy: 3.897)
+
+
+Example 5:
+Text: i accidentally entered in my retailers information, what should i do next
+Label: 66
+
+Predicted: 66 (confidence: 0.11, entropy: 3.741)
+
+## Confident Misclassifications
+Example 1:
+Text: There is a payment I don't recognise!
+Label: 28
+
+Predicted: 16 (confidence: 0.89)
+
+
+Example 2:
+Text: The card payment didn't work
+Label: 53
+
+Predicted: 25 (confidence: 0.84)
+
+
+Example 3:
+Text: Is there an alternative to a physical card?
+Label: 40
+
+Predicted: 43 (confidence: 0.83)
+
+
+Example 4:
+Text: Where do I find PIN for my card?
+Label: 49
+
+Predicted: 38 (confidence: 0.82)
+
+
+Example 5:
+Text: My card is not working at stores.
+Label: 25
+
+Predicted: 14 (confidence: 0.81)
+
+# Task
+Generate 32 new customer-message / intent-label
+samples that target the student's weakest and most-confused intents. Each
+sample must use a valid Banking77 intent as its gold label and cover diverse
+phrasings within each targeted intent.

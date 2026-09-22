@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783610039-pX9bzUIABvZKqQTRCLLJ",
+  "created": 1783610040,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  { \"text\": \"I've been waiting for my paycheck deposit to show up for several days. Why is it delayed?\", \"label\": 6 },\n  { \"text\": \"Can you explain why the amount I put into my account hasn't been credited yet?\", \"label\": 6 },\n  { \"text\": \"Who do I contact if a payment into my account is missing?\", \"label\": 6 },\n  { \"text\": \"Is there a reason my recent deposit isn't available yet?\", \"label\": 6 },\n  { \"text\": \"What steps should I take if a cheque I deposited never arrives in my balance?\", \"label\": 6 },\n  { \"text\": \"When should I expect funds to be released when I deposit a check?\", \"label\": 6 },\n  { \"text\": \"Do I have to report somewhere if my salary payment didn't come through?\", \"label\": 6 },\n  { \"text\": \"My deposit history says processed, but my balance hasn't increased. Why?\", \"label\": 6 },\n  \n  { \"text\": \"What do I do to relink my card to my account after removing it?\", \"label\": 13 },\n  { \"text\": \"I deleted my lost card from the app. How can I add it back now that I've found it?\", \"label\": 13 },\n  { \"text\": \"How do I make my found card active again in the system?\", \"label\": 13 },\n  { \"text\": \"Is there a way to reactivate my card via the mobile app?\", \"label\": 13 },\n  \n  { \"text\": \"My card transaction says pending for two days now. Can you check what\u2019s going on?\", \"label\": 45 },\n  { \"text\": \"Why is my online payment still showing as 'pending clearance'?\", \"label\": 45 },\n  { \"text\": \"How much longer until a card transaction leaves pending state?\", \"label\": 45 },\n  { \"text\": \"Payment is stuck on pending\u2014do I need to do anything to resolve it?\", \"label\": 45 },\n\n  { \"text\": \"Can I use my disposable card for purchases abroad or is it restricted?\", \"label\": 72 },\n  { \"text\": \"Are there any location limits for using disposable virtual cards?\", \"label\": 72 },\n  { \"text\": \"Is there a block on certain countries with disposable cards?\", \"label\": 72 },\n  { \"text\": \"Why won't my disposable card work at certain stores?\", \"label\": 72 },\n  \n  { \"text\": \"If I reload my card, will I be charged any hidden fees?\", \"label\": 57 },\n  { \"text\": \"Why did I get a duplicate charge on my statement after topping up?\", \"label\": 57 },\n  { \"text\": \"Can you explain an unknown debit entry right after I topped up my account?\", \"label\": 57 },\n  { \"text\": \"What's the extra deduction on my account after using my card?\", \"label\": 57 },\n  \n  { \"text\": \"Is activating my card in the mobile app possible or do I have to call?\", \"label\": 0 },\n  { \"text\": \"Does my card automatically activate when I receive it or is app activation needed?\", \"label\": 0 },\n  { \"text\": \"I want to activate my new card from the app. Is there a link for this?\", \"label\": 0 },\n  { \"text\": \"What steps are there for activating my card using my phone?\", \"label\": 0 },\n\n  { \"text\": \"Why is my disposable card not accepted for online shopping?\", \"label\": 72 },\n  { \"text\": \"It says my disposable card is not enabled for this transaction. Help!\", \"label\": 72 },\n  { \"text\": \"Can disposable cards be used everywhere physical cards are accepted?\", \"label\": 72 },\n  { \"text\": \"When I try a payment, my disposable card is declined. What does it mean?\", \"label\": 72 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 849,
+    "prompt_tokens": 5971,
+    "total_tokens": 6820,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 2688,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.014702,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.014702,
+      "upstream_inference_prompt_cost": 0.00791,
+      "upstream_inference_completions_cost": 0.006792
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

@@ -1,0 +1,76 @@
+config_name,name,teacher,student,student_type,dataset,dataset_config.name,dataset_config.num_classes,dataset_config.text_field,dataset_config.label_field,metrics,cycles,seed,early_stopping.enabled,early_stopping.patience,early_stopping.metric,early_stopping.mode,early_stopping.min_delta,early_stopping.restore_best,sampling.enabled,sampling.sample_size,sampling.train_ratio,sampling.stratify_column,sampling.seed,prompt,augmentation_batch_size,teacher_max_output_tokens,policy_name,policy_prompt_operators,policy_include_stop,policy_lambda_cost,policy_exploration_bonus,policy_pacing_epsilon,token_budget,budget_stop,learning_rate,batch_size,num_train_epochs,warmup_steps,weight_decay,trainer_config.max_seq_length,trainer_config.trust_remote_code,trainer_config.report_held_out_test,trainer_config.use_lora,trainer_config.lora_r,trainer_config.lora_alpha,trainer_config.lora_dropout,trainer_config.lora_target_modules,trainer_config.prompt_field,trainer_config.response_field,trainer_config.gold_answer_field,trainer_config.answer_extraction,trainer_config.canonical_label_decoding,trainer_config.canonical_labels_path,trainer_config.task_metric,trainer_config.completion_only_loss,trainer_config.generation_max_new_tokens,trainer_config.generation_batch_size,trainer_config.require_teacher_token_fields,persist_datasets,require_validation_split,paper_mode,auto_modify_name,best_eval_loss,best_perplexity,best_examples,best_exact_match,best_canonical_label_count,best_observed_gold_label_count,best_invalid_label_rate,best_macro_f1,best_macro_f1_full_canonical,best__teacher_input_tokens_at_eval,best__teacher_output_tokens_at_eval,best__teacher_tokens_at_eval
+g3_imdb_gemma3_270m_slm_cycles-1,g3_imdb_gemma3_270m_slm_cycles-1,openrouter/openai/gpt-4.1,google/gemma-3-270m-it,slm,json,default,2,student_prompt,gold_answer,eval_loss_perplexity_exact_match_macro_f1,1,13,False,2,accuracy,max,0.0,True,False,1000,0.8,label,42,"You are a teacher model in a knowledge-distillation pipeline for the IMDB
+binary sentiment task (neg vs pos full-length movie reviews).
+
+# Reference Examples
+{{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+# Student Model Performance
+```
+{{ classification_report }}
+```
+
+# Student Model Errors
+
+## High Uncertainty Samples
+{{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+## Confident Misclassifications
+{{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+# Task
+Generate {{ augmentation_batch_size }} new movie-review / label SFT records
+that target the student's weakest and most-confused classes. Each record
+must use a valid sentiment label (neg/pos) as its gold answer and cover
+diverse phrasings within each targeted class.
+",32,4096,fixed_promptillery,coverage_boundary_repair,True,0.0001,0.0,1e-06,20000000,True,0.0002,16,3,10,0.0,256,True,True,True,16,32,0.05,all-linear,student_prompt,teacher_response,gold_answer,canonical_label,score,out/g3/imdb/canonical_labels.json,macro_f1,True,16,16,True,True,True,False,True,1.4503073692321777,4.264425066805337,200,0.705,2,2,0.0,0.692058769800882,0.692058769800882,0,0,0
+g3_imdb_gemma3_270m_slm_cycles-5,g3_imdb_gemma3_270m_slm_cycles-5,openrouter/openai/gpt-4.1,google/gemma-3-270m-it,slm,json,default,2,student_prompt,gold_answer,eval_loss_perplexity_exact_match_macro_f1,5,13,False,2,accuracy,max,0.0,True,False,1000,0.8,label,42,"You are a teacher model in a knowledge-distillation pipeline for the IMDB
+binary sentiment task (neg vs pos full-length movie reviews).
+
+# Reference Examples
+{{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+# Student Model Performance
+```
+{{ classification_report }}
+```
+
+# Student Model Errors
+
+## High Uncertainty Samples
+{{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+## Confident Misclassifications
+{{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+# Task
+Generate {{ augmentation_batch_size }} new movie-review / label SFT records
+that target the student's weakest and most-confused classes. Each record
+must use a valid sentiment label (neg/pos) as its gold answer and cover
+diverse phrasings within each targeted class.
+",32,4096,fixed_promptillery,coverage_boundary_repair,True,0.0001,0.0,1e-06,20000000,True,0.0002,16,3,10,0.0,256,True,True,True,16,32,0.05,all-linear,student_prompt,teacher_response,gold_answer,canonical_label,score,out/g3/imdb/canonical_labels.json,macro_f1,True,16,16,True,True,True,False,True,3.090927839279175,21.997478634753634,200,0.73,2,2,0.0,0.7149192271143491,0.7149192271143491,20116,12236,32352
+g3_imdb_gemma3_270m_slm_cycles-10,g3_imdb_gemma3_270m_slm_cycles-10,openrouter/openai/gpt-4.1,google/gemma-3-270m-it,slm,json,default,2,student_prompt,gold_answer,eval_loss_perplexity_exact_match_macro_f1,10,13,False,2,accuracy,max,0.0,True,False,1000,0.8,label,42,"You are a teacher model in a knowledge-distillation pipeline for the IMDB
+binary sentiment task (neg vs pos full-length movie reviews).
+
+# Reference Examples
+{{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+# Student Model Performance
+```
+{{ classification_report }}
+```
+
+# Student Model Errors
+
+## High Uncertainty Samples
+{{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+## Confident Misclassifications
+{{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+# Task
+Generate {{ augmentation_batch_size }} new movie-review / label SFT records
+that target the student's weakest and most-confused classes. Each record
+must use a valid sentiment label (neg/pos) as its gold answer and cover
+diverse phrasings within each targeted class.
+",32,4096,fixed_promptillery,coverage_boundary_repair,True,0.0001,0.0,1e-06,20000000,True,0.0002,16,3,10,0.0,256,True,True,True,16,32,0.05,all-linear,student_prompt,teacher_response,gold_answer,canonical_label,score,out/g3/imdb/canonical_labels.json,macro_f1,True,16,16,True,True,True,False,True,3.815018892288208,45.37761366180474,200,0.71,2,2,0.0,0.6938021328265231,0.6938021328265231,50664,26165,76829

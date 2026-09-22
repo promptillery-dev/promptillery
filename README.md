@@ -3,7 +3,6 @@
 </p>
 
 <p align="center">
-  <a href="../../actions/workflows/ci.yml"><img alt="CI" src="../../actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10+-blue.svg">
   <a href="https://docs.astral.sh/uv/"><img alt="uv" src="https://img.shields.io/badge/uv-package%20manager-DE5FE9?logo=uv"></a>
@@ -32,10 +31,6 @@ Promptillery is a config-driven framework and CLI for distilling knowledge from 
 - 📊 Run **ablation studies** by simply using list syntax in your config —- all combinations are tested automatically
 - ⏱️ Supports **cycle-aware early stopping** with best checkpoint restoration
 - 🔀 Handles both **text classification** and **NER** tasks
-- 🔍 **Audits the synthetic data** the teacher produced — duplicate rates, label
-  consistency against gold, lexical diversity, and teacher failures
-- 🧮 **Recommends which student to deploy** at your accuracy floor and call
-  volume, pricing self-hosted serving against the teacher API
 - 🧪 Includes a small **causal-LM SFT** path for audited LLM-to-LLM smoke tests
 - 🧩 Built on a **modular trainer architecture** for adding new model types and research methods
 
@@ -78,7 +73,7 @@ Get running in 5 minutes:
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/promptillery-dev/promptillery.git
+git clone https://github.com/MIMEDIS/promptillery.git
 cd promptillery
 uv pip install -e .
 
@@ -158,14 +153,6 @@ The configuration schema is defined in `promptillery/config.py`. Several example
 - `ablation_model_comparison.yaml` - Compare different student models (BERT, DistilBERT, RoBERTa)
 - `ablation_teacher_comparison.yaml` - Compare different teacher models (GPT-4o, Claude, etc.)
 - `ablation_minimal.yaml` - Simple cycle count test for quick experiments
-
-**Paper campaigns:**
-
-`examples/paper/` holds the configs behind the paper's experiments — Banking77
-across seven students, five datasets × three students, GSM8K generative
-distillation, and the logit-KD probe. Most need a GPU and a teacher API key. See
-[`examples/README.md`](examples/README.md) for the map, and the per-campaign
-READMEs alongside the configs for run order and cost.
 
 ### Configuration Format
 
@@ -345,7 +332,7 @@ runs on TRL's `SFTTrainer`, and by default uses **completion-only loss**: the
 prompt tokens are masked (`-100`) so the loss is computed on the response tokens
 only. Disable it with `trainer_config.completion_only_loss: false` to train on
 the full sequence (e.g. for an ablation). See
-`examples/paper/G2_banking77_gemma3_270m.yaml` for a full active-learning config.
+`examples/G1_gemma3_270m_banking77.yaml` for a full active-learning config.
 
 For pre-materialized instruction data:
 
@@ -646,11 +633,11 @@ promptillery profile <config_file> [--model-path <path>] [--split <split>] [--de
 
 ```bash
 # Profile the latest checkpoint on a GPU
-promptillery profile examples/paper/G2_banking77_gemma3_270m.yaml --device cuda:0
+promptillery profile examples/G1_gemma3_270m_banking77.yaml --device cuda:0
 
 # Explicit checkpoint, validation split, more iterations, with teacher cost
-promptillery profile examples/paper/G2_banking77_gemma3_270m.yaml \
-  --model-path ./g2_banking77_gemma3_270m_.../model \
+promptillery profile examples/G1_gemma3_270m_banking77.yaml \
+  --model-path ./g1_gemma3_270m_banking77_.../model \
   --split validation --iterations 200 --teacher-calls 3080
 ```
 
@@ -717,65 +704,35 @@ The baseline command evaluates the teacher model directly on the classification 
 
 ### Synthetic-data audit
 
-Teacher-generated training data is not free of defects: it can duplicate itself,
-drift from the gold label, or collapse in lexical diversity. Audit completed runs
-for duplicate rates, label consistency against gold, lexical diversity, and
-teacher failures:
+Audit completed runs for duplicate rates, label consistency vs gold, lexical
+diversity, and teacher failures (paper `tab:audit`, issue #7):
 
     promptillery audit RUN_DIR... \
         [--verifier-model GOLD_CHECKPOINT_DIR]  # offline Lbl-c (verifier)
         [--probe --probe-k 100]                 # teacher-on-gold API probe (costs tokens)
-        [--latex]                               # print LaTeX audit table rows
-
-`--verifier-model` scores label consistency offline against a gold-trained
-checkpoint; `--probe` instead asks the teacher to re-label a sample of gold rows,
-which costs tokens.
+        [--latex]                               # print tab:audit rows
 
 Outputs land in `<run_dir>/audit/` (`audit.json`, `audit.csv`, and
-`audit_usage.json` when probing). Runs that did not retain their
-`dataset_cycle_*` snapshots are reconstructed from their raw
+`audit_usage.json` when probing). Runs without `dataset_cycle_*` artifacts
+(e.g. the committed G2 Banking77 runs) are reconstructed from their raw
 `teacher_response_cycle_*.json` files and cross-checked against
-`teacher_attempts.jsonl`; a count mismatch is a hard error rather than a silent
-partial audit.
+`teacher_attempts.jsonl`; a count mismatch is a hard error.
 
 ### Recommender
 
-A distilled student is only worth deploying if it is cheaper than calling the
-teacher, and the answer depends on how often you call it: at low volume the
-teacher API wins, and at high volume a self-hosted student amortizes its
-GPU-hour cost. `recommend` picks the cheapest student that still clears your
-accuracy floor at your expected call volume, and reports what that choice costs
-you in dollars against a perfect-hindsight oracle.
+Pick the cheapest student that clears a target, given a completed run's
+main results and a profiled deployment table:
 
-It runs off frozen artifacts only -- no training, no teacher calls, no GPU:
+    uv run promptillery recommend \
+        --main-results examples/demo/banking77/paper_main_results.csv \
+        --profile-dir examples/demo/banking77/profiles \
+        --prices prices.yaml --targets targets.yaml -o out/demo_report
+    uv run promptillery paper-figures out/demo_report --format pdf
 
-    promptillery recommend \
-        --main-results paper_report/paper_main_results.csv \  # candidate cells
-        --profile-dir profiles/ \                             # profile.json per student
-        --prices prices.yaml \                                # USD/GPU-hour per device
-        --targets targets.yaml                                # deployment-target grid
-
-Candidate accuracies come from `paper_main_results.csv`, written by
-`promptillery paper-report`; per-student latency and throughput come from the
-`profile.json` files written by [`profile`](#profile-command). Serving cost is
-derived per device:
-
-    serving_cost_per_call = usd_per_hour / 3600 / throughput_calls_per_sec
-
-Writes `recommender_table.csv`, `regret_curve.csv`, and `recommendation.json` to
-the output directory.
-
-**`prices.yaml` and `targets.yaml` describe *your* deployment -- edit them before
-use.** The shipped values are illustrative, not authoritative: `prices.yaml`
-carries on-demand GPU and vCPU rates keyed on the hardware stamp recorded in each
-profile, and `targets.yaml` declares the accuracy floors, latency budgets, call
-volumes, and teacher per-call price to score against. Because these choices
-determine which student wins, fix them from your validation distribution or a
-stated rule *before* looking at held-out numbers; tuning floors until a preferred
-student comes out ahead is test-set tuning.
-
-Each profile's `gpu_name` is asserted against `expect_gpu_name`, so latency
-measured on the wrong device can never silently reach the table.
+`examples/demo/` ships the paper's six Banking77 students so the command
+runs from a fresh clone. `recommendation.json` reports the pick for the
+primary target in `targets.yaml`, its dollar cost against calling the
+teacher, and the break-even call volume.
 
 ## Ablation Studies
 

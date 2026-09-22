@@ -1,4 +1,4 @@
-"""Gold-anchored synthetic-data audit.
+"""Gold-anchored synthetic-data audit (issue #7).
 
 Retroactive audit over completed run directories: per-cycle duplicate rates,
 lexical diversity, label drift, teacher-failure counts with concrete
@@ -856,7 +856,7 @@ def teacher_gold_probe(
 
 @dataclass
 class CycleAudit:
-    """One audit-table row (a cycle, or the 'all' cumulative row)."""
+    """One tab:audit row (a cycle, or the 'all' cumulative row)."""
 
     cycle: Union[int, str]
     n_rows: int
@@ -1140,7 +1140,7 @@ def _num(value: Optional[float]) -> str:
 
 
 def latex_rows(result: RunAuditResult) -> str:
-    """LaTeX-ready audit rows: Data & Cyc & Dup% & NDup% & Lbl-c(v) & Lbl-c(t) & Div. & #Fail.
+    """tab:audit-ready rows: Data & Cyc & Dup% & NDup% & Lbl-c(v) & Lbl-c(t) & Div. & #Fail.
 
     Lbl-c(t) is per-run and appears on the first row of the dataset block.
     """
@@ -1162,7 +1162,7 @@ def latex_rows(result: RunAuditResult) -> str:
 
 
 def print_audit_table(result: RunAuditResult, console) -> None:
-    """Rich stdout table mirroring the audit table, plus the cumulative row."""
+    """Rich stdout table mirroring tab:audit, plus the cumulative row."""
     from rich.table import Table
 
     title = f"Audit — {result.experiment}"

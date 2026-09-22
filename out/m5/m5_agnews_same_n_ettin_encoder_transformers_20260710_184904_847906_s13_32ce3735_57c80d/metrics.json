@@ -1,0 +1,20 @@
+{
+  "0": {
+    "accuracy": 0.77,
+    "f1": 0.7681904601463226,
+    "_selection_split": "validation",
+    "_run_id": "m5_agnews_same_n_ettin_encoder_transformers_20260710_184904_847906_s13_32ce3735_57c80d",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.7746052631578947,
+    "f1": 0.7722213335274791,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m5_agnews_same_n_ettin_encoder_transformers_20260710_184904_847906_s13_32ce3735_57c80d"
+  }
+}

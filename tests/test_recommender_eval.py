@@ -1,6 +1,6 @@
 """Tests for recommender_eval.py -- agreement, %-exhaustive-cost, regret.
 
-These are the columns of the comparison table and the y-axis of the regret figure.
+These are the columns of ``tab:recommender`` and the y-axis of the regret figure.
 The story: the recommender attains near-oracle *agreement* at a small *fraction*
 of exhaustive-search cost, and near-zero *regret*.
 """

@@ -1,0 +1,44 @@
+{
+  "0": {
+    "eval_loss": 0.19655399024486542,
+    "perplexity": 1.2172010360861767,
+    "examples": 200,
+    "exact_match": 0.665,
+    "canonical_label_count": 4,
+    "observed_gold_label_count": 4,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.6102863059698747,
+    "macro_f1_full_canonical": 0.6102863059698747,
+    "_selection_split": "validation",
+    "_run_id": "g3_agnews_gemma3_270m_slm_cycles-1_20260711_105803_488471_s13_96cd18fc_f84754",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.1804412454366684,
+    "perplexity": 1.1977457463847667,
+    "examples": 7600,
+    "exact_match": 0.6725,
+    "canonical_label_count": 4,
+    "observed_gold_label_count": 4,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.6190623220947631,
+    "macro_f1_full_canonical": 0.6190623220947631,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "g3_agnews_gemma3_270m_slm_cycles-1_20260711_105803_488471_s13_96cd18fc_f84754"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

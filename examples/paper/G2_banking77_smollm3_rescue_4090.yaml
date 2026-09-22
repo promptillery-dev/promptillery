@@ -10,7 +10,7 @@
 # offline CI proxy for this code path is examples/causal_lm_sft_tiny.yaml.
 #
 # Materialize all SFT artifacts from the shared companion config
-# examples/paper/G2_banking77_materialize.yaml (decoder train/validation SFT + the
+# examples/G2_banking77_materialize.yaml (decoder train/validation SFT + the
 # shared teacher TEST-label file + out/g2/canonical_labels.json), then train,
 # then analyze -- same flow as G2_banking77_qwen3_4b_lora.yaml (see its header
 # for the exact materialize-sft commands).
@@ -31,7 +31,7 @@ dataset_kwargs:
     validation: "out/g2/banking77_sft_validation.jsonl"
     # Shared teacher test-label file: this split's data (student_prompt +
     # gold_answer) and the fidelity reference (teacher label per row) in one.
-    # Without a test split, decoder fidelity/held-out never fire.
+    # Without a test split, decoder fidelity/held-out never fire (blocker #2).
     test: "out/g2/banking77_teacher_test.jsonl"
 dataset_config:
   # This is the HF builder config name passed to load_dataset("json", name, ...).
@@ -67,7 +67,7 @@ augmentation_batch_size: 32
 
 # Active-learning-loop teacher output cap: must fit augmentation_batch_size
 # record generation, not just one label. Materialization no longer reads this
-# (that moved to examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the
+# (that moved to examples/G2_banking77_materialize.yaml, at 16 tokens), but the
 # AL loop still needs it: with token_budget set, an UNSET cap makes the
 # augmentation preflight mask every teacher call (engine.py:959-961), silently
 # disabling online augmentation.
@@ -85,9 +85,9 @@ trainer_config:
   max_seq_length: 512
 
   # Cycle selection uses validation; report final metrics (incl. fidelity) on
-  # the held-out test split. The fidelity split is
+  # the held-out test split (blocker #2 / major #4). The fidelity split is
   # scored in full despite max_eval_generation_samples, so its denominator
-  # matches the encoders.
+  # matches the encoders (blocker #3).
   report_held_out_test: true
 
   use_lora: true

@@ -1,4 +1,4 @@
-"""Shared pytest fixtures: a synthetic audit run directory."""
+"""Shared pytest fixtures: a synthetic audit run directory (issue #7)."""
 
 import json
 

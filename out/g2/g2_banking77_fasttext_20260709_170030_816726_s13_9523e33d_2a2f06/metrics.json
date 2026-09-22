@@ -1,0 +1,121 @@
+{
+  "0": {
+    "accuracy": 0.8045977011494253,
+    "f1": 0.7961653757273189,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.8040979510244878,
+    "f1": 0.7974315110205077,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 6541,
+    "_teacher_output_tokens_at_eval": 920,
+    "_teacher_tokens_at_eval": 7461,
+    "_teacher_cost_at_eval": null
+  },
+  "2": {
+    "accuracy": 0.8055972013993004,
+    "f1": 0.7988043118857846,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 12961,
+    "_teacher_output_tokens_at_eval": 1710,
+    "_teacher_tokens_at_eval": 14671,
+    "_teacher_cost_at_eval": null
+  },
+  "3": {
+    "accuracy": 0.8045977011494253,
+    "f1": 0.7982728936300457,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 19383,
+    "_teacher_output_tokens_at_eval": 2724,
+    "_teacher_tokens_at_eval": 22107,
+    "_teacher_cost_at_eval": null
+  },
+  "4": {
+    "accuracy": 0.8025987006496752,
+    "f1": 0.7945043742127911,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 25803,
+    "_teacher_output_tokens_at_eval": 3531,
+    "_teacher_tokens_at_eval": 29334,
+    "_teacher_cost_at_eval": null
+  },
+  "5": {
+    "accuracy": 0.8075962018990505,
+    "f1": 0.7993806906670617,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 32222,
+    "_teacher_output_tokens_at_eval": 4348,
+    "_teacher_tokens_at_eval": 36570,
+    "_teacher_cost_at_eval": null
+  },
+  "6": {
+    "accuracy": 0.8040979510244878,
+    "f1": 0.797898013774139,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 38602,
+    "_teacher_output_tokens_at_eval": 5282,
+    "_teacher_tokens_at_eval": 43884,
+    "_teacher_cost_at_eval": null
+  },
+  "7": {
+    "accuracy": 0.8070964517741129,
+    "f1": 0.8023695808949015,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 45047,
+    "_teacher_output_tokens_at_eval": 6099,
+    "_teacher_tokens_at_eval": 51146,
+    "_teacher_cost_at_eval": null
+  },
+  "8": {
+    "accuracy": 0.8030984507746127,
+    "f1": 0.7955394570058707,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 51474,
+    "_teacher_output_tokens_at_eval": 7146,
+    "_teacher_tokens_at_eval": 58620,
+    "_teacher_cost_at_eval": null
+  },
+  "9": {
+    "accuracy": 0.8065967016491754,
+    "f1": 0.8003843914334203,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+    "_teacher_input_tokens_at_eval": 57864,
+    "_teacher_output_tokens_at_eval": 8140,
+    "_teacher_tokens_at_eval": 66004,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.824025974025974,
+    "f1": 0.8232832787138632,
+    "teacher_fidelity": 0.7162337662337662,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 66004,
+    "total_cycles": 10
+  }
+}

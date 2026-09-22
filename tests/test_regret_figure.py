@@ -1,4 +1,4 @@
-"""Test for the regret-curve figure. Needs the `paper` extra."""
+"""Test for the regret-curve figure (issue #6, M4). Needs the `paper` extra."""
 
 import csv
 

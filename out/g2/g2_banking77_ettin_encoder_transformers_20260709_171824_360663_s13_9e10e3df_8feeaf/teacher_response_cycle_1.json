@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783610514-4yYDIDgL5udErYRMNRqU",
+  "created": 1783610514,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\": \"I can't see the money I put in with my top-up, did I do it wrong?\", \"label\": 61},\n  {\"text\": \"My account isn't showing the funds after I added money, what gives?\", \"label\": 61},\n  {\"text\": \"Why didn\u2019t my balance update after I transferred in some cash?\", \"label\": 61},\n  {\"text\": \"I put money on my card but it isn't there anymore, did it disappear?\", \"label\": 61},\n  {\"text\": \"Could you tell me why the funds from my latest top up are now missing?\", \"label\": 61},\n  {\"text\": \"Topped up yesterday, but the money is not present, what happened?\", \"label\": 61},\n  {\"text\": \"I think my top up went through, but where is the money?\", \"label\": 61},\n  {\"text\": \"Accidentally entered wrong information during top up and now my money is gone.\", \"label\": 61},\n\n  {\"text\": \"I can't add more funds to my account, is there a limit?\", \"label\": 59},\n  {\"text\": \"Why isn't my top-up feature working anymore?\", \"label\": 59},\n  {\"text\": \"Having trouble adding money with my card, what do I do?\", \"label\": 59},\n  {\"text\": \"Is there an issue with top-ups right now? My payment won't go through.\", \"label\": 59},\n  {\"text\": \"My account is not accepting any cash deposits for top-up, why?\", \"label\": 59},\n  {\"text\": \"I reached my top-up limit, now I can't add money.\", \"label\": 59},\n  {\"text\": \"Nothing happens when I try to top up with my card.\", \"label\": 59},\n  {\"text\": \"The app is not letting me add money to my account at all.\", \"label\": 59},\n\n  {\"text\": \"I tried to move money out and it keeps failing, is there a problem with transfers?\", \"label\": 27},\n  {\"text\": \"Why is my transfer to another bank being denied?\", \"label\": 27},\n  {\"text\": \"I'm getting a declined transaction every time I try to send money.\", \"label\": 27},\n  {\"text\": \"Every time I attempt to transfer funds elsewhere, it shows an error.\", \"label\": 27},\n  {\"text\": \"Transfers out of my account to other banks aren't successful, what should I check?\", \"label\": 27},\n  {\"text\": \"I am unable to complete a transfer and can't figure out why.\", \"label\": 27},\n\n  {\"text\": \"What documents do I need to prove who I am for the bank?\", \"label\": 68},\n  {\"text\": \"What proofs are accepted for identity verification?\", \"label\": 68},\n  {\"text\": \"How do I demonstrate my identity for your requirements?\", \"label\": 68},\n  {\"text\": \"What identification should I provide during registration?\", \"label\": 68},\n\n  {\"text\": \"Can you tell me where to get my PIN after locking my account?\", \"label\": 49},\n  {\"text\": \"After too many wrong PIN entries my account is blocked, what now?\", \"label\": 49},\n  {\"text\": \"Is there a way to recover my PIN and unlock my card?\", \"label\": 49},\n  {\"text\": \"Who can I contact to help me reset my blocked PIN code?\", \"label\": 49},\n\n  {\"text\": \"What should I do to reactivate my card if it expired?\", \"label\": 9},\n  {\"text\": \"How do I go about updating an expired card for use again?\", \"label\": 9}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 791,
+    "prompt_tokens": 6268,
+    "total_tokens": 7059,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3840,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.013104,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.013104,
+      "upstream_inference_prompt_cost": 0.006776,
+      "upstream_inference_completions_cost": 0.006328
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

@@ -1,5 +1,5 @@
 # =============================================================================
-# G3 — Yahoo Answers: Ettin encoder (encoder student)
+# G3 — tab:main-results, Yahoo Answers: Ettin encoder (encoder student)
 # =============================================================================
 # Cross-dataset main-results hub (issue: G3 main-results cross-architecture
 # configs): the 1K-subset protocol (1000 samples, 80/20 stratified train/val
@@ -52,7 +52,7 @@ batch_size: 32
 augmentation_batch_size: 32
 
 # Carve validation from train so cycle selection never touches the held-out
-# test set. The sampling block above already carves one from the
+# test set (major #4). The sampling block above already carves one from the
 # 1000-sample subset; this is a defensive no-op if it's already present.
 require_validation_split: true
 
@@ -74,7 +74,7 @@ trainer_config:
   # remote code so the config is robust if a checkpoint declares custom code.
   trust_remote_code: true
 
-  # Select on validation, report finals on a clean held-out test pass.
+  # Select on validation, report finals on a clean held-out test pass (major #4).
   report_held_out_test: true
 
 prompt: |

@@ -1,0 +1,15 @@
+{
+  "answer_extraction": "canonical_label",
+  "canonical_label_count": 2,
+  "exact_match": 0.705,
+  "examples": 200,
+  "invalid_label_rate": 0.0,
+  "macro_f1": 0.692058769800882,
+  "macro_f1_full_canonical": 0.692058769800882,
+  "normalized_canonical_labels": [
+    "neg",
+    "pos"
+  ],
+  "observed_gold_label_count": 2,
+  "split": "validation"
+}

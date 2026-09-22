@@ -1,7 +1,8 @@
 """Normalize Yahoo and HuffPost into {text,label,label_text} JSONL for the G3 hub.
 
 Deterministic and seeded (default 13). Only Yahoo and HuffPost need prep; AG News,
-SST-2 and IMDB are read raw by the configs.
+SST-2 and IMDB are read raw by the configs. See
+docs/superpowers/specs/2026-07-09-g3-main-results-configs-design.md.
 """
 from __future__ import annotations
 

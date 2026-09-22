@@ -1,7 +1,7 @@
 # =============================================================================
 # G2 — Banking77 cross-architecture hub: Ettin encoder (encoder student)
 # =============================================================================
-# The encoder half of Ettin's matched encoder/decoder pair: the two
+# The encoder half of Ettin's matched encoder/decoder pair (issue #3): the two
 # checkpoints are trained on identical data/recipe at the same scale, so the
 # encoder-vs-decoder comparison isolates architecture. Pair with
 # G2_banking77_ettin_decoder.yaml. ettin-encoder-150m matches ModernBERT-base's
@@ -10,7 +10,7 @@
 # Same protocol as G2_banking77_modernbert_base.yaml (see its header): teacher
 # GPT-4.1 via OpenRouter, one monotonic 10-cycle run, single seed, fidelity via
 # the shared out/g2/banking77_teacher_test.jsonl (materialize it once from
-# examples/paper/G2_banking77_materialize.yaml, --mode teacher --split test). NOT
+# examples/G2_banking77_materialize.yaml, --mode teacher --split test). NOT
 # CI-verified; run on the remote 2xA100 box.
 # =============================================================================
 
@@ -46,12 +46,12 @@ batch_size: 32
 augmentation_batch_size: 32
 
 # Carve validation from train (Banking77 has only train+test) so cycle
-# selection never touches the held-out test set.
+# selection never touches the held-out test set (major #4).
 require_validation_split: true
 
 # Active-learning-loop teacher output cap: must fit augmentation_batch_size
 # record generation, not just one label. Materialization no longer reads this
-# (that moved to examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the AL
+# (that moved to examples/G2_banking77_materialize.yaml, at 16 tokens), but the AL
 # loop still needs it: with token_budget set, an UNSET cap makes the
 # augmentation preflight mask every teacher call (engine.py:959-961), silently
 # disabling online augmentation.
@@ -69,11 +69,11 @@ trainer_config:
   # remote code so the config is robust if a checkpoint declares custom code.
   trust_remote_code: true
 
-  # Select on validation, report finals on a clean held-out test pass.
+  # Select on validation, report finals on a clean held-out test pass (major #4).
   report_held_out_test: true
 
   # Student-vs-teacher fidelity on the held-out test split. Points at the shared
-  # teacher test-label file materialized from examples/paper/G2_banking77_materialize.yaml.
+  # teacher test-label file materialized from examples/G2_banking77_materialize.yaml.
   fidelity:
     teacher_labels_path: "out/g2/banking77_teacher_test.jsonl"
     split: "test"

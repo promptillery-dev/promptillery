@@ -1,0 +1,10 @@
+factor,multiplier,pick,reason,total_usd,teacher_total_usd,break_even_volume
+gpu_rate,0.5,FacebookAI/roberta-base,cheapest_feasible,0.4429,1100.0,197
+gpu_rate,1.0,FacebookAI/roberta-base,cheapest_feasible,0.7139,1100.0,237
+gpu_rate,2.0,FacebookAI/roberta-base,cheapest_feasible,1.2561,1100.0,318
+cpu_rate,0.5,FacebookAI/roberta-base,cheapest_feasible,0.7139,1100.0,237
+cpu_rate,1.0,FacebookAI/roberta-base,cheapest_feasible,0.7139,1100.0,237
+cpu_rate,2.0,FacebookAI/roberta-base,cheapest_feasible,0.7139,1100.0,237
+teacher_price,0.5,FacebookAI/roberta-base,cheapest_feasible,0.7139,550.0,474
+teacher_price,1.0,FacebookAI/roberta-base,cheapest_feasible,0.7139,1100.0,237
+teacher_price,2.0,FacebookAI/roberta-base,cheapest_feasible,0.7139,2200.0,118

@@ -1,0 +1,34 @@
+{
+  "0": {
+    "eval_loss": 0.5082595348358154,
+    "perplexity": 1.662395334436045,
+    "examples": 200,
+    "exact_match": 0.135,
+    "canonical_label_count": 41,
+    "observed_gold_label_count": 41,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.07662973882486078,
+    "macro_f1_full_canonical": 0.07662973882486078,
+    "_selection_split": "validation",
+    "_run_id": "m5_huffpost_same_n_gemma3_270m_slm_20260710_190646_602155_s13_0319e50e_725d07",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.5412036776542664,
+    "perplexity": 1.7180736249079573,
+    "examples": 20950,
+    "exact_match": 0.15069212410501193,
+    "canonical_label_count": 41,
+    "observed_gold_label_count": 41,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.10362807872783777,
+    "macro_f1_full_canonical": 0.10362807872783777,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m5_huffpost_same_n_gemma3_270m_slm_20260710_190646_602155_s13_0319e50e_725d07"
+  }
+}

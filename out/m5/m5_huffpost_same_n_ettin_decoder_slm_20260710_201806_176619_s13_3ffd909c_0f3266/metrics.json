@@ -1,0 +1,34 @@
+{
+  "0": {
+    "eval_loss": 0.41913527250289917,
+    "perplexity": 1.5206460424741277,
+    "examples": 200,
+    "exact_match": 0.115,
+    "canonical_label_count": 41,
+    "observed_gold_label_count": 41,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.01935810493047392,
+    "macro_f1_full_canonical": 0.01935810493047392,
+    "_selection_split": "validation",
+    "_run_id": "m5_huffpost_same_n_ettin_decoder_slm_20260710_201806_176619_s13_3ffd909c_0f3266",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.4327124059200287,
+    "perplexity": 1.5414328499859626,
+    "examples": 20950,
+    "exact_match": 0.10749403341288782,
+    "canonical_label_count": 41,
+    "observed_gold_label_count": 41,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.02049334317637187,
+    "macro_f1_full_canonical": 0.02049334317637187,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m5_huffpost_same_n_ettin_decoder_slm_20260710_201806_176619_s13_3ffd909c_0f3266"
+  }
+}

@@ -1,5 +1,5 @@
 # =============================================================================
-# G3 — HuffPost: materialization SOURCE config
+# G3 — tab:main-results, HuffPost: materialization SOURCE config
 # =============================================================================
 # Companion to the G3_huffpost_{ettin_encoder,ettin_decoder,gemma3_270m}.yaml
 # training configs, which cannot drive materialize-sft themselves: the decoders
@@ -33,10 +33,10 @@
 #    calls, so this is free; the normalized HuffPost JSONL ships label_text
 #    already, so gold materialization is a direct column copy):
 #
-#      uv run promptillery materialize-sft examples/paper/G3_huffpost_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_huffpost_materialize.yaml \
 #        --mode gold --split train \
 #        --output out/g3/huffpost/train_sft.jsonl --overwrite
-#      uv run promptillery materialize-sft examples/paper/G3_huffpost_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_huffpost_materialize.yaml \
 #        --mode gold --split validation \
 #        --output out/g3/huffpost/validation_sft.jsonl --overwrite
 #
@@ -44,7 +44,7 @@
 #    train/validation passes above), reused verbatim as the decoders' `test`
 #    data_file:
 #
-#      uv run promptillery materialize-sft examples/paper/G3_huffpost_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_huffpost_materialize.yaml \
 #        --mode gold --split test \
 #        --output out/g3/huffpost/test_sft.jsonl --overwrite
 #

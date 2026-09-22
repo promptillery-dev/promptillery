@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609368-FYNOXGZ1n7xfokb4BAIL",
+  "created": 1783609368,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"Can you explain why my account keeps declining payments at stores?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Why was my card refused when I tried to buy something today?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Are there any reasons why my top-up keeps failing?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"My recent card top up was reversed. What could be the cause?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"Why am I seeing repeated charges for one transaction on my statement?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"The same purchase appears twice in my transaction history \u2014 is this a glitch?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"Why am I unable to add more funds to my account?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Every time I try to top up, the app says my limit is reached. How do I fix this?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"The app says my transfer can\u2019t be completed, but I have enough money. What might be wrong?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"Why do all my recent attempts to send money fail to go through?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"How do I find out what my card\u2019s PIN is?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"Where can I view or retrieve my forgotten PIN?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"If my PIN is blocked, what steps do I need to take to unblock it?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Locked out after too many PIN attempts; how can I reset this?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"There is a strange card transaction I don\u2019t remember making. Who should I contact?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"I'm seeing a payment in my history that is unfamiliar. What is the next step?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"Why do I keep getting a declined message for my top-up transaction?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"I topped up my account but it was immediately canceled by the system. Can you help?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"How can I fix it when my card gets declined every time I try to use contactless?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"Every purchase is being rejected\u2014could there be a block on my card?\",\n      \"label\": 25\n    },\n    {\n      \"text\": \"I get an error saying my account can't accept incoming transfers. Why?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"None of my transfers are going through, even though my details are correct.\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"My account won\u2019t allow any more money to be added\u2014what are my options?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Is there a reason my balance won\u2019t update after a top-up?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"There are two identical amounts debited back to back. Why would this happen?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"How can I resolve a duplicate transaction on my bank statement?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"Where is my card PIN stored in the app for me to view it?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"How to check what PIN my card currently has?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"I can\u2019t remember my PIN and have been locked out. How do I regain access?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"The app says my PIN is blocked for my card. What now?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"What do I do about a transaction that I don't recognize at all?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"I see a debit I didn't make\u2014could this be fraud?\",\n      \"label\": 28\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 994,
+    "prompt_tokens": 6390,
+    "total_tokens": 7384,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3712,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.015164,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.015164,
+      "upstream_inference_prompt_cost": 0.007212,
+      "upstream_inference_completions_cost": 0.007952
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

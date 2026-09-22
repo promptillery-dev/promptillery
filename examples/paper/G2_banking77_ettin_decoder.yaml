@@ -1,7 +1,7 @@
 # =============================================================================
 # G2 — Banking77 cross-architecture hub: Ettin decoder (decoder SLM student)
 # =============================================================================
-# The decoder half of Ettin's matched encoder/decoder pair. Same
+# The decoder half of Ettin's matched encoder/decoder pair (issue #3). Same
 # scale/recipe/data as G2_banking77_ettin_encoder.yaml, so encoder-vs-decoder
 # isolates architecture. Classification-via-generation: the SLM scores each
 # canonical Banking77 label.
@@ -16,7 +16,7 @@
 # 0) export OPENROUTER_API_KEY=sk-or-...
 #
 # 1) Materialize all SFT artifacts from the shared companion config
-#    examples/paper/G2_banking77_materialize.yaml (this config cannot drive
+#    examples/G2_banking77_materialize.yaml (this config cannot drive
 #    materialize-sft: its `dataset: json` points at the JSONL files the step
 #    creates, and its cycle-level `prompt` references AL-only variables). The
 #    companion writes the decoder GOLD-labeled train/validation SFT files
@@ -25,17 +25,17 @@
 #    (student-independent; also this config's `test` data_files entry), and
 #    out/g2/canonical_labels.json. See that config's header for full notes:
 #
-#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G2_banking77_materialize.yaml \
 #        --mode gold --split train \
 #        --output out/g2/banking77_sft_train.jsonl --overwrite
-#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G2_banking77_materialize.yaml \
 #        --mode gold --split validation \
 #        --output out/g2/banking77_sft_validation.jsonl --overwrite
-#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G2_banking77_materialize.yaml \
 #        --mode teacher --split test --token-budget 5000000 \
 #        --output out/g2/banking77_teacher_test.jsonl --overwrite
 #
-# 2) uv run promptillery train examples/paper/G2_banking77_ettin_decoder.yaml
+# 2) uv run promptillery train examples/G2_banking77_ettin_decoder.yaml
 # 3) uv run promptillery analyze out/g2 --metric macro_f1
 # =============================================================================
 
@@ -55,7 +55,7 @@ dataset_kwargs:
     # student_prompt + gold_answer (the student generates on it) AND the teacher
     # label per row (fidelity), so it is both this split's data and the fidelity
     # reference below. Without a test split, decoder fidelity/held-out never fire
-    #.
+    # (blocker #2).
     test: "out/g2/banking77_teacher_test.jsonl"
 dataset_config:
   # This is the HF builder config name passed to load_dataset("json", name, ...).
@@ -91,7 +91,7 @@ augmentation_batch_size: 32
 
 # Active-learning-loop teacher output cap: must fit augmentation_batch_size
 # record generation, not just one label. Materialization no longer reads this
-# (that moved to examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the AL
+# (that moved to examples/G2_banking77_materialize.yaml, at 16 tokens), but the AL
 # loop still needs it: with token_budget set, an UNSET cap makes the
 # augmentation preflight mask every teacher call (engine.py:959-961), silently
 # disabling online augmentation.
@@ -112,9 +112,9 @@ trainer_config:
   trust_remote_code: true
 
   # Cycle selection uses the validation split; report final metrics (incl.
-  # fidelity) on the held-out test split. The fidelity
+  # fidelity) on the held-out test split (blocker #2 / major #4). The fidelity
   # split is scored in full despite max_eval_generation_samples, so its
-  # denominator matches the encoders.
+  # denominator matches the encoders (blocker #3).
   report_held_out_test: true
 
   use_lora: true

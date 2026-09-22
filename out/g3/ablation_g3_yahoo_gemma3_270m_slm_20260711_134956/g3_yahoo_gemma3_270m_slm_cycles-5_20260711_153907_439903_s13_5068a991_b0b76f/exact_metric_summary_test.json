@@ -1,0 +1,23 @@
+{
+  "answer_extraction": "canonical_label",
+  "canonical_label_count": 10,
+  "exact_match": 0.54725,
+  "examples": 60000,
+  "invalid_label_rate": 0.0,
+  "macro_f1": 0.49665164170368803,
+  "macro_f1_full_canonical": 0.49665164170368803,
+  "normalized_canonical_labels": [
+    "business_finance",
+    "computers_internet",
+    "education_reference",
+    "entertainment_music",
+    "family_relationships",
+    "health",
+    "politics_government",
+    "science_mathematics",
+    "society_culture",
+    "sports"
+  ],
+  "observed_gold_label_count": 10,
+  "split": "test"
+}

@@ -1,4 +1,4 @@
-"""Banking77 cross-architecture hub configs parse and carry the G2 knobs.
+"""Banking77 cross-architecture hub configs parse and carry the G2 knobs (#3).
 
 Each config drives one student architecture through the same protocol: teacher
 GPT-4.1 via OpenRouter, a single monotonic 10-cycle run (read off at cycles
@@ -6,27 +6,35 @@ GPT-4.1 via OpenRouter, a single monotonic 10-cycle run (read off at cycles
 test-label file so evaluate() reports fidelity.
 
 Materialization is NOT inline on the training configs (full alignment with the
-the shared companion config
-examples/paper/G2_banking77_materialize.yaml is the single source that produces the
+reviewer's G1 pattern): the shared companion config
+examples/G2_banking77_materialize.yaml is the single source that produces the
 decoders' train/validation SFT files and the shared teacher test-label file.
 See test_materialize_companion_config below.
 """
+
+from pathlib import Path
 
 import pytest
 import yaml
 
 from promptillery.config import ExperimentConfig
 from promptillery.trainers.factory import TrainerFactory
+from _paths import PAPER_EXAMPLES
+
+
+def _p(rel):
+    return PAPER_EXAMPLES / Path(rel).name
+
 
 BANKING77_CONFIGS = {
-    "examples/paper/G2_banking77_modernbert_base.yaml": {
+    "examples/G2_banking77_modernbert_base.yaml": {
         "student_type": "transformers",
         "student": "answerdotai/ModernBERT-base",
         "fidelity": True,
         "has_test_data_file": False,
         "loads_script_dataset": True,
     },
-    "examples/paper/G2_banking77_ettin_encoder.yaml": {
+    "examples/G2_banking77_ettin_encoder.yaml": {
         "student_type": "transformers",
         "student": "jhu-clsp/ettin-encoder-150m",
         "fidelity": True,
@@ -34,14 +42,14 @@ BANKING77_CONFIGS = {
         "has_test_data_file": False,
         "loads_script_dataset": True,
     },
-    "examples/paper/G2_banking77_roberta_base.yaml": {
+    "examples/G2_banking77_roberta_base.yaml": {
         "student_type": "transformers",
         "student": "FacebookAI/roberta-base",
         "fidelity": True,
         "has_test_data_file": False,
         "loads_script_dataset": True,
     },
-    "examples/paper/G2_banking77_ettin_decoder.yaml": {
+    "examples/G2_banking77_ettin_decoder.yaml": {
         "student_type": "slm",
         "student": "jhu-clsp/ettin-decoder-150m",
         "fidelity": True,
@@ -50,7 +58,7 @@ BANKING77_CONFIGS = {
         "loads_script_dataset": False,
         "canonical_labels_path": "out/g2/canonical_labels.json",
     },
-    "examples/paper/G2_banking77_qwen3_4b_lora.yaml": {
+    "examples/G2_banking77_qwen3_4b_lora.yaml": {
         "student_type": "slm",
         "student": "Qwen/Qwen3-4B-Instruct-2507",
         "fidelity": True,
@@ -58,7 +66,7 @@ BANKING77_CONFIGS = {
         "loads_script_dataset": False,
         "canonical_labels_path": "out/g2/canonical_labels.json",
     },
-    "examples/paper/G2_banking77_smollm3.yaml": {
+    "examples/G2_banking77_smollm3.yaml": {
         "student_type": "slm",
         "student": "HuggingFaceTB/SmolLM3-3B",
         "fidelity": True,
@@ -66,9 +74,9 @@ BANKING77_CONFIGS = {
         "loads_script_dataset": False,
         "canonical_labels_path": "out/g2/canonical_labels.json",
     },
-    "examples/paper/G2_banking77_fasttext.yaml": {
-        # FastText fills its reference row's fidelity cell too: it shares the
-        # classifier fidelity seam with the encoders.
+    "examples/G2_banking77_fasttext.yaml": {
+        # FastText now fills its reference row's fidelity cell too (issue #3
+        # story 28); it shares the classifier fidelity seam with the encoders.
         "student_type": "fasttext",
         "student": "fasttext",
         "fidelity": True,
@@ -89,7 +97,7 @@ def test_banking77_config_is_valid(path, expected):
         # is not installed here; ExperimentConfig validation would reject it.
         # Still guard the config's content via a raw parse so its knobs can't
         # silently drift, then skip the full round-trip.
-        raw = yaml.safe_load(open(path))
+        raw = yaml.safe_load(open(_p(path)))
         assert raw["student"] == expected["student"]
         assert raw["teacher"] == "openrouter/openai/gpt-4.1"
         assert raw["cycles"] == 10
@@ -107,7 +115,7 @@ def test_banking77_config_is_valid(path, expected):
         assert ("fidelity" in tc) == expected["fidelity"]
         pytest.skip(f"student_type {expected['student_type']!r} not installed")
 
-    cfg = ExperimentConfig.from_yaml(path)
+    cfg = ExperimentConfig.from_yaml(_p(path))
 
     assert cfg.student == expected["student"]
     assert cfg.student_type == expected["student_type"]
@@ -119,13 +127,13 @@ def test_banking77_config_is_valid(path, expected):
     # Online active-learning loop (teacher adapts to each student's errors).
     assert cfg.prompt
 
-    # Leakage-free selection: carve a validation split for cycle selection and
-    # report finals on a clean held-out test pass.
+    # Leakage-free selection (major #4): carve a validation split for cycle
+    # selection and report finals on a clean held-out test pass.
     assert cfg.require_validation_split is True
     assert cfg.trainer_config["report_held_out_test"] is True
 
-    # Materialization settings live in the companion config
-    # (examples/paper/G2_banking77_materialize.yaml), not inline on every training config.
+    # Full G1 alignment: materialization settings live in the companion config
+    # (examples/G2_banking77_materialize.yaml), not inline on every training config.
     # teacher_max_output_tokens stays because it is the active-learning-loop
     # teacher cap; dropping it would make the augmentation preflight mask every
     # teacher call (token_budget is set -> engine.py:959-961), silently killing
@@ -140,15 +148,15 @@ def test_banking77_config_is_valid(path, expected):
     else:
         assert "fidelity" not in (cfg.trainer_config or {})
 
-    # Decoder students need a materialized test split so fidelity/held-out fire;
-    # encoders read PolyAI/banking77's test split directly.
+    # Decoder students need a materialized test split so fidelity/held-out fire
+    # (blocker #2); encoders read PolyAI/banking77's test split directly.
     if expected["has_test_data_file"]:
         assert cfg.dataset_kwargs["data_files"]["test"]
 
     # Decoders load the canonical Banking77 label schema the materializer writes
     # next to the SFT JSONL as <parent>/canonical_labels.json; the old
     # banking77_sft_train.canonical_labels.json name never existed and raised
-    # FileNotFoundError.
+    # FileNotFoundError (blocker #2 / G1 Fix A).
     if "canonical_labels_path" in expected:
         assert (
             cfg.trainer_config["canonical_labels_path"]
@@ -180,7 +188,7 @@ def test_banking77_json_dataset_uses_valid_hf_subset_name(path):
     on load before a single row is read. Every working json config uses
     ``default`` (examples/causal_lm_sft_tiny.yaml, the offline CI proxy).
     """
-    raw = yaml.safe_load(open(path))
+    raw = yaml.safe_load(open(_p(path)))
     if raw.get("dataset") != "json":
         pytest.skip("not a file-based json dataset config")
     name = (raw.get("dataset_config") or {}).get("name")
@@ -210,7 +218,7 @@ def test_banking77_context_fields_match_train_columns(path, expected):
     moment it prepares the cycle-1 augmentation prompt. The offline proxy hides
     this because it runs a single cycle and never augments.
     """
-    raw = yaml.safe_load(open(path))
+    raw = yaml.safe_load(open(_p(path)))
     cfg = raw.get("dataset_config") or {}
     if raw.get("dataset") == "json":
         # Decoder: reads materialized SFT records.
@@ -229,7 +237,7 @@ def test_banking77_context_fields_match_train_columns(path, expected):
 
 
 def test_materialize_companion_config():
-    """The shared materialization source config.
+    """The shared materialization source config (full G1 alignment).
 
     The six training configs cannot drive materialize-sft themselves: the
     decoders are ``dataset: json`` pointing at the JSONL the step creates, and
@@ -239,8 +247,8 @@ def test_materialize_companion_config():
     the decoders' train/validation SFT files AND the shared teacher test-label
     file every student scores fidelity against.
     """
-    path = "examples/paper/G2_banking77_materialize.yaml"
-    raw = yaml.safe_load(open(path))
+    path = "examples/G2_banking77_materialize.yaml"
+    raw = yaml.safe_load(open(_p(path)))
 
     # Loads the real source (not the JSONL the step writes), with the loader
     # script opt-in Banking77 requires.
@@ -267,7 +275,7 @@ def test_materialize_companion_config():
 
     # Full round-trip when the slm trainer's deps are installed.
     if "slm" in TrainerFactory.get_available_types():
-        cfg = ExperimentConfig.from_yaml(path)
+        cfg = ExperimentConfig.from_yaml(_p(path))
         assert cfg.dataset == "PolyAI/banking77"
         assert cfg.teacher_max_output_tokens == 16
         assert cfg.require_validation_split is True

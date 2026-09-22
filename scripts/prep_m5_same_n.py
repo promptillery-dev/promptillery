@@ -1,6 +1,6 @@
-"""Build M5 same-N gold-FT baseline data: seed + matched gold top-up.
+"""Build M5 same-N gold-FT baseline data (issue #8): seed + matched gold top-up.
 
-For one (dataset, student) cell of the main results table:
+For one (dataset, student) cell of tab:main-results:
 1. read the completed cycles-10 run's run_manifest.json ->
    final_synthetic_count (the post-filtering synthetic rows the run actually
    accumulated; nominally augmentation_batch_size x 9 minus filtered rejects),
@@ -14,15 +14,16 @@ For one (dataset, student) cell of the main results table:
    superset of the seed-train rows), out/m5/<D>/validation.jsonl,
    out/m5/<D>/test.jsonl, and out/m5/<D>/<student>/matched_n_manifest.json,
 5. decoder cells only: gold-materialize out/m5/<D>/<student>/train_sft.jsonl
-   by reusing examples/paper/G3_<D>_materialize.yaml (prompt-format identity with
+   by reusing examples/G3_<D>_materialize.yaml (prompt-format identity with
    the promptillery arms by construction; gold mode = zero teacher calls).
 
 RoBERTa's cell has NO prep invocation: its matched N reuses the Ettin-encoder
-run's N, and same seed + same N => identical data, so
+run's N (decision 2026-07-10), and same seed + same N => identical data, so
 M5_<D>_same_n_roberta_base.yaml reads the ettin_encoder train file.
 
 Deterministic given --seed. Requires the cell's completed G3 cycles-10 run dir
 (plus out/g3/<D>/{train,test}.jsonl for yahoo/huffpost). Zero teacher calls.
+See docs/superpowers/plans/2026-07-10-m5-same-n-gold-ft.md and issue #8.
 """
 from __future__ import annotations
 
@@ -39,7 +40,7 @@ from promptillery.engine import ensure_class_label, prepare_dataset
 from promptillery.sft_materialize import materialize_sft_records
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES_DIR = REPO_ROOT / "examples" / "paper"
+EXAMPLES_DIR = REPO_ROOT / "examples"
 
 STUDENTS = {
     "ettin_encoder": "jhu-clsp/ettin-encoder-150m",
@@ -48,7 +49,7 @@ STUDENTS = {
 }
 DECODER_STUDENTS = ("ettin_decoder", "gemma3_270m")
 
-# Mirrors the G3 config dataset sources (examples/paper/G3_<D>_*.yaml).
+# Mirrors the G3 config dataset sources (examples/G3_<D>_*.yaml).
 HF_SOURCES = {
     "agnews": ("SetFit/ag_news", "default"),
     "sst2": ("SetFit/sst2", "default"),
@@ -243,7 +244,7 @@ def ensure_g3_eval_artifacts(dataset: str, g3_root: Path) -> list[str]:
     if not (dataset_dir / "canonical_labels.json").exists():
         raise ValueError(
             f"{dataset_dir}/canonical_labels.json missing despite gold SFT files; "
-            "rerun the materialize passes from examples/paper/G3_README.md step 1"
+            "rerun the materialize passes from examples/G3_README.md step 1"
         )
     return created
 
@@ -304,7 +305,7 @@ def build_materialize_config(
 ) -> ExperimentConfig:
     """Retarget the dataset's G3 materialize config at the cell's train file.
 
-    Reusing examples/paper/G3_<D>_materialize.yaml keeps the decoder prompt format
+    Reusing examples/G3_<D>_materialize.yaml keeps the decoder prompt format
     identical to the promptillery arms BY CONSTRUCTION. Gold fields are forced
     to label_text because the prep JSONL always carries it (IMDB's G3 config
     maps ints via ClassLabel names, which a json-loaded file lacks).
@@ -419,7 +420,7 @@ def build_cell(
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        description="Build one M5 same-N gold-FT cell."
+        description="Build one M5 same-N gold-FT cell (issue #8)."
     )
     parser.add_argument("--dataset", required=True, choices=DATASETS)
     parser.add_argument("--student", required=True, choices=sorted(STUDENTS))

@@ -1,0 +1,97 @@
+name: m5_agnews_same_n_ettin_decoder_slm
+teacher: openrouter/openai/gpt-4.1
+student: jhu-clsp/ettin-decoder-150m
+teacher_revision: null
+student_revision: null
+tokenizer_revision: null
+student_type: slm
+dataset: json
+dataset_revision: null
+dataset_kwargs:
+  data_files:
+    train: out/m5/agnews/ettin_decoder/train_sft.jsonl
+    validation: out/g3/agnews/validation_sft.jsonl
+    test: out/g3/agnews/test_sft.jsonl
+dataset_config:
+  name: default
+  num_classes: 4
+  text_field: student_prompt
+  label_field: gold_answer
+num_labels: null
+metrics:
+- eval_loss
+- perplexity
+- exact_match
+- macro_f1
+cycles: 1
+seed: 13
+early_stopping:
+  enabled: false
+  patience: 2
+  metric: accuracy
+  mode: max
+  min_delta: 0.0
+  restore_best: true
+sampling:
+  enabled: false
+  sample_size: 1000
+  train_ratio: 0.8
+  stratify_column: label
+  seed: 42
+output_repo: null
+base_output_dir: out/m5
+prompt: null
+prompt_vars: null
+augmentation_batch_size: 10
+teacher_max_output_tokens: null
+policy_name: fixed_promptillery
+policy_prompt_operators:
+- coverage
+- boundary
+- repair
+policy_teacher_tiers: {}
+policy_batch_sizes:
+- 16
+- 32
+- 64
+policy_include_stop: true
+policy_lambda_cost: 0.0001
+policy_exploration_bonus: 0.0
+policy_pacing_epsilon: 1.0e-06
+budget_warning: null
+token_budget: null
+synthetic_record_budget: null
+budget_stop: false
+control_name: null
+price_table_path: null
+learning_rate: 0.0002
+batch_size: 16
+num_train_epochs: 3
+warmup_steps: 10
+weight_decay: 0.0
+trainer_config:
+  max_seq_length: 256
+  trust_remote_code: true
+  report_held_out_test: true
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules: all-linear
+  prompt_field: student_prompt
+  response_field: teacher_response
+  gold_answer_field: gold_answer
+  answer_extraction: canonical_label
+  canonical_label_decoding: score
+  canonical_labels_path: out/g3/agnews/canonical_labels.json
+  task_metric: macro_f1
+  completion_only_loss: true
+  generation_max_new_tokens: 16
+  generation_batch_size: 16
+  budget_splits:
+  - train
+  require_teacher_token_fields: true
+persist_datasets: true
+require_validation_split: true
+paper_mode: false
+auto_modify_name: true

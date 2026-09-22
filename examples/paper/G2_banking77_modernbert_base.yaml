@@ -1,7 +1,7 @@
 # =============================================================================
 # G2 — Banking77 cross-architecture hub: ModernBERT-base (encoder student)
 # =============================================================================
-# One student in the cross-architecture comparison. Every student
+# One student in the cross-architecture comparison (issue #3). Every student
 # runs the SAME protocol: teacher GPT-4.1 via OpenRouter, a single monotonic
 # active-learning run to 10 cycles (the paper reads cost/accuracy/fidelity off
 # cycles {1, 5, 10}), single seed, Banking77 (77 intents).
@@ -16,18 +16,18 @@
 #      export OPENROUTER_API_KEY=sk-or-...
 #
 # 1) Materialize the shared teacher TEST-label file ONCE from the companion
-#    config examples/paper/G2_banking77_materialize.yaml (this config no longer carries
-#    materialization settings live there). The
+#    config examples/G2_banking77_materialize.yaml (this config no longer carries
+#    materialization settings -- they moved there for full G1 alignment). The
 #    file is student-independent and shared by every encoder/decoder student to
 #    score fidelity (student-vs-teacher top-1 agreement on the held-out test).
 #    --token-budget covers the full ~3,080-row test split in one pass:
 #
-#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G2_banking77_materialize.yaml \
 #        --mode teacher --split test --token-budget 5000000 \
 #        --output out/g2/banking77_teacher_test.jsonl --overwrite
 #
 # 2) Run the active-learning loop to 10 cycles:
-#      uv run promptillery train examples/paper/G2_banking77_modernbert_base.yaml
+#      uv run promptillery train examples/G2_banking77_modernbert_base.yaml
 #
 # 3) Read the deployment table off the summary (fidelity rides alongside
 #    accuracy as heldout_teacher_fidelity):
@@ -59,7 +59,7 @@ metrics:
   - f1
 
 # One monotonic run to 10 cycles; the sweep {1,5,10} is read from per-cycle
-# metrics rather than re-run.
+# metrics rather than re-run (see issue #3).
 cycles: 10
 seed: 13
 
@@ -70,13 +70,13 @@ augmentation_batch_size: 32
 
 # Banking77 ships only train+test, so carve a validation split from train for
 # cycle selection: without it, cycle eval falls back to test and the AL loop is
-# steered by (and reported on) the same split -- train/test leakage.
+# steered by (and reported on) the same split -- train/test leakage (major #4).
 require_validation_split: true
 
 # Active-learning-loop teacher output cap: must leave headroom for the
 # augmentation_batch_size record generation, not just a single label.
 # Materialization no longer reads this (that moved to
-# examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the AL loop still
+# examples/G2_banking77_materialize.yaml, at 16 tokens), but the AL loop still
 # needs it: with token_budget set, an UNSET cap makes the augmentation preflight
 # mask every teacher call (engine.py:959-961), silently disabling augmentation.
 teacher_max_output_tokens: 4096
@@ -90,7 +90,7 @@ early_stopping:
 
 trainer_config:
   # Cycle selection uses the carved validation split; report final
-  # accuracy/fidelity on a clean held-out test pass.
+  # accuracy/fidelity on a clean held-out test pass (major #4).
   report_held_out_test: true
 
   # Student-vs-teacher fidelity on the held-out test split. Points at the

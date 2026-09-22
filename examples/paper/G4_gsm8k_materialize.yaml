@@ -1,5 +1,5 @@
 # =============================================================================
-# G4 — GSM8K: materialization SOURCE config
+# G4 — tab:generative, GSM8K: materialization SOURCE config
 # =============================================================================
 # Companion to the G4_gsm8k_* training configs. Reads the prep-script JSONL
 # (scripts/prep_gsm8k.py --seed 13; the engine has no unstratified sampling
@@ -8,11 +8,11 @@
 # intentionally NOT written (sft_materialize skips it gracefully).
 #
 # All passes are --mode gold (free, no teacher key):
-#   uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+#   uv run promptillery materialize-sft examples/G4_gsm8k_materialize.yaml \
 #     --mode gold --split train      --output out/g4/gsm8k/train_sft.jsonl      --overwrite
-#   uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+#   uv run promptillery materialize-sft examples/G4_gsm8k_materialize.yaml \
 #     --mode gold --split validation --output out/g4/gsm8k/validation_sft.jsonl --overwrite
-#   uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+#   uv run promptillery materialize-sft examples/G4_gsm8k_materialize.yaml \
 #     --mode gold --split test       --output out/g4/gsm8k/test_sft.jsonl       --overwrite
 # =============================================================================
 

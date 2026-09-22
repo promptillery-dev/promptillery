@@ -1,4 +1,4 @@
-"""audit_run orchestrator and `promptillery audit` CLI tests."""
+"""audit_run orchestrator and `promptillery audit` CLI tests (issue #7)."""
 
 import csv
 import json
@@ -91,7 +91,7 @@ class TestAuditRun:
         assert result.probe.k == 3
         usage = json.loads((run_dir / "audit" / "audit_usage.json").read_text())
         assert usage["grand_total"]["total_tokens"] == 3 * 42
-        # Probe cost surfaces on the CSV's cumulative row.
+        # Probe cost surfaces on the CSV's cumulative row (spec section 6).
         with (run_dir / "audit" / "audit.csv").open() as f:
             rows = list(csv.DictReader(f))
         assert rows[-1]["probe_total_tokens"] == str(3 * 42)

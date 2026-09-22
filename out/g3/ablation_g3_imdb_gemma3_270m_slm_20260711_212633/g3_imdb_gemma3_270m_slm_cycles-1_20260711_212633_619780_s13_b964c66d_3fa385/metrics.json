@@ -1,0 +1,44 @@
+{
+  "0": {
+    "eval_loss": 1.4503073692321777,
+    "perplexity": 4.264425066805337,
+    "examples": 200,
+    "exact_match": 0.705,
+    "canonical_label_count": 2,
+    "observed_gold_label_count": 2,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.692058769800882,
+    "macro_f1_full_canonical": 0.692058769800882,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_gemma3_270m_slm_cycles-1_20260711_212633_619780_s13_b964c66d_3fa385",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 1.3790333271026611,
+    "perplexity": 3.971061054409887,
+    "examples": 25000,
+    "exact_match": 0.71196,
+    "canonical_label_count": 2,
+    "observed_gold_label_count": 2,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.6982492973172746,
+    "macro_f1_full_canonical": 0.6982492973172746,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "g3_imdb_gemma3_270m_slm_cycles-1_20260711_212633_619780_s13_b964c66d_3fa385"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

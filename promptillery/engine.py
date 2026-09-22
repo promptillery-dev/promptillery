@@ -9,6 +9,7 @@ import re
 import shutil
 from hashlib import sha256
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Dict, List
 
 import yaml
@@ -454,6 +455,7 @@ class DistillationEngine:
         self.out_dir = self.cfg.get_output_dir()
         self.out_dir.mkdir(parents=True, exist_ok=False)
         self.run_id = self.out_dir.name
+        self._training_seconds_by_cycle: list[float] = []
 
         # Save experiment configuration copy to output directory
         config_copy_path = self.out_dir / "experiment_config.yaml"
@@ -2078,7 +2080,13 @@ class DistillationEngine:
                         if cycle == 0:
                             self._record_external_sft_token_usage()
 
-                        model = self.trainer.train()
+                        train_started = perf_counter()
+                        try:
+                            model = self.trainer.train()
+                        finally:
+                            self._training_seconds_by_cycle.append(
+                                round(perf_counter() - train_started, 3)
+                            )
                         metrics = self.trainer.evaluate(model, split=eval_split)
                         usage_at_eval = self._teacher_usage_snapshot()
                         metrics = {
@@ -2403,6 +2411,8 @@ class DistillationEngine:
                     "token_budget": self.cfg.token_budget,
                     "synthetic_record_budget": self.cfg.synthetic_record_budget,
                     "final_synthetic_count": self._current_synthetic_count(),
+                    "training_seconds": round(sum(self._training_seconds_by_cycle), 3),
+                    "training_seconds_by_cycle": list(self._training_seconds_by_cycle),
                     "action_space": {
                         "prompt_operators": self.cfg.policy_prompt_operators,
                         "teacher_tiers": list(

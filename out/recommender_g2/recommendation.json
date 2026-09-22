@@ -1,0 +1,16 @@
+{
+  "banking77": {
+    "cell": "FacebookAI/roberta-base",
+    "reason": "cheapest_feasible",
+    "receipt": {
+      "distillation_usd": 0.2606157777777778,
+      "serving_usd": 0.4533295850786898,
+      "total_usd": 0.7139453628564676,
+      "teacher_total_usd": 1100.0,
+      "savings_ratio": 0.9993509587610395,
+      "break_even_volume": 237.02111496498156,
+      "teacher_labelling_usd": 0.171838,
+      "training_usd": 0.08877777777777779
+    }
+  }
+}

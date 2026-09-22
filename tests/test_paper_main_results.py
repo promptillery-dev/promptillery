@@ -1,4 +1,4 @@
-"""Tests for the paper main-results table (per-cycle cost column)."""
+"""Tests for the paper main-results table (issue #12: per-cycle cost column)."""
 
 import csv
 import statistics
@@ -30,8 +30,8 @@ def _run_row(seed, estimated_cost):
 
 
 def test_main_results_surface_mean_estimated_cost():
-    # Teacher $ spend is otherwise only in the appendix budget audit; it belongs
-    # on the main table too. Two seeds in one cell spent $2 and $4 -> mean $3.
+    # Teacher $ spend is currently only in the appendix budget audit; #12 wants
+    # it on the main table. Two seeds in one cell spent $2 and $4 -> mean $3.
     rows = [_run_row(seed=1, estimated_cost=2.0), _run_row(seed=2, estimated_cost=4.0)]
 
     results = summarize_paper_main_results(rows)
@@ -59,7 +59,7 @@ def test_mean_estimated_cost_written_to_paper_main_results_csv(tmp_path):
 def test_expected_cycles_arms_stay_distinct_rows():
     # G3 runs three cycle arms of the same cell; the paper key omitted
     # expected_cycles, so they collapsed into one averaged row that looked like
-    # three seeds. The recommender's budget axis needs them kept apart.
+    # three seeds. The recommender's budget axis needs them kept apart (§5.1).
     rows = [
         {**_run_row(seed=1, estimated_cost=1.0), "expected_cycles": 1,
          "final_metric": 0.80, "heldout_metric": 0.80},
@@ -76,7 +76,7 @@ def test_expected_cycles_arms_stay_distinct_rows():
 
 
 def test_std_estimated_cost_is_emitted_for_the_noise_guard():
-    # The crossover noise guard compares intercept spread to the
+    # The crossover noise guard (§5.3) compares intercept spread to the
     # across-seed cost wobble, so the table must surface the cost std.
     rows = [_run_row(seed=1, estimated_cost=2.0), _run_row(seed=2, estimated_cost=4.0)]
 

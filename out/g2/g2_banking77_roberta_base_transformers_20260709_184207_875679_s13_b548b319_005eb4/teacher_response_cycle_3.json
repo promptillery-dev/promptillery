@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783615645-GT7bzoSeyfUk4bkWlDeI",
+  "created": 1783615645,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"Has my card been blocked because I tried to withdraw too many times?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"I can't get cash from the ATM, is there a block on my card?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Suspicious activity alert \u2014 is my card locked now?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Card issue: ATM said my card is blocked. Why did this happen?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Why did you block my card after a failed transfer?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"I received a security message, is my card now unusable?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Is my card lost or just temporarily blocked?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Does a declined transaction mean my card is blocked?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"How do I fix too many pin attempts? Can I unblock my card on the app?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"What steps do I follow after my card was blocked for pin entry failures?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"I got locked out after multiple failed pin tries. What now?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Can I reset my card pin if I reached the limit for wrong entries?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Forgot my pin and now it's locked, how can I get back in?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"I reached my pin attempt limit on the ATM \u2014 can support reset it?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"Can a pin lock be reset remotely for my card?\",\n      \"label\": 49\n    },\n    {\n      \"text\": \"My new card isn\u2019t letting me set a pin, what should I do?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"Where do I get the pin for my replacement card?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"I need the code to unlock my new card, where can I see it?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"I'm not sure how to retrieve my card pin after receiving it.\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"How long before I get my card's pin in the mail or app?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"My pin is missing for my new card, how do I set it up?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"Can you send my card pin again?\",\n      \"label\": 38\n    },\n    {\n      \"text\": \"Card payment failed \u2013 why didn't it go through?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Why was my transaction not processed by your app?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"My card payment got cancelled, any idea what caused it?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"The app didn't accept my recent card payment \u2013 help!\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Why would the app refuse my payment?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"I completed payment but it says it was not successful.\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Where can I find information about why my card payment didn\u2019t work?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"A top-up I made shows as cancelled, what can I do?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"Why was my money added and then reversed on the same day?\",\n      \"label\": 61\n    },\n    {\n      \"text\": \"I have a cancelled top up showing. What does that mean?\",\n      \"label\": 61\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 934,
+    "prompt_tokens": 6099,
+    "total_tokens": 7033,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.01967,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.01967,
+      "upstream_inference_prompt_cost": 0.012198,
+      "upstream_inference_completions_cost": 0.007472
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

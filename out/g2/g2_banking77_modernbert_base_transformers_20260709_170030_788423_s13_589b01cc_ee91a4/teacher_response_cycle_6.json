@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609937-s3aXJ2Kpj39UkfjmpBnr",
+  "created": 1783609937,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\"articles\":[\n{\"text\":\"Can you tell me how long an international transfer from Germany usually takes to clear in my account?\",\"label\":67},\n{\"text\":\"I sent money from Japan but it isn\u2019t appearing yet. Is this normal for overseas transfers?\",\"label\":67},\n{\"text\":\"Still waiting for funds I moved from the US to show up. How long do these transfers take?\",\"label\":67},\n{\"text\":\"I made a transfer from abroad, but my balance hasn't changed. Should I be worried?\",\"label\":67},\n{\"text\":\"Is there a way to check the status of an incoming international transfer to my account?\",\"label\":67},\n{\"text\":\"I put funds into my account but my balance isn\u2019t any higher. Where did my money go?\",\"label\":59},\n{\"text\":\"My recent top up hasn't updated my account yet. Who should I contact?\",\"label\":59},\n{\"text\":\"Why didn't my card top up reflect in my account instantly?\",\"label\":59},\n{\"text\":\"Why is it taking so long for my new funds to appear?\",\"label\":59},\n{\"text\":\"I added money through my card and it's not visible in my account. What's the delay?\",\"label\":59},\n{\"text\":\"I'm still waiting for my top-up to finish processing.\",\"label\":47},\n{\"text\":\"It\u2019s been hours since I topped up, and it's still pending. What can I do?\",\"label\":47},\n{\"text\":\"Top-up transaction seems stuck as pending. Why hasn't it posted?\",\"label\":47},\n{\"text\":\"Why does my account say pending for my top up?\",\"label\":47},\n{\"text\":\"Is there a reason my card top up would stay pending so long?\",\"label\":47},\n{\"text\":\"My transfer hasn't arrived at its destination and it's taking longer than usual. Is this normal?\",\"label\":5},\n{\"text\":\"I transferred money yesterday and it is still not in my account. How much longer should I wait?\",\"label\":5},\n{\"text\":\"The money I sent hasn\u2019t turned up on the other end yet. How long do transfers usually take?\",\"label\":5},\n{\"text\":\"It's been a while since I completed a transfer, but my funds haven\u2019t come through. Should I do anything?\",\"label\":5},\n{\"text\":\"I transferred some money but haven\u2019t seen it reflected yet. What's the average wait time?\",\"label\":5},\n{\"text\":\"Can you let me know the current status of my most recent top up?\",\"label\":61},\n{\"text\":\"Where can I check the status of my top-up in the app?\",\"label\":61},\n{\"text\":\"I topped up and want an update on whether it's processed yet.\",\"label\":61},\n{\"text\":\"How do I confirm if my last card top up has gone through successfully?\",\"label\":61},\n{\"text\":\"I'm unable to find any update about my top up. How do I know if it's complete?\",\"label\":61},\n{\"text\":\"My identity verification is failing when I try to use the app. What can I do?\",\"label\":68},\n{\"text\":\"I just can\u2019t get verified with your ID process \u2013 it won\u2019t recognize my face.\",\"label\":68},\n{\"text\":\"The app keeps saying identity verification failed. How do I try again?\",\"label\":68},\n{\"text\":\"Verification isn\u2019t working on my account and I need access now.\",\"label\":68},\n{\"text\":\"Why can't I get past the ID verification step? It never works for me.\",\"label\":68},\n{\"text\":\"I need confirmation that my recent rent payment actually went through and reached my landlord.\",\"label\":66},\n{\"text\":\"My landlord says they didn\u2019t get the transfer I sent. Can you double-check if it was processed?\",\"label\":66}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 787,
+    "prompt_tokens": 6022,
+    "total_tokens": 6809,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 2688,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.014308,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.014308,
+      "upstream_inference_prompt_cost": 0.008012,
+      "upstream_inference_completions_cost": 0.006296
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

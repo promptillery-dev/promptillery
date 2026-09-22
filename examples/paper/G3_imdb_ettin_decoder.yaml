@@ -1,5 +1,5 @@
 # =============================================================================
-# G3 — IMDB: Ettin decoder (decoder SLM student)
+# G3 — tab:main-results, IMDB: Ettin decoder (decoder SLM student)
 # =============================================================================
 # The decoder half of Ettin's matched encoder/decoder pair. Same 1K-subset
 # scale/recipe/data as G3_imdb_ettin_encoder.yaml, so encoder-vs-decoder
@@ -22,7 +22,7 @@
 # 0) export OPENROUTER_API_KEY=sk-or-...
 #
 # 1) Materialize all SFT artifacts from the shared companion config
-#    examples/paper/G3_imdb_materialize.yaml (this config cannot drive
+#    examples/G3_imdb_materialize.yaml (this config cannot drive
 #    materialize-sft itself: its `dataset: json` points at the JSONL files the
 #    step creates, and its cycle-level `prompt` references AL-only variables).
 #    See that config's header for the full commands. It writes:
@@ -31,7 +31,7 @@
 #      out/g3/imdb/test_sft.jsonl
 #      out/g3/imdb/canonical_labels.json
 #
-# 2) uv run promptillery train examples/paper/G3_imdb_ettin_decoder.yaml
+# 2) uv run promptillery train examples/G3_imdb_ettin_decoder.yaml
 # 3) uv run promptillery analyze out/g3 --metric macro_f1
 # =============================================================================
 

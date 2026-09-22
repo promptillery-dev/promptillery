@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783611229-Ih1BYazEJ9W4wG83ijGr",
+  "created": 1783611229,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"I made a transfer to my friend's account yesterday, and it still isn't in their balance. Any idea when it'll get there?\",\n      \"label\": 67\n    },\n    {\n      \"text\": \"How much longer will it take for an international wire transfer to show up in my account?\",\n      \"label\": 67\n    },\n    {\n      \"text\": \"Funds were sent to my account via a wire transfer this morning and haven't cleared yet. What's the normal processing time?\",\n      \"label\": 67\n    },\n    {\n      \"text\": \"I was expecting a transfer from abroad. How soon should I see these funds in my account?\",\n      \"label\": 67\n    },\n    {\n      \"text\": \"My boss wired me my paycheck, but it hasn't hit my account yet. When should I see it?\",\n      \"label\": 67\n    },\n    {\n      \"text\": \"A family member sent a wire transfer to my account from overseas last night. Is there a delay for international wires?\",\n      \"label\": 67\n    },\n    {\n      \"text\": \"I transferred money from my savings to checking but it's not yet available. How long should I wait?\",\n      \"label\": 67\n    },\n    {\n      \"text\": \"I'm concerned because a wire transfer from Germany hasn't appeared in my balance. How much longer do I wait?\",\n      \"label\": 67\n    },\n    {\n      \"text\": \"There's a direct debit on my account that I cannot recognize\u2014what should I do about it?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"Why is there a direct debit set up on my account that I don't remember creating?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"A new automatic payment just hit my account and I didn't authorize it. Who do I contact?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"I found a recurring payment in my app that I never set up. Is this a mistake?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"The app says I've got a direct debit scheduled but I didn't request that. Can you explain?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"I'm getting charged every month for something I never signed up for. Why is this happening?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"Help! There's a direct debit on my account I can't account for.\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"My banking statement shows repeating debits I didn't authorize. How do I dispute?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"If I make a transfer and realize right away it was to the wrong account, how do I cancel it?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"Is there any way to stop or reverse a transfer that's still pending?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"I sent money to the wrong person. Can I undo this transfer before it's completed?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"How do I cancel a bank transfer if I just made a mistake?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"Accidentally transferred funds to the wrong account\u2014how can I get them back or cancel?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"I need to reverse a transfer as quickly as possible. What's the best way?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"Is it possible to intercept and stop a wire transfer before it goes through?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"Can I retract a money transfer if I just sent it but it's not finalized?\",\n      \"label\": 7\n    },\n    {\n      \"text\": \"The app is listing duplicate payments for the same purchase. Is this a glitch?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"Why did I get charged twice for my bill payment?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"What's with two identical transactions for only one order? I didn't buy it twice.\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"There are duplicate charges on my statement for one item. How do I get one refunded?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"My balance dropped more than once for a single purchase. Can you fix this?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"I just noticed two deductions for a single transaction on my app. Is this normal?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"Why are there back-to-back transaction entries for the same thing on my history?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"I've been debited two times for the same payment. What can you do about it?\",\n      \"label\": 63\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 1094,
+    "prompt_tokens": 6167,
+    "total_tokens": 7261,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.021086,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.021086,
+      "upstream_inference_prompt_cost": 0.012334,
+      "upstream_inference_completions_cost": 0.008752
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

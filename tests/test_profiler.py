@@ -1,4 +1,4 @@
-"""Tests for the student inference profiler."""
+"""Tests for the student inference profiler (issue #2)."""
 
 import json
 import math
@@ -87,6 +87,19 @@ def test_latency_stats_computes_percentiles_mean_and_throughput():
     assert math.isclose(
         stats["throughput_calls_per_sec"], 5 / 0.150, rel_tol=1e-9
     )
+
+
+def test_latency_stats_throughput_counts_calls_per_measurement():
+    stats = latency_stats([0.5, 0.5], calls_per_measurement=8)
+    assert stats["throughput_calls_per_sec"] == pytest.approx(16.0)
+
+
+def test_measure_latencies_passes_batches_when_batch_size_gt_1():
+    from promptillery.profiler import _measure_latencies
+    seen = []
+    _measure_latencies(lambda x: seen.append(x), ["a", "b", "c"],
+                       iterations=2, warmup=0, device="cpu", batch_size=2)
+    assert seen == [["a", "b"], ["c", "a"]]
 
 
 def _write_token_usage(dir_path, estimated_cost):
@@ -183,6 +196,14 @@ def test_profile_student_measures_classifier_latency_on_transformers(tmp_path):
     assert student["throughput_calls_per_sec"] > 0
 
 
+def test_profile_student_stamps_batch_size(tmp_path):
+    trainer = _tiny_classifier_trainer(tmp_path)
+    result = profile_student(trainer, split="validation", device="cpu",
+                             iterations=2, warmup=1, batch_size=2)
+    assert result["measurement"]["latency_batch_size"] == 2
+    assert result["student"]["throughput_calls_per_sec"] > 0
+
+
 class _StubFastText:
     """Stands in for the external fasttext model (no torch, no .to()/.eval())."""
 
@@ -238,6 +259,14 @@ def test_profile_student_measures_decoder_latency_on_slm(tmp_path):
     # Real generation happened, so latencies are positive and ordered.
     assert student["p95_latency_ms"] >= student["p50_latency_ms"] > 0
     assert student["throughput_calls_per_sec"] > 0
+
+
+def test_profile_student_batches_decoder_generation(tmp_path):
+    trainer = _tiny_slm_trainer(tmp_path)
+    result = profile_student(trainer, split="validation", device="cpu",
+                             iterations=4, warmup=1, batch_size=2)
+    assert result["measurement"]["latency_batch_size"] == 2
+    assert result["student"]["throughput_calls_per_sec"] > 0
 
 
 def test_profile_student_raises_clear_error_on_empty_split(tmp_path):
@@ -340,7 +369,7 @@ def test_measure_latencies_syncs_the_device_inside_the_timed_region(
     tmp_path, monkeypatch
 ):
     # The sync must be wired into measurement (once per timed call, on the
-    # resolved device), not left implicit -- this is the regression it guards.
+    # resolved device), not left implicit -- this is the regression #22 guards.
     import promptillery.profiler as profiler
 
     trainer = _tiny_classifier_trainer(tmp_path)
@@ -380,7 +409,7 @@ def _sample_profile():
 
 
 def test_load_profile_raises_on_model_mismatch(tmp_path):
-    # Downstream runs reuse a saved 4B profile; loading the wrong model's must fail
+    # #5 reuses a saved 4B profile; loading the wrong model's profile must fail
     # loudly rather than silently paste its latency into the paper.
     from promptillery.profiler import ProfileStampError
 
@@ -440,7 +469,7 @@ def test_profile_result_stamps_hardware_and_round_trips(tmp_path):
         trainer, split="validation", device="cpu", iterations=4, warmup=1
     )
 
-    # Hardware identity is stamped so a number is reproducible / reusable.
+    # Hardware identity is stamped so a number is reproducible / reusable (#5).
     assert result["hardware"]["device"] == "cpu"
     assert result["hardware"]["torch_version"]
     assert result["model"] == str(FIXTURE_TOKENIZER)

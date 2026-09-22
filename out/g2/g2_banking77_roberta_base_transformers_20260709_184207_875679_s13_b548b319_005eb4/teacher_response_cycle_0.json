@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783615410-8RnGqB2348BBBGE3Xaif",
+  "created": 1783615410,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"My disposable card isn't accepted for payments online. What should I do?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Why is my virtual disposable card not working at checkout?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"I tried to use my one-time card but the payment got declined. Can you help?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"My disposable virtual card keeps getting rejected. Who can I contact?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Trouble with single-use virtual card. It doesn\u2019t complete purchases.\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Are ATM fees different if I use the ATM abroad for cash?\",\n      \"label\": 76\n    },\n    {\n      \"text\": \"Can I withdraw in my home currency while I'm traveling?\",\n      \"label\": 76\n    },\n    {\n      \"text\": \"How do I get money in a foreign country using your ATM card?\",\n      \"label\": 76\n    },\n    {\n      \"text\": \"Is there an extra charge for withdrawing local currency overseas?\",\n      \"label\": 76\n    },\n    {\n      \"text\": \"Does the ATM support currency exchange or does it only give out local money?\",\n      \"label\": 76\n    },\n    {\n      \"text\": \"What makes a card not usable anymore? Why is mine blocked?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"My card is physically fine but transactions keep getting declined.\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"No damage but my card won\u2019t work anymore, should I get a new one?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"Is there a way to repair my card? The chip seems faulty.\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"Why is the card not functioning even after I cleaned it?\",\n      \"label\": 14\n    },\n    {\n      \"text\": \"ATM swallowed my card and account access is restricted now.\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Why did the cash machine confiscate my card without warning?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"The ATM kept my card and now I can't withdraw funds.\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Can I recover my card after an ATM error?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Immediate action needed, ATM did not return my bank card.\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"I\u2019m waiting for my check to clear\u2014how long will it take?\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"Why hasn't my deposited check shown up yet?\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"My account doesn't reflect a recent check deposit. What do I do?\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"How do I check the status of a check I deposited?\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"A check was added to my account but isn\u2019t showing in the balance.\",\n      \"label\": 58\n    },\n    {\n      \"text\": \"How do I activate my card through mobile banking?\",\n      \"label\": 13\n    },\n    {\n      \"text\": \"Is it possible to reactivate a card after reporting it lost?\",\n      \"label\": 13\n    },\n    {\n      \"text\": \"Can the same card be enabled again if I accidentally froze it?\",\n      \"label\": 13\n    },\n    {\n      \"text\": \"I disabled my card in the app; how do I enable it again?\",\n      \"label\": 13\n    },\n    {\n      \"text\": \"Could you help me put my card back on my account after disabling it?\",\n      \"label\": 13\n    },\n    {\n      \"text\": \"How do I find out if a payment has been reversed to my card?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Why would a payment go back into my account after being sent?\",\n      \"label\": 53\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 939,
+    "prompt_tokens": 6241,
+    "total_tokens": 7180,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.019994,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.019994,
+      "upstream_inference_prompt_cost": 0.012482,
+      "upstream_inference_completions_cost": 0.007512
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

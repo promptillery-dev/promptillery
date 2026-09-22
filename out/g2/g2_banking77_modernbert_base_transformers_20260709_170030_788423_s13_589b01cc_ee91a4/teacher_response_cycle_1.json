@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609430-9rdcNL8pwxbodmbIP9PP",
+  "created": 1783609430,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\"text\": \"I tried to complete a payment, but it says my transfer was unsuccessful. Any idea why?\", \"label\": 27},\n    {\"text\": \"Why did my attempted transfer keep failing? I've double-checked the information.\", \"label\": 27},\n    {\"text\": \"My money transfer is always declining, can you explain what is happening?\", \"label\": 27},\n    {\"text\": \"What's the reason for a transfer to be denied by the system?\", \"label\": 27},\n    {\"text\": \"It won't let me send money, keeps saying transfer declined.\", \"label\": 27},\n    {\"text\": \"Payment failed when I tried to move funds\u2014why does this error occur?\", \"label\": 27},\n    {\"text\": \"I need help understanding why my transfer didn't go through.\", \"label\": 27},\n    {\"text\": \"Add funds option doesn't work, I can't seem to top up any more.\", \"label\": 59},\n    {\"text\": \"I'm unable to put more money in my account, is there a limit?\", \"label\": 59},\n    {\"text\": \"The system won't allow me to add more money, what's going on?\", \"label\": 59},\n    {\"text\": \"What should I do when my top up fails to process?\", \"label\": 59},\n    {\"text\": \"Cannot deposit more cash to my card\u2014how do I resolve this?\", \"label\": 59},\n    {\"text\": \"Why isn't the system accepting my top up right now?\", \"label\": 59},\n    {\"text\": \"I reached a limit and can\u2019t add more\u2014how can I top up?\", \"label\": 59},\n    {\"text\": \"My top-up was just cancelled out of nowhere. Why?\", \"label\": 61},\n    {\"text\": \"The money I added was cancelled. Can you help with this top up cancellation?\", \"label\": 61},\n    {\"text\": \"My topup transaction was reversed or cancelled. What could be the issue?\", \"label\": 61},\n    {\"text\": \"Looks like the funds I added were cancelled. How do I get them back?\", \"label\": 61},\n    {\"text\": \"Why do my top-up attempts sometimes get cancelled?\", \"label\": 61},\n    {\"text\": \"How do I add funds to my account step by step?\", \"label\": 65},\n    {\"text\": \"What are the instructions for topping up the account?\", \"label\": 65},\n    {\"text\": \"Can I link an external bank for a top up? How?\", \"label\": 65},\n    {\"text\": \"What is the process to transfer money into my account?\", \"label\": 65},\n    {\"text\": \"What options do I have to add money to my account?\", \"label\": 65},\n    {\"text\": \"Which banks can I connect for topping up?\", \"label\": 65},\n    {\"text\": \"Which currencies am I allowed to use when I want to top up?\", \"label\": 65},\n    {\"text\": \"Are there any restrictions on currencies I can use to add funds?\", \"label\": 65},\n    {\"text\": \"Can I use EUR or USD to top up my card?\", \"label\": 65},\n    {\"text\": \"Are all international currencies supported for top-ups?\", \"label\": 65},\n    {\"text\": \"Which types of foreign money can I use for adding funds?\", \"label\": 65},\n    {\"text\": \"When attempting to move funds, it errors out every time. Can you explain why?\", \"label\": 27},\n    {\"text\": \"How do I get support for a declined money transfer?\", \"label\": 27}\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 782,
+    "prompt_tokens": 6240,
+    "total_tokens": 7022,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 2176,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.015472,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.015472,
+      "upstream_inference_prompt_cost": 0.009216,
+      "upstream_inference_completions_cost": 0.006256
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

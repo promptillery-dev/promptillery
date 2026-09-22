@@ -1,8 +1,8 @@
-"""Load frozen artifacts into recommender :class:`Cell`s.
+"""Load frozen artifacts into recommender :class:`Cell`s (issue #6, M4).
 
 Reads ``paper_main_results.csv`` and joins each row to its student
 ``profile.json`` on the model stamp, asserting the profile was measured on the
-expected GPU -- the guard ``load_profile`` exists for. Everything runs off
+expected GPU (the guard #22 built ``load_profile`` for). Everything runs off
 frozen artifacts -- no live training, no teacher calls, no GPU.
 """
 
@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import csv
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Optional, Union
 
 import yaml
 
-from promptillery.pareto import Cell, HardwarePrices
+from promptillery.pareto import Cell, HardwarePrices, training_cost_usd
 from promptillery.profiler import ProfileStampError, load_profile
 from promptillery.recommender import Target, Teacher
 
@@ -66,8 +66,15 @@ def load_targets(path: Union[str, Path]) -> RecommenderConfig:
     )
 
 
-def _index_profiles(profile_dir: Path) -> dict[str, Path]:
-    """Map each profile's model stamp to its path (latency is seed-independent)."""
+def _index_profiles(profile_dir: Path, batch_size: int = 1) -> dict[str, Path]:
+    """Map each profile's model stamp to its path (latency is seed-independent).
+
+    ``batch_size`` (default 1) selects which measurement to index: a profile
+    is skipped unless its stamped ``measurement.latency_batch_size`` (missing
+    -> 1, matching every pre-batching profile) equals ``batch_size``. The
+    default therefore finds the single-stream profiles the paper's tables
+    read and ignores any ``profile-bsN.json`` sitting beside them.
+    """
     index: dict[str, Path] = {}
     for path in sorted(profile_dir.rglob("*.json")):
         try:
@@ -75,8 +82,14 @@ def _index_profiles(profile_dir: Path) -> dict[str, Path]:
         except (json.JSONDecodeError, OSError):
             continue
         model = data.get("model")
-        if model and "student" in data and "hardware" in data:
-            index[model] = path
+        if not model or "student" not in data or "hardware" not in data:
+            continue
+        measured_batch_size = (data.get("measurement") or {}).get(
+            "latency_batch_size", 1
+        )
+        if measured_batch_size != batch_size:
+            continue
+        index[model] = path
     return index
 
 
@@ -91,16 +104,23 @@ def load_cells(
     profile_dir: Union[str, Path],
     *,
     expect_gpu_name: Optional[str] = None,
+    prices: Optional[HardwarePrices] = None,
+    profile_batch_size: int = 1,
 ) -> list[Cell]:
     """Join ``paper_main_results.csv`` rows to profiles, returning candidate cells.
 
     ``expect_gpu_name`` asserts every joined profile's hardware stamp, so
-    wrong-GPU latency can never reach the recommender table. A cell missing
+    wrong-GPU latency can never reach ``tab:recommender``. A cell missing
     ``mean_heldout_metric`` hard-fails: without held-out truth the oracle is
     undefined and silently dropping the cell would change the frontier.
+
+    With ``prices`` the training wall-clock is priced at the cell's device rate
+    and folded into ``distillation_usd``. ``profile_batch_size`` (default 1)
+    selects which measurement of each profile to join against -- see
+    ``_index_profiles``.
     """
     profile_dir = Path(profile_dir)
-    profiles = _index_profiles(profile_dir)
+    profiles = _index_profiles(profile_dir, batch_size=profile_batch_size)
 
     cells: list[Cell] = []
     with Path(main_results_csv).open(newline="") as f:
@@ -128,24 +148,30 @@ def load_cells(
                     f"expected {expect_gpu_name!r}"
                 )
             stats = profile["student"]
-            cells.append(
-                Cell(
-                    dataset=row["dataset"],
-                    dataset_subset=row.get("dataset_subset", ""),
-                    student_model=student,
-                    student_type=row.get("student_type", ""),
-                    policy_name=row.get("policy_name", ""),
-                    control_name=row.get("control_name", ""),
-                    token_budget=int(_to_float(row.get("token_budget") or 0, "token_budget", student)),
-                    selection_accuracy=_to_float(row.get("mean_final_metric"), "mean_final_metric", student),
-                    heldout_accuracy=float(heldout),
-                    distillation_usd=_to_float(row.get("mean_estimated_cost") or 0.0, "mean_estimated_cost", student),
-                    distillation_usd_std=float(row.get("std_estimated_cost") or 0.0),
-                    p95_latency_ms=float(stats["p95_latency_ms"]),
-                    throughput_calls_per_sec=float(stats["throughput_calls_per_sec"]),
-                    device=hardware.get("device", ""),
-                    gpu_name=hardware.get("gpu_name"),
-                    expected_cycles=int(float(row.get("expected_cycles") or 0)),
-                )
+            cell = Cell(
+                dataset=row["dataset"],
+                dataset_subset=row.get("dataset_subset", ""),
+                student_model=student,
+                student_type=row.get("student_type", ""),
+                policy_name=row.get("policy_name", ""),
+                control_name=row.get("control_name", ""),
+                token_budget=int(_to_float(row.get("token_budget") or 0, "token_budget", student)),
+                selection_accuracy=_to_float(row.get("mean_final_metric"), "mean_final_metric", student),
+                heldout_accuracy=float(heldout),
+                distillation_usd=_to_float(row.get("mean_estimated_cost") or 0.0, "mean_estimated_cost", student),
+                distillation_usd_std=float(row.get("std_estimated_cost") or 0.0),
+                p95_latency_ms=float(stats["p95_latency_ms"]),
+                throughput_calls_per_sec=float(stats["throughput_calls_per_sec"]),
+                device=hardware.get("device", ""),
+                gpu_name=hardware.get("gpu_name"),
+                expected_cycles=int(float(row.get("expected_cycles") or 0)),
             )
+            teacher_usd = _to_float(row.get("mean_estimated_cost") or 0.0, "mean_estimated_cost", student)
+            training_seconds = float(row.get("training_seconds") or 0.0)
+            cell = replace(cell, teacher_usd=teacher_usd, training_seconds=training_seconds)
+            if prices is not None and training_seconds > 0:
+                training_usd = training_cost_usd(training_seconds, prices.rate_for(cell))
+                cell = replace(cell, training_usd=training_usd,
+                               distillation_usd=teacher_usd + training_usd)
+            cells.append(cell)
     return cells

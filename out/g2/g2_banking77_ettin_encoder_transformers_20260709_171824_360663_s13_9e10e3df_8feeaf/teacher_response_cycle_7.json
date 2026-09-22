@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783611126-P0qlcWjj5XvQtLqewSDB",
+  "created": 1783611126,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\": \"I don't understand the direct debit showing on my account. Can you explain why it's there?\", \"label\": 28},\n  {\"text\": \"I'm seeing a transaction I don't recall approving for direct debit\u2014who is this payment to?\", \"label\": 28},\n  {\"text\": \"Is there a way to remove or stop an unauthorized direct debit linked to my bank account?\", \"label\": 28},\n  {\"text\": \"I got double charged for one item. How do I fix this?\", \"label\": 63},\n  {\"text\": \"Why do my purchases sometimes get counted twice on my statements?\", \"label\": 63},\n  {\"text\": \"I've seen multiple identical payments for the same transaction\u2014how can I get my money back?\", \"label\": 63},\n  {\"text\": \"I transferred money from my other account yesterday, but it's not appearing. How long is this supposed to take?\", \"label\": 67},\n  {\"text\": \"Can you tell me the usual wait time for a US bank transfer to complete?\", \"label\": 67},\n  {\"text\": \"I was expecting a wire transfer from overseas. When will it show up in my balance?\", \"label\": 67},\n  {\"text\": \"Why was my international transfer delayed compared to my local ones?\", \"label\": 5},\n  {\"text\": \"It\u2019s been three days since I sent money from another country. Is this normal for international transfers?\", \"label\": 5},\n  {\"text\": \"Are transfers from abroad usually slower than domestic ones?\", \"label\": 5},\n  {\"text\": \"Are there any reasons why two of my accounts are showing the same withdrawal?\", \"label\": 63},\n  {\"text\": \"My direct debit is higher than expected; could this be from a processing error?\", \"label\": 28},\n  {\"text\": \"Money sent to my card with a wire transfer still hasn't shown up\u2014what's the holdup?\", \"label\": 67},\n  {\"text\": \"International transfers always seem to stall\u2014how do I track them?\", \"label\": 5},\n  {\"text\": \"When should an international wire to my account be reflected in my balance?\", \"label\": 5},\n  {\"text\": \"Why do I have two payments for only one top-up made?\", \"label\": 63},\n  {\"text\": \"My statements are showing duplicate direct debits. Please help.\", \"label\": 28},\n  {\"text\": \"Are direct debits processed over the weekend or just weekdays?\", \"label\": 28},\n  {\"text\": \"How do I cancel a direct debit that keeps being charged each month?\", \"label\": 28},\n  {\"text\": \"Does the duplicate charge resolve automatically or do I need to contact support?\", \"label\": 63},\n  {\"text\": \"How do I check the status of an incoming international transfer?\", \"label\": 5},\n  {\"text\": \"Is there a quick way to cancel an incorrect transfer before it completes?\", \"label\": 7},\n  {\"text\": \"Can a transfer be stopped after I confirm it in the app?\", \"label\": 7},\n  {\"text\": \"After I sent a transfer, I immediately realized it was wrong. Can you reverse it?\", \"label\": 7},\n  {\"text\": \"How long does it take for an international SEPA transfer to clear in your system?\", \"label\": 5},\n  {\"text\": \"Why are SWIFT transfers to my card taking longer than expected?\", \"label\": 5},\n  {\"text\": \"Every time I try to transfer funds out, I get an error message. What am I doing wrong?\", \"label\": 27},\n  {\"text\": \"I'm unable to complete a money transfer to another account. Am I missing a step?\", \"label\": 27},\n  {\"text\": \"Transfers between my accounts keep failing with an error notification. Any advice?\", \"label\": 27},\n  {\"text\": \"When I try to send money to another bank, I always see a technical error. Help!\", \"label\": 27}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 856,
+    "prompt_tokens": 6048,
+    "total_tokens": 6904,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3968,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.012992,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.012992,
+      "upstream_inference_prompt_cost": 0.006144,
+      "upstream_inference_completions_cost": 0.006848
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

@@ -1,0 +1,38 @@
+{
+  "experiment_name": "g3_yahoo_gemma3_270m_slm_cycles-1",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "cycles_completed": 1,
+  "per_cycle": [
+    {
+      "cycle": 0,
+      "operations": {
+        "sft_data": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost": null
+      }
+    }
+  ],
+  "totals": {
+    "sft_data": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "estimated_cost": null
+    }
+  },
+  "grand_total": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "estimated_cost": null
+  }
+}

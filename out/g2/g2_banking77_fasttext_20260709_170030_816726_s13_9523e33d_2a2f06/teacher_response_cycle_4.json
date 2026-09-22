@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609300-lUl9IyJwNdRWUMXPWcqR",
+  "created": 1783609300,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\"text\": \"Why was my payment declined at the card terminal? I tried again and it didn't process.\", \"label\": 25},\n    {\"text\": \"Card didn't work when I tapped at the store. What's the issue?\", \"label\": 25},\n    {\"text\": \"Attempted to pay with my card but got an error. Can you tell me why it was refused?\", \"label\": 25},\n    {\"text\": \"Was my card blocked from making payments? None of them are going through.\", \"label\": 25},\n    \n    {\"text\": \"My disposable card transaction was not processed. What might be wrong?\", \"label\": 72},\n    {\"text\": \"I tried to use my disposable card online and it didn't go through.\", \"label\": 72},\n    {\"text\": \"Disposable card kept getting declined for my online purchase.\", \"label\": 72},\n    {\"text\": \"Why was my payment with a disposable card not successful?\", \"label\": 72},\n    \n    {\"text\": \"Can you help me with setting up contactless feature on my card?\", \"label\": 23},\n    {\"text\": \"Why isn't contactless working even though my card supports it?\", \"label\": 23},\n    {\"text\": \"Is something wrong if my card doesn't register with contactless readers?\", \"label\": 23},\n    {\"text\": \"Contactless tap payment isn't activating for my card. How do I fix this?\", \"label\": 23},\n    \n    {\"text\": \"How can I tell if I've been charged extra for sending a bank transfer?\", \"label\": 64},\n    {\"text\": \"Fees were deducted when I made a transfer. What are these?\", \"label\": 64},\n    {\"text\": \"Why do I see an extra charge when transferring money out of my account?\", \"label\": 64},\n    {\"text\": \"Is there a reason I would get a fee for my outgoing bank transfer?\", \"label\": 64},\n    \n    {\"text\": \"Can you assist if I got the wrong cash amount from the ATM?\", \"label\": 75},\n    {\"text\": \"ATM dispensed less than I requested. What do I do now?\", \"label\": 75},\n    {\"text\": \"What happens if the ATM didn't give me the full withdrawal amount?\", \"label\": 75},\n    {\"text\": \"I asked for more but the ATM gave me less cash. Is there a way to fix this?\", \"label\": 75},\n    \n    {\"text\": \"I need to know what to do after incorrectly entering merchant details.\", \"label\": 66},\n    {\"text\": \"What steps do I take if I've sent money to the wrong person?\", \"label\": 66},\n    {\"text\": \"I made a mistake when inputting recipient information for a transfer, now what?\", \"label\": 66},\n    {\"text\": \"Please advise what to do if the payment went to a wrong account.\", \"label\": 66},\n    \n    {\"text\": \"Is it possible to have both a Visa and a MasterCard with you?\", \"label\": 73},\n    {\"text\": \"Does your bank issue both VISA and Mastercard, or just one?\", \"label\": 73},\n    {\"text\": \"Can I choose between Mastercard and Visa for my card type?\", \"label\": 73},\n    {\"text\": \"Would I be able to get cards from both card networks?\", \"label\": 73},\n    \n    {\"text\": \"I want to use my account before verifying my identity. Is that allowed?\", \"label\": 74},\n    {\"text\": \"Am I blocked from all services until identity verification finishes?\", \"label\": 74},\n    {\"text\": \"Can I check my balance if my identification hasn't gone through?\", \"label\": 74},\n    {\"text\": \"What happens if I refuse to provide some identity information?\", \"label\": 74}\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 817,
+    "prompt_tokens": 6419,
+    "total_tokens": 7236,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.019374,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.019374,
+      "upstream_inference_prompt_cost": 0.012838,
+      "upstream_inference_completions_cost": 0.006536
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

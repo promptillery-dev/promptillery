@@ -1,7 +1,7 @@
-"""Selectors for the recommender comparison table.
+"""Selectors for the recommender comparison table (issue #6, M4).
 
 Every selector shares ``select(cells, target, prices, teacher) -> Selection``.
-Scored across a grid of deployment targets, they fill the comparison table:
+Scored across a grid of deployment targets, they fill ``tab:recommender``:
 
 - ``oracle``          -- cheapest cell feasible on *held-out* truth; the ground
                          truth every other selector is graded against (trains all).
@@ -26,6 +26,7 @@ from promptillery.recommender import (
     Teacher,
     make_selection,
     recommend,
+    teacher_cost,
     total_cost,
 )
 
@@ -50,6 +51,8 @@ def oracle(
     if not feasible:
         return make_selection(None, cells, target, prices, teacher, "no_feasible_cell")
     best = min(feasible, key=lambda c: total_cost(c, prices, target.volume))
+    if total_cost(best, prices, target.volume) > teacher_cost(teacher, target.volume):
+        return make_selection(None, cells, target, prices, teacher, "teacher_cheaper_at_volume")
     return make_selection(best, cells, target, prices, teacher, "cheapest_feasible")
 
 
@@ -106,7 +109,7 @@ def recommender_budget_search(
 def standard_selectors(
     *, random_seed: int, volume_threshold_value: float
 ) -> dict[str, Selector]:
-    """The ordered selector set scored in the comparison table (oracle excluded)."""
+    """The ordered selector set scored in ``tab:recommender`` (oracle excluded)."""
     return {
         "expert_default": expert_default,
         "random": random_selector(random_seed),

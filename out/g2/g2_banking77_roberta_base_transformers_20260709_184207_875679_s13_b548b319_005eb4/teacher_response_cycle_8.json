@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783616046-062eIrdzppQTiShsbDy6",
+  "created": 1783616046,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\":\"I got a notification that my card top-up was reversed. Can you tell me why that happened?\",\"label\":59},\n  {\"text\":\"Why does it say my top up attempt was cancelled? What causes this?\",\"label\":59},\n  {\"text\":\"My top-up was denied by the app, why did it not go through?\",\"label\":59},\n  {\"text\":\"Could you help me understand why my card top up didn\u2019t work?\",\"label\":59},\n  {\"text\":\"Why would the app send me a cancellation for my top-up?\",\"label\":59},\n  {\"text\":\"Can you explain the main reasons a card top-up might be reversed or cancelled?\",\"label\":59},\n  {\"text\":\"Who decides if a card top-up gets cancelled? Is this normal?\",\"label\":59},\n  {\"text\":\"My card top up failed. Are there common errors I should check for?\",\"label\":59},\n  {\"text\":\"Is there a way I can retry after my top-up was cancelled by the system?\",\"label\":59},\n  {\"text\":\"The money I tried to add was sent back to my card. Why was my top-up reversed?\",\"label\":59},\n\n  {\"text\":\"Why did my account get charged an extra fee when I sent money?\",\"label\":64},\n  {\"text\":\"Can you tell me what this new fee is after my latest transfer?\",\"label\":64},\n  {\"text\":\"After sending cash, I got hit with a charge. Why?\",\"label\":64},\n  {\"text\":\"What does the additional cost mean after an international payment?\",\"label\":64},\n  {\"text\":\"I see a surprise charge on my statement after transferring money. Can you clarify this?\",\"label\":64},\n  {\"text\":\"Is there a breakdown for these new fees when I move money to another account?\",\"label\":64},\n\n  {\"text\":\"Is ZAR a supported currency for exchange in your app?\",\"label\":36},\n  {\"text\":\"What new currencies are available to trade in the app?\",\"label\":36},\n  {\"text\":\"I'd like to check if I can add Canadian dollars to my available currencies.\",\"label\":36},\n  {\"text\":\"Which currencies can I store or hold in my account?\",\"label\":36},\n  {\"text\":\"How do I see supported fiat currencies for both spending and exchanging?\",\"label\":36},\n  {\"text\":\"Do you have a full list of currencies I can hold and exchange?\",\"label\":36},\n\n  {\"text\":\"Where do I find the exchange rate for converting currencies?\",\"label\":36},\n  {\"text\":\"How can I get the current rates for conversions in your app?\",\"label\":36},\n  {\"text\":\"Is there a way to view live exchange rates before exchanging money?\",\"label\":36},\n\n  {\"text\":\"Why did my card payment fail? Is there a way to see the reason for decline?\",\"label\":53},\n  {\"text\":\"My card payment was declined\u2014how do I find out the cause?\",\"label\":53},\n  {\"text\":\"Is there a feature in the app that shows why a card payment was cancelled?\",\"label\":53},\n\n  {\"text\":\"I want to change my PIN code, is that possible through the app?\",\"label\":21},\n  {\"text\":\"What steps do I follow to reset my PIN on my card?\",\"label\":21},\n  {\"text\":\"How can I update my PIN number while traveling?\",\"label\":21},\n  {\"text\":\"Can PIN resets be completed without visiting a branch?\",\"label\":21},\n  {\"text\":\"I forgot my PIN completely, is there a way to start over and choose a new one?\",\"label\":21}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 776,
+    "prompt_tokens": 6193,
+    "total_tokens": 6969,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 2560,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.014754,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.014754,
+      "upstream_inference_prompt_cost": 0.008546,
+      "upstream_inference_completions_cost": 0.006208
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

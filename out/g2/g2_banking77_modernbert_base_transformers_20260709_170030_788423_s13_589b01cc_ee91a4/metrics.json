@@ -1,0 +1,121 @@
+{
+  "0": {
+    "accuracy": 0.8960519740129935,
+    "f1": 0.8967582762275378,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.9190404797601199,
+    "f1": 0.920994992053485,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 6255,
+    "_teacher_output_tokens_at_eval": 877,
+    "_teacher_tokens_at_eval": 7132,
+    "_teacher_cost_at_eval": null
+  },
+  "2": {
+    "accuracy": 0.9180409795102449,
+    "f1": 0.9220691474540519,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 12495,
+    "_teacher_output_tokens_at_eval": 1659,
+    "_teacher_tokens_at_eval": 14154,
+    "_teacher_cost_at_eval": null
+  },
+  "3": {
+    "accuracy": 0.92103948025987,
+    "f1": 0.9250643796242771,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 18570,
+    "_teacher_output_tokens_at_eval": 2461,
+    "_teacher_tokens_at_eval": 21031,
+    "_teacher_cost_at_eval": null
+  },
+  "4": {
+    "accuracy": 0.9225387306346826,
+    "f1": 0.9260530231157122,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 24691,
+    "_teacher_output_tokens_at_eval": 3193,
+    "_teacher_tokens_at_eval": 27884,
+    "_teacher_cost_at_eval": null
+  },
+  "5": {
+    "accuracy": 0.92103948025987,
+    "f1": 0.9256177478452959,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 30803,
+    "_teacher_output_tokens_at_eval": 4145,
+    "_teacher_tokens_at_eval": 34948,
+    "_teacher_cost_at_eval": null
+  },
+  "6": {
+    "accuracy": 0.9240379810094953,
+    "f1": 0.9281706107590718,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 36936,
+    "_teacher_output_tokens_at_eval": 5159,
+    "_teacher_tokens_at_eval": 42095,
+    "_teacher_cost_at_eval": null
+  },
+  "7": {
+    "accuracy": 0.9250374812593704,
+    "f1": 0.9285798677103109,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 42958,
+    "_teacher_output_tokens_at_eval": 5946,
+    "_teacher_tokens_at_eval": 48904,
+    "_teacher_cost_at_eval": null
+  },
+  "8": {
+    "accuracy": 0.9245377311344328,
+    "f1": 0.9265589308223166,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 48929,
+    "_teacher_output_tokens_at_eval": 6795,
+    "_teacher_tokens_at_eval": 55724,
+    "_teacher_cost_at_eval": null
+  },
+  "9": {
+    "accuracy": 0.9165417291354323,
+    "f1": 0.9199704992412252,
+    "_selection_split": "validation",
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+    "_teacher_input_tokens_at_eval": 55035,
+    "_teacher_output_tokens_at_eval": 7831,
+    "_teacher_tokens_at_eval": 62866,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.9185064935064935,
+    "f1": 0.9187032592078742,
+    "teacher_fidelity": 0.7840909090909091,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 62866,
+    "total_cycles": 10
+  }
+}

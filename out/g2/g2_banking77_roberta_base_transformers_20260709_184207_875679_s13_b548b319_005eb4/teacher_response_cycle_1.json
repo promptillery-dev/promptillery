@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783615489-GK1tIr2hhPoHyVLpdNa6",
+  "created": 1783615489,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\": \"The ATM just kept my card after I withdrew some cash, what should I do?\", \"label\": 18},\n  {\"text\": \"I tried to take cash out but my card was swallowed by the ATM. Help!\", \"label\": 18},\n  {\"text\": \"How do I recover my card if the ATM didn't give it back?\", \"label\": 18},\n  {\"text\": \"Why has my payment been showing as pending for two days?\", \"label\": 48},\n  {\"text\": \"Can you tell me why a bank transfer from this morning is still pending?\", \"label\": 48},\n  {\"text\": \"Funds I sent this morning aren't available yet, is this normal?\", \"label\": 48},\n  {\"text\": \"Why is my recent card purchase not going through and marked as pending?\", \"label\": 45},\n  {\"text\": \"A transaction keeps appearing as pending, how long does this take normally?\", \"label\": 45},\n  {\"text\": \"I've been waiting for a card payment to clear. What's the delay?\", \"label\": 45},\n  {\"text\": \"Why was the amount I got from the ATM less than what I requested?\", \"label\": 75},\n  {\"text\": \"I withdrew cash and received less than what I needed. What happened?\", \"label\": 75},\n  {\"text\": \"Is it common for an ATM to dispense the wrong amount?\", \"label\": 75},\n  {\"text\": \"Is there a reason my virtual card gets declined repeatedly when shopping online?\", \"label\": 72},\n  {\"text\": \"Can you tell me why my disposable card isn't working for online purchases?\", \"label\": 72},\n  {\"text\": \"Why am I unable to make purchases with my virtual card?\", \"label\": 72},\n  {\"text\": \"I topped up my account but the money is missing, what should I do?\", \"label\": 61},\n  {\"text\": \"My recent top-up isn't reflected in my app. Can you investigate?\", \"label\": 61},\n  {\"text\": \"Where did my money go after I tried to add funds to my card?\", \"label\": 61},\n  {\"text\": \"I attempted to put cash on my card and now it's not there anymore.\", \"label\": 61},\n  {\"text\": \"Should I choose bank transfer or card top up for fewer issues?\", \"label\": 57},\n  {\"text\": \"Is there any problem with using a bank transfer instead of a debit card to add money?\", \"label\": 57},\n  {\"text\": \"Is it better to add funds using my credit card or a bank account to avoid top up fees?\", \"label\": 57},\n  {\"text\": \"When a top up doesn't work, is trying a different card best?\", \"label\": 59},\n  {\"text\": \"Why can't I add money with my usual top-up method today?\", \"label\": 59},\n  {\"text\": \"My usual top-up card is being declined. What are my options?\", \"label\": 59},\n  {\"text\": \"Why haven't I seen my cheque deposit in my account?\", \"label\": 58},\n  {\"text\": \"Cheque I deposited last week isn't credited. Please check.\", \"label\": 58},\n  {\"text\": \"Is there a reason a cash deposit has not cleared yet?\", \"label\": 58},\n  {\"text\": \"My card doesn't let me make withdrawals anymore after I transferred money out.\", \"label\": 18},\n  {\"text\": \"Lost access to my card after making a withdrawal -- what gives?\", \"label\": 18},\n  {\"text\": \"Is there a block on my card because of a recent transfer?\", \"label\": 18},\n  {\"text\": \"Why was my payment declined even though the details were correct?\", \"label\": 27},\n  {\"text\": \"I'm getting a declined message for my transfer. Everything looks fine, so why?\", \"label\": 27}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 835,
+    "prompt_tokens": 6245,
+    "total_tokens": 7080,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3584,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.013794,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.013794,
+      "upstream_inference_prompt_cost": 0.007114,
+      "upstream_inference_completions_cost": 0.00668
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

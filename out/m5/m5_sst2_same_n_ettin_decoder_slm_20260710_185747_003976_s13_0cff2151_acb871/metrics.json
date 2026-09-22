@@ -1,0 +1,34 @@
+{
+  "0": {
+    "eval_loss": 0.10325536876916885,
+    "perplexity": 1.1087745193099947,
+    "examples": 200,
+    "exact_match": 0.95,
+    "canonical_label_count": 2,
+    "observed_gold_label_count": 2,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.9499799919967987,
+    "macro_f1_full_canonical": 0.9499799919967987,
+    "_selection_split": "validation",
+    "_run_id": "m5_sst2_same_n_ettin_decoder_slm_20260710_185747_003976_s13_0cff2151_acb871",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.10906016826629639,
+    "perplexity": 1.115229449745314,
+    "examples": 1821,
+    "exact_match": 0.9110378912685337,
+    "canonical_label_count": 2,
+    "observed_gold_label_count": 2,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.9110346449854038,
+    "macro_f1_full_canonical": 0.9110346449854038,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m5_sst2_same_n_ettin_decoder_slm_20260710_185747_003976_s13_0cff2151_acb871"
+  }
+}

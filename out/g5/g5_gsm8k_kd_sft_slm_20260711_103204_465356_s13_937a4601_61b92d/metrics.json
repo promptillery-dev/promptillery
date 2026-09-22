@@ -1,0 +1,30 @@
+{
+  "0": {
+    "eval_loss": 0.22066715359687805,
+    "perplexity": 1.2469083325324475,
+    "examples": 200,
+    "exact_match": 0.35,
+    "canonical_label_count": 397,
+    "observed_gold_label_count": 114,
+    "invalid_label_rate": 0.05,
+    "_selection_split": "validation",
+    "_run_id": "g5_gsm8k_kd_sft_slm_20260711_103204_465356_s13_937a4601_61b92d",
+    "_teacher_input_tokens_at_eval": 14195,
+    "_teacher_output_tokens_at_eval": 71870,
+    "_teacher_tokens_at_eval": 86065,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.8657445907592773,
+    "perplexity": 2.376775152095367,
+    "examples": 1319,
+    "exact_match": 0.2789992418498863,
+    "canonical_label_count": 397,
+    "observed_gold_label_count": 351,
+    "invalid_label_rate": 0.06974981046247157,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "g5_gsm8k_kd_sft_slm_20260711_103204_465356_s13_937a4601_61b92d"
+  }
+}

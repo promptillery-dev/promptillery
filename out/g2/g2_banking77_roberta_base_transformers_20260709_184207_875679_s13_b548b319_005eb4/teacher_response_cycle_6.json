@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783615881-C01Vt22VAk2b5mlokLVc",
+  "created": 1783615881,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  { \"text\": \"My paycheck was sent to my account, but the direct deposit hasn't gone through yet. Why the delay?\", \"label\": 58 },\n  { \"text\": \"Direct deposit is missing \u2014 any ideas why it didn\u2019t get credited?\", \"label\": 58 },\n  { \"text\": \"I expected my direct deposit today, but it hasn't appeared. Any common reasons for this?\", \"label\": 58 },\n  { \"text\": \"Can you clarify why my salary by direct deposit hasn't cleared yet?\", \"label\": 58 },\n  { \"text\": \"Is there sometimes a hold on direct deposits? Mine hasn't landed.\", \"label\": 58 },  \n  { \"text\": \"Will I be notified if there's a problem with my direct deposit?\", \"label\": 58 },\n  { \"text\": \"What's the typical processing time for a direct deposit to appear?\", \"label\": 58 },\n  { \"text\": \"Could a bank holiday affect when my direct deposit shows up?\", \"label\": 58 },\n  { \"text\": \"I forgot my card PIN. Can you help me create a new one?\", \"label\": 49 },\n  { \"text\": \"What steps do I take to change my PIN if I've forgotten it?\", \"label\": 49 },\n  { \"text\": \"I'd like to set a new PIN for my card. What do I do?\", \"label\": 49 },\n  { \"text\": \"Is there a way to generate a new PIN if I locked myself out?\", \"label\": 49 },\n  { \"text\": \"Can I reset my PIN through the banking app?\", \"label\": 49 },\n  { \"text\": \"What's the process for resetting a forgotten PIN?\", \"label\": 49 },\n  { \"text\": \"Can the branch help if I need to reset my PIN?\", \"label\": 49 },\n  { \"text\": \"If I've entered my PIN wrong too many times, how do I set a new one?\", \"label\": 49 },\n  { \"text\": \"I want to know the current exchange rates for converting currencies.\", \"label\": 36 },\n  { \"text\": \"Which fiat currencies do you allow me to exchange to and from?\", \"label\": 36 },\n  { \"text\": \"Are there any currencies I can\u2019t hold or exchange with my account?\", \"label\": 36 },\n  { \"text\": \"Do you support holding Yen or Swiss Francs in my wallet?\", \"label\": 36 },\n  { \"text\": \"What is the full list of currencies I can store in my account?\", \"label\": 36 },\n  { \"text\": \"Can I have balances in multiple currencies at the same time?\", \"label\": 36 },\n  { \"text\": \"Is Norwegian krone supported for holding and exchanging?\", \"label\": 36 },\n  { \"text\": \"I want to check if ZAR is available to exchange in the app.\", \"label\": 36 },\n  { \"text\": \"Why did my card payment get declined? Who can help me with this?\", \"label\": 53 },\n  { \"text\": \"Can you show me why a recent card purchase was cancelled?\", \"label\": 53 },\n  { \"text\": \"What's the typical reason for a failed card transaction?\", \"label\": 53 },\n  { \"text\": \"Why is my card payment stuck on cancelled?\", \"label\": 53 },\n  { \"text\": \"Is there a log of declined card payments and their causes?\", \"label\": 53 },\n  { \"text\": \"I tried using my card and it got cancelled, but no details were shown. Why?\", \"label\": 53 },\n  { \"text\": \"Would the app explain why a card payment didn\u2019t go through?\", \"label\": 53 },\n  { \"text\": \"Where can I see more detail about why my transaction was declined?\", \"label\": 53 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 822,
+    "prompt_tokens": 6075,
+    "total_tokens": 6897,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.018726,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.018726,
+      "upstream_inference_prompt_cost": 0.01215,
+      "upstream_inference_completions_cost": 0.006576
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

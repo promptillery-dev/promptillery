@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783615567-0IaVcCv7Slcij0oIe15t",
+  "created": 1783615567,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n\n  { \"text\": \"Could you look into my check deposit from a few days ago? It hasn't posted to my account yet.\", \"label\": 58 },\n  { \"text\": \"The cheque I dropped off last weekend is still not credited. What might be causing the delay?\", \"label\": 58 },\n  { \"text\": \"Is there a holdup with my cheque? It's not showing in my available balance yet.\", \"label\": 58 },\n  { \"text\": \"I deposited a check earlier this week, but there's no update. Can you check the status?\", \"label\": 58 },\n\n  { \"text\": \"I have a payment on my account I don't remember authorising. Can you help identify it?\", \"label\": 28 },\n  { \"text\": \"There's a debit in my account history that looks suspicious. How do I report an unknown transaction?\", \"label\": 28 },\n  { \"text\": \"I just noticed a transaction I didn't make. What's the process to dispute it?\", \"label\": 28 },\n  { \"text\": \"A payment appeared that I can't recall making. Is there a way to trace this?\", \"label\": 28 },\n\n  { \"text\": \"Why did my payment not go through and now it's marked as pending?\", \"label\": 48 },\n  { \"text\": \"Can you explain why my transfer is still pending after several hours?\", \"label\": 48 },\n  { \"text\": \"The app says my last transfer is pending. How long should I wait?\", \"label\": 48 },\n  { \"text\": \"Pending status on my outgoing payment is making me nervous. What's going on?\", \"label\": 48 },\n\n  { \"text\": \"Was I charged a fee for my bank transfer just now?\", \"label\": 64 },\n  { \"text\": \"Why did I see a new charge after sending money to another account?\", \"label\": 64 },\n  { \"text\": \"A transfer fee appeared unexpectedly. Can you explain this charge?\", \"label\": 64 },\n  { \"text\": \"I've noticed a charge after my last transfer. What is it for?\", \"label\": 64 },\n\n  { \"text\": \"Is there a block on my card because I tried to make a transfer?\", \"label\": 18 },\n  { \"text\": \"My bank card was kept by the ATM after a recent transfer. What should I do?\", \"label\": 18 },\n  { \"text\": \"Can you tell me if my card is blocked due to recent account activity?\", \"label\": 18 },\n  { \"text\": \"The ATM didn't return my card after a declined transaction. Is my card blocked?\", \"label\": 18 },\n\n  { \"text\": \"What are the charges for getting a new card?\", \"label\": 23 },\n  { \"text\": \"Am I required to pay a fee to activate my new card?\", \"label\": 23 },\n  { \"text\": \"Do you have any fees related to the contactless feature on a new card?\", \"label\": 23 },\n  { \"text\": \"Are there extra costs to set up contactless on my replacement card?\", \"label\": 23 },\n\n  { \"text\": \"Are there charges I should be aware of for a replacement card?\", \"label\": 9 },\n  { \"text\": \"If my card expires and I get a new one, is there a renewal fee?\", \"label\": 9 },\n  { \"text\": \"Do you charge for renewing an expired card?\", \"label\": 9 },\n  { \"text\": \"What will it cost to replace my expired card with a new one?\", \"label\": 9 },\n\n  { \"text\": \"I can't log in to the app anymore. Should I uninstall and reinstall it?\", \"label\": 23 },\n  { \"text\": \"Will deleting and reinstalling the app fix issues with my card activation?\", \"label\": 23 },\n  { \"text\": \"Should I try uninstalling the app to resolve my contactless card issue?\", \"label\": 23 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 851,
+    "prompt_tokens": 6142,
+    "total_tokens": 6993,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.019092,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.019092,
+      "upstream_inference_prompt_cost": 0.012284,
+      "upstream_inference_completions_cost": 0.006808
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

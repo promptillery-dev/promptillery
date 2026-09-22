@@ -1,23 +1,25 @@
-"""Offline validation of the M5 same-N gold-FT configs.
+"""Offline validation of the M5 same-N gold-FT configs (issue #8, part a).
 
 Parse-only (no GPU/network/teacher key): every config must construct an
 ExperimentConfig, carry the same-N protocol invariants, and match the G3
 "fine-tuned (1 cycle)" recipe. Decoder prompt-format identity needs no test
-here: the prep script builds the gold SFT from examples/paper/G3_<D>_materialize.yaml
+here: the prep script builds the gold SFT from examples/G3_<D>_materialize.yaml
 itself (identity by construction; covered in tests/test_prep_m5_same_n.py).
 """
-from pathlib import Path
-
 import pytest
 import yaml
 
 from promptillery.config import ExperimentConfig
 from promptillery.trainers.factory import TrainerFactory
+from _paths import PAPER_EXAMPLES as EXAMPLES
 
-EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "paper"
+pytestmark = pytest.mark.skipif(
+    not (EXAMPLES / "M5_sst2_same_n_roberta_base.yaml").exists(),
+    reason="M5 configs are not shipped in the public export",
+)
 
 ENCODER = "ettin_encoder"
-# RoBERTa's same-N cell reuses the ettin_encoder run's N;
+# RoBERTa's same-N cell reuses the ettin_encoder run's N (decision 2026-07-10);
 # same seed + same N => identical data, so it reads the ettin_encoder train file.
 ROBERTA = "roberta_base"
 DECODERS = {

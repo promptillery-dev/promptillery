@@ -314,7 +314,7 @@ def audit(
     ),
     seed: int = typer.Option(13, "--seed", help="Probe sampling seed"),
     latex: bool = typer.Option(
-        False, "--latex", help="Also print LaTeX-ready audit table rows"
+        False, "--latex", help="Also print tab:audit-ready LaTeX rows"
     ),
     output_dir: str | None = typer.Option(
         None,
@@ -480,8 +480,13 @@ def recommend(
     output_dir: str = typer.Option(
         "paper_report", "--output-dir", "-o", help="Directory for recommender tables"
     ),
+    profile_batch_size: int = typer.Option(
+        1,
+        "--profile-batch-size",
+        help="Join against profile-bsN.json instead of the single-stream profile.json",
+    ),
 ) -> None:
-    """Score each selector against the held-out oracle.
+    """Fill tab:recommender: score each selector against the held-out oracle.
 
     Runs off frozen artifacts only -- no live training, no teacher calls, no GPU.
     Emits recommender_table.csv, regret_curve.csv, and recommendation.json.
@@ -496,6 +501,8 @@ def recommend(
             Path(main_results),
             Path(profile_dir),
             expect_gpu_name=config.expect_gpu_name,
+            prices=price_table,
+            profile_batch_size=profile_batch_size,
         )
     except (KeyError, ValueError, FileNotFoundError) as exc:
         typer.echo(f"Error: {exc}", err=True)
@@ -1117,6 +1124,9 @@ def profile(
     warmup: int = typer.Option(
         5, "--warmup", help="Untimed warmup calls before measurement"
     ),
+    batch_size: int = typer.Option(
+        1, "--batch-size", help="Requests per timed call (1 = single-stream)"
+    ),
     teacher_calls: int = typer.Option(
         None,
         "--teacher-calls",
@@ -1157,6 +1167,7 @@ def profile(
             iterations=iterations,
             warmup=warmup,
             n_teacher_calls=teacher_calls,
+            batch_size=batch_size,
         )
     except (ValueError, RuntimeError) as e:
         typer.echo(f"Error: {e}", err=True)
@@ -1171,7 +1182,12 @@ def profile(
     teacher_cost = result["teacher"]["cost_per_1k_calls"]
     if teacher_cost is not None:
         typer.echo(f"teacher: ${teacher_cost:.4f} per 1K calls")
-    typer.echo(f"Profile saved to: {model_path_obj / 'profile.json'}")
+    profile_path = (
+        model_path_obj / "profile.json"
+        if batch_size == 1
+        else model_path_obj / f"profile-bs{batch_size}.json"
+    )
+    typer.echo(f"Profile saved to: {profile_path}")
 
 
 def _find_latest_model(experiment_name: str, base_dir: str) -> Path | None:

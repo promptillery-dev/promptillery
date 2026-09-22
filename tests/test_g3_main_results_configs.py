@@ -1,86 +1,89 @@
-"""G3 main-results configs parse and carry the 1K-subset protocol knobs.
+"""G3 tab:main-results configs parse and carry the 1K-subset protocol knobs.
 
 Encoders read the dataset (raw HF or normalized JSON) with a 1000/80-20 sampling
 block and cycles:[1,5,10] (ablation → runs at 1/5/10 cycles); decoders read
 materialized gold SFT and classify via canonical-label scoring with the per-cycle
 cap OFF (max_eval_generation_samples unset = full-test eval).
 """
+from pathlib import Path
+
 import yaml
 import pytest
 from promptillery.config import ExperimentConfig
 from promptillery.trainers.factory import TrainerFactory
+from _paths import PAPER_EXAMPLES
 
 G3_CONFIGS = {
-    "examples/paper/G3_agnews_ettin_encoder.yaml": {
+    "examples/G3_agnews_ettin_encoder.yaml": {
         "student_type": "transformers", "student": "jhu-clsp/ettin-encoder-150m",
         "num_classes": 4, "is_decoder": False, "hf_config": "default", "training": True},
-    "examples/paper/G3_agnews_materialize.yaml": {
+    "examples/G3_agnews_materialize.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 4, "is_decoder": False, "hf_config": "default", "materialize": True,
         "gold_answer_field": "label_text", "canonical_labels_field": "label_text"},
-    "examples/paper/G3_agnews_ettin_decoder.yaml": {
+    "examples/G3_agnews_ettin_decoder.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 4, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_agnews_gemma3_270m.yaml": {
+    "examples/G3_agnews_gemma3_270m.yaml": {
         "student_type": "slm", "student": "google/gemma-3-270m-it",
         "num_classes": 4, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_sst2_ettin_encoder.yaml": {
+    "examples/G3_sst2_ettin_encoder.yaml": {
         "student_type": "transformers", "student": "jhu-clsp/ettin-encoder-150m",
         "num_classes": 2, "is_decoder": False, "hf_config": "default", "training": True},
-    "examples/paper/G3_sst2_materialize.yaml": {
+    "examples/G3_sst2_materialize.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 2, "is_decoder": False, "hf_config": "default", "materialize": True,
         "gold_answer_field": "label_text", "canonical_labels_field": "label_text"},
-    "examples/paper/G3_sst2_ettin_decoder.yaml": {
+    "examples/G3_sst2_ettin_decoder.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 2, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_sst2_gemma3_270m.yaml": {
+    "examples/G3_sst2_gemma3_270m.yaml": {
         "student_type": "slm", "student": "google/gemma-3-270m-it",
         "num_classes": 2, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_imdb_ettin_encoder.yaml": {
+    "examples/G3_imdb_ettin_encoder.yaml": {
         "student_type": "transformers", "student": "jhu-clsp/ettin-encoder-150m",
         "num_classes": 2, "is_decoder": False, "hf_config": "plain_text", "training": True},
-    "examples/paper/G3_imdb_materialize.yaml": {
+    "examples/G3_imdb_materialize.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 2, "is_decoder": False, "hf_config": "plain_text", "materialize": True,
         "gold_answer_field": "label", "canonical_labels_field": None},
-    "examples/paper/G3_imdb_ettin_decoder.yaml": {
+    "examples/G3_imdb_ettin_decoder.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 2, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_imdb_gemma3_270m.yaml": {
+    "examples/G3_imdb_gemma3_270m.yaml": {
         "student_type": "slm", "student": "google/gemma-3-270m-it",
         "num_classes": 2, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_yahoo_ettin_encoder.yaml": {
+    "examples/G3_yahoo_ettin_encoder.yaml": {
         "student_type": "transformers", "student": "jhu-clsp/ettin-encoder-150m",
         "num_classes": 10, "is_decoder": False, "hf_config": "default", "training": True},
-    "examples/paper/G3_yahoo_materialize.yaml": {
+    "examples/G3_yahoo_materialize.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 10, "is_decoder": False, "hf_config": "default", "materialize": True,
         "gold_answer_field": "label_text", "canonical_labels_field": "label_text"},
-    "examples/paper/G3_yahoo_ettin_decoder.yaml": {
+    "examples/G3_yahoo_ettin_decoder.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 10, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_yahoo_gemma3_270m.yaml": {
+    "examples/G3_yahoo_gemma3_270m.yaml": {
         "student_type": "slm", "student": "google/gemma-3-270m-it",
         "num_classes": 10, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_huffpost_ettin_encoder.yaml": {
+    "examples/G3_huffpost_ettin_encoder.yaml": {
         "student_type": "transformers", "student": "jhu-clsp/ettin-encoder-150m",
         "num_classes": 41, "is_decoder": False, "hf_config": "default", "training": True},
-    "examples/paper/G3_huffpost_materialize.yaml": {
+    "examples/G3_huffpost_materialize.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 41, "is_decoder": False, "hf_config": "default", "materialize": True,
         "gold_answer_field": "label_text", "canonical_labels_field": "label_text"},
-    "examples/paper/G3_huffpost_ettin_decoder.yaml": {
+    "examples/G3_huffpost_ettin_decoder.yaml": {
         "student_type": "slm", "student": "jhu-clsp/ettin-decoder-150m",
         "num_classes": 41, "is_decoder": True, "hf_config": "default", "training": True},
-    "examples/paper/G3_huffpost_gemma3_270m.yaml": {
+    "examples/G3_huffpost_gemma3_270m.yaml": {
         "student_type": "slm", "student": "google/gemma-3-270m-it",
         "num_classes": 41, "is_decoder": True, "hf_config": "default", "training": True},
 }
 
 
 def _load(path):
-    with open(path) as f:
+    with open(PAPER_EXAMPLES / Path(path).name) as f:
         return ExperimentConfig(**yaml.safe_load(f))
 
 

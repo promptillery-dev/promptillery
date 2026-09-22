@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783615804-kYDSHQRx4mpzlU2GblCs",
+  "created": 1783615804,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\":\"My top-up did not go through and was canceled automatically, can you check it?\",\"label\":61},\n  {\"text\":\"Why does my recent top up keep getting reverted in the app?\",\"label\":61},\n  {\"text\":\"It says my top up was reversed\u2014what does that mean?\",\"label\":61},\n  {\"text\":\"I\u2019m not sure why my card top up didn\u2019t succeed, can you explain?\",\"label\":59},\n  {\"text\":\"Every time I try to top up, it fails. What should I do?\",\"label\":59},\n  {\"text\":\"Why are my card top-ups always getting rejected?\",\"label\":59},\n  {\"text\":\"Why did my last top-up attempt show as failed in the transaction list?\",\"label\":59},\n  {\"text\":\"My account shows a cancelled top up, but I didn\u2019t cancel it. What happened?\",\"label\":61},\n  {\"text\":\"There's a strange pending transaction on my account that I don\u2019t recognize and it won\u2019t clear. What\u2019s happening?\",\"label\":34},\n  {\"text\":\"An unfamiliar payment is still pending in my statement and I can\u2019t remember making it. Can you help?\",\"label\":34},\n  {\"text\":\"How do I dispute a pending fee I don\u2019t recognize?\",\"label\":34},\n  {\"text\":\"Can you clarify why this pending charge hasn\u2019t dropped off?\",\"label\":34},\n  {\"text\":\"Where can I see the details of why my card payment did not go through?\",\"label\":53},\n  {\"text\":\"Who can tell me why a card transaction I tried was declined?\",\"label\":53},\n  {\"text\":\"Is the reason for my failed card transaction available in my app?\",\"label\":53},\n  {\"text\":\"I want to know why my card wasn\u2019t accepted for a recent payment. Where can I find this info?\",\"label\":53},\n  {\"text\":\"Why did my card transaction just fail without any message?\",\"label\":53},\n  {\"text\":\"Can I ask for an explanation for a failed payment in my transaction history?\",\"label\":53},\n  {\"text\":\"Is there a list of possible reasons for card payment decline in the app?\",\"label\":53},\n  {\"text\":\"My payment by card got rejected, does your app specify the exact reason?\",\"label\":53},\n  {\"text\":\"Where can I deposit a cash payment?\",\"label\":58},\n  {\"text\":\"If I bring cash, can I deposit it into my account, and where?\",\"label\":58},\n  {\"text\":\"How do I make a cash or cheque deposit to my card?\",\"label\":58},\n  {\"text\":\"Is there a way to process a cash deposit into my account?\",\"label\":58},\n  {\"text\":\"Tried to deposit cash but it's not showing in my balance. Any delays expected?\",\"label\":58},\n  {\"text\":\"Is it normal for a cash or cheque deposit to take so long?\",\"label\":58},\n  {\"text\":\"How soon after depositing a cheque will it be available?\",\"label\":58},\n  {\"text\":\"What is the standard clearing time for a cheque or cash deposit in my account?\",\"label\":58},\n  {\"text\":\"Are there any reasons why a direct deposit did not clear?\",\"label\":58},\n  {\"text\":\"My cash deposit still isn\u2019t available, how do I get an update?\",\"label\":58},\n  {\"text\":\"I attempted to drop off cash at your branch but don't see it reflected yet. How long does it take?\",\"label\":58},\n  {\"text\":\"If a cheque is delayed, will I be notified in the app?\",\"label\":58}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 773,
+    "prompt_tokens": 6066,
+    "total_tokens": 6839,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.018316,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.018316,
+      "upstream_inference_prompt_cost": 0.012132,
+      "upstream_inference_completions_cost": 0.006184
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

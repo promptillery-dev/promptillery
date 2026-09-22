@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783610918-etj5iZb6CUdlysU9Plra",
+  "created": 1783610918,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  { \"text\": \"My transfer from overseas is still pending, should I be worried about delays?\", \"label\": 5 },\n  { \"text\": \"It's been hours since I sent money from my UK account and nothing has appeared\u2014can you trace the transfer?\", \"label\": 5 },\n  { \"text\": \"A transfer I initiated yesterday hasn't reached my account yet. Is there a typical waiting time for international wires?\", \"label\": 5 },\n  { \"text\": \"Why would a recent payment not show up as completed on my statement?\", \"label\": 5 },\n  { \"text\": \"I can't see a transfer in my account that was done days ago. What could be the reason for this?\", \"label\": 5 },\n  { \"text\": \"Why does my banking app not show the payment I received this morning?\", \"label\": 5 },\n  { \"text\": \"There is a difference in the exchange rate applied to my transaction versus what I saw online. Why did this happen?\", \"label\": 17 },\n  { \"text\": \"My transaction shows a different rate than what the app displayed before conversion. Can you clarify why?\", \"label\": 17 },\n  { \"text\": \"I\u2019m trying to understand why my holiday shopping was charged more because of an exchange rate\u2014please explain.\", \"label\": 17 },\n  { \"text\": \"Why did I lose money compared to expected when making an international payment?\", \"label\": 17 },\n  { \"text\": \"Can you explain the reason for a higher exchange rate fee on my recent card usage abroad?\", \"label\": 17 },\n  { \"text\": \"The rate applied to my foreign payment doesn't match your posted exchange rates, why is this?\", \"label\": 17 },\n  { \"text\": \"Why is the exchange rate so different for my international transfer compared to the currency converter?\", \"label\": 17 },\n  { \"text\": \"I do not recognize this payment on my direct debit list. Can you help me dispute it?\", \"label\": 28 },\n  { \"text\": \"There\u2019s a transaction labeled as direct debit that I didn\u2019t authorize\u2014how can I resolve this?\", \"label\": 28 },\n  { \"text\": \"How do I find out more information about an unfamiliar payment shown in my account deductions?\", \"label\": 28 },\n  { \"text\": \"I think a scammer set up a direct debit on my account. What should I do?\", \"label\": 28 },\n  { \"text\": \"My bank account history shows a payment I don't recognize; can you tell me who received it?\", \"label\": 28 },\n  { \"text\": \"There are multiple charges under my direct debits that I can't identify.\", \"label\": 28 },\n  { \"text\": \"I can't complete my transfer due to continuous errors. Can you walk me through getting it to work?\", \"label\": 27 },\n  { \"text\": \"Why does every attempt to transfer funds show a failed status? What can I do to succeed?\", \"label\": 27 },\n  { \"text\": \"My account won't allow me to make a simple transfer, keeps giving me errors\u2014how to proceed?\", \"label\": 27 },\n  { \"text\": \"Each time I try to transfer out of my savings, I get a decline message\u2014what am I missing?\", \"label\": 27 },\n  { \"text\": \"What steps do I need to follow when my money-transfer keeps being rejected by the app?\", \"label\": 27 },\n  { \"text\": \"Why do I keep getting error messages whenever I try transferring money to another bank?\", \"label\": 27 },\n  { \"text\": \"Can you check why a transfer out of my account keeps failing?\", \"label\": 27 },\n  { \"text\": \"There's an unexpected charge labeled 'fees' when transferring out funds. Is this always applied?\", \"label\": 64 },\n  { \"text\": \"Why did the system apply a fee when I transferred money to another account today?\", \"label\": 64 },\n  { \"text\": \"Am I always charged when moving money from my account to another person's bank?\", \"label\": 64 },\n  { \"text\": \"Is there supposed to be a fee every time I make a transfer from my account?\", \"label\": 64 },\n  { \"text\": \"Why do some of my transfers get extra charges while others don\u2019t?\", \"label\": 64 },\n  { \"text\": \"Are transfer service fees flat, or do they change based on amount or destination?\", \"label\": 64 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 961,
+    "prompt_tokens": 6125,
+    "total_tokens": 7086,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3584,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.014562,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.014562,
+      "upstream_inference_prompt_cost": 0.006874,
+      "upstream_inference_completions_cost": 0.007688
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

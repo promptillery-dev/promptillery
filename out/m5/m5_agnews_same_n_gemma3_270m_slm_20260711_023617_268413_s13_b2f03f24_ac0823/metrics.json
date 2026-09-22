@@ -1,0 +1,34 @@
+{
+  "0": {
+    "eval_loss": 0.18979160487651825,
+    "perplexity": 1.2089976221941683,
+    "examples": 200,
+    "exact_match": 0.86,
+    "canonical_label_count": 4,
+    "observed_gold_label_count": 4,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.8594790066564261,
+    "macro_f1_full_canonical": 0.8594790066564261,
+    "_selection_split": "validation",
+    "_run_id": "m5_agnews_same_n_gemma3_270m_slm_20260711_023617_268413_s13_b2f03f24_ac0823",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.1791170835494995,
+    "perplexity": 1.1961607867200654,
+    "examples": 7600,
+    "exact_match": 0.8478947368421053,
+    "canonical_label_count": 4,
+    "observed_gold_label_count": 4,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.8457853857181701,
+    "macro_f1_full_canonical": 0.8457853857181701,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m5_agnews_same_n_gemma3_270m_slm_20260711_023617_268413_s13_b2f03f24_ac0823"
+  }
+}
