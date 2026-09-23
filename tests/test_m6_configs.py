@@ -8,7 +8,7 @@ from _paths import PAPER_EXAMPLES as EXAMPLES, REPO_ROOT
 DATASETS = ["agnews", "sst2", "imdb", "yahoo", "huffpost"]
 STUDENTS = {"roberta_base": "FacebookAI/roberta-base",
             "ettin_encoder": "jhu-clsp/ettin-encoder-150m"}
-VARIANTS = ["ft1", "same_n", "same_n_cm", "seed_x10"]
+VARIANTS = ["ft1", "same_n", "same_n_cm", "same_n_cm_w10", "seed_x10"]
 RECIPE_KEYS = ["learning_rate", "num_train_epochs", "batch_size", "seed"]
 
 
@@ -38,6 +38,9 @@ def test_m6_config_invariants(d, v, s):
     if v in ("ft1", "same_n"):
         assert cfg.cycles == 1
         assert cfg.warmup_steps == 10
+    elif v == "same_n_cm_w10":
+        assert cfg.cycles == 10
+        assert cfg.warmup_steps == 10, "twins the corrected loop re-runs (#42, #46)"
     else:
         assert cfg.cycles == 10
         assert cfg.warmup_steps == 500, "controls mirror the promptillery arm's schedule"
@@ -62,6 +65,19 @@ def test_m6_recipe_matches_g3(d):
                 assert getattr(cfg, key) == getattr(g3, key), (d, v, s, key)
 
 
+@pytest.mark.parametrize("d,s", [(d, s) for d in DATASETS for s in STUDENTS],
+                          ids=[f"{d}-{s}" for d in DATASETS for s in STUDENTS])
+def test_m6_same_n_cm_w10_twins_same_n_cm(d, s):
+    cfg = _load(EXAMPLES / f"M6_{d}_same_n_cm_w10_{s}.yaml")
+    twin = _load(EXAMPLES / f"M6_{d}_same_n_cm_{s}.yaml")
+    assert cfg.warmup_steps == 10
+    assert cfg.cycles == 10
+    assert cfg.prompt is None
+    assert cfg.name == f"m6_{d}_same_n_cm_w10_{s}"
+    assert cfg.auto_modify_name is False
+    assert cfg.dataset_kwargs == twin.dataset_kwargs
+
+
 def test_generator_batch_override_changes_name_and_batch(tmp_path):
     import importlib.util
     spec = importlib.util.spec_from_file_location(
@@ -72,6 +88,7 @@ def test_generator_batch_override_changes_name_and_batch(tmp_path):
     assert cfg["name"] == "m6_sst2_ft1_roberta_base_bs8"
     assert cfg["batch_size"] == 8
     assert gen.parse_name("m6_sst2_same_n_cm_ettin_encoder") == ("sst2", "same_n_cm", "ettin_encoder")
+    assert gen.parse_name("m6_sst2_same_n_cm_w10_ettin_encoder") == ("sst2", "same_n_cm_w10", "ettin_encoder")
     assert gen.build("ft1", "sst2", "roberta_base", EXAMPLES, seed=7)["name"] == "m6_sst2_ft1_roberta_base_s7"
     assert gen.build("ft1", "sst2", "roberta_base", EXAMPLES, batch_size=8, seed=7)["name"] == \
         "m6_sst2_ft1_roberta_base_bs8_s7"
@@ -86,6 +103,19 @@ def test_g3_roberta_rerun_config(d):
     assert cfg.warmup_steps == 10
     assert cfg.cycles == [1, 5, 10]
     assert cfg.prompt == g3.prompt
+
+
+@pytest.mark.parametrize("d", DATASETS)
+def test_g3_ettin_w10_rerun_config(d):
+    cfg = _load(EXAMPLES / f"G3_{d}_ettin_encoder_w10.yaml")
+    g3 = _load(EXAMPLES / f"G3_{d}_ettin_encoder.yaml")
+    assert cfg.student == "jhu-clsp/ettin-encoder-150m"
+    assert cfg.warmup_steps == 10
+    assert cfg.cycles == [1, 5, 10]
+    assert cfg.prompt == g3.prompt
+    assert cfg.dataset == g3.dataset
+    assert cfg.dataset_kwargs == g3.dataset_kwargs
+    assert cfg.name == f"g3_{d}_ettin_encoder_w10"
 
 
 def test_verifier_config_is_gold_only():

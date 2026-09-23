@@ -1,0 +1,28 @@
+{
+  "model": "jhu-clsp/ettin-encoder-150m",
+  "student_type": "transformers",
+  "dataset": "PolyAI/banking77",
+  "hardware": {
+    "device": "cuda",
+    "gpu_name": "NVIDIA H100 PCIe",
+    "cpu": "x86_64",
+    "torch_version": "2.7.1+cu126"
+  },
+  "measurement": {
+    "n_iterations": 50,
+    "warmup": 5,
+    "latency_batch_size": 8
+  },
+  "student": {
+    "p50_latency_ms": 14.994934026617557,
+    "p95_latency_ms": 15.465572470566258,
+    "mean_latency_ms": 14.93818148272112,
+    "throughput_calls_per_sec": 535.5404209845448
+  },
+  "teacher": {
+    "model": "openrouter/openai/gpt-4.1",
+    "estimated_cost": 0.167818,
+    "n_calls": null,
+    "cost_per_1k_calls": null
+  }
+}

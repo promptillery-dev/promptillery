@@ -1,0 +1,30 @@
+{
+  "0": {
+    "accuracy": 0.885,
+    "f1": 0.882051282051282,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_ft1_roberta_base_s21_20260922_182916_945391_s21_f3d859c5_e53333",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.8978583196046128,
+    "f1": 0.8952702702702703,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m6_sst2_ft1_roberta_base_s21_20260922_182916_945391_s21_f3d859c5_e53333"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

@@ -311,6 +311,14 @@ class ExperimentConfig(BaseModel):
     # Training hyperparameters - can be single value or list for ablations
     learning_rate: Union[float, List[float]] = 2e-5
     batch_size: Union[int, List[int]] = 16
+    eval_batch_size: int = Field(
+        default=64,
+        ge=1,
+        description=(
+            "Batch size for evaluation/prediction passes; independent of "
+            "batch_size, never reduced by the out-of-memory ladder"
+        ),
+    )
     num_train_epochs: Union[int, List[int]] = 3
     warmup_steps: Union[int, List[int]] = 500
     weight_decay: Union[float, List[float]] = 0.01

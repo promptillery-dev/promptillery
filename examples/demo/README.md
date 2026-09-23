@@ -16,8 +16,8 @@ from `out/g2`) and `banking77/profiles/` (latency and throughput on one RTX 4090
 scores the recommender against always-the-best-encoder, random, and a volume
 threshold; `figures/regret_curve_banking77.pdf` plots dollars lost vs. volume.
 
-Change `primary_target` in `targets.yaml` (for example `volume: 10000`) and re-run
-to watch the pick flip to the teacher below the break-even volume.
+Change `primary_target` in `targets.yaml` (for example `volume: 100`) and re-run:
+below the break-even volume of 237 calls the answer flips to keep calling the teacher.
 
 One real training cycle with a teacher key (costs cents): `uv run promptillery train examples/demo/sst2_encoder_live.yaml`.
 The audit on that run: `uv run promptillery audit out/demo/demo_sst2_encoder_live_*`.

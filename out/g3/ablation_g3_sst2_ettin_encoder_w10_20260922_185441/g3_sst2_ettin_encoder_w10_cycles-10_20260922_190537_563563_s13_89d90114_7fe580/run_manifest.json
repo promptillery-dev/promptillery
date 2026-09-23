@@ -1,0 +1,174 @@
+{
+  "action_space": {
+    "action_space_id": "42aa62de56d4",
+    "batch_sizes": [
+      16,
+      32,
+      64
+    ],
+    "include_stop": true,
+    "prompt_operators": [
+      "coverage",
+      "boundary",
+      "repair"
+    ],
+    "teacher_tiers": [
+      "cheap",
+      "strong"
+    ]
+  },
+  "artifact_paths": {
+    "heldout_metrics": "metrics.json#heldout_test",
+    "metrics": "metrics.json",
+    "policy_decisions": "policy_decisions.jsonl",
+    "teacher_attempts": "teacher_attempts.jsonl",
+    "token_usage": "token_usage.json"
+  },
+  "artifact_schema_versions": {
+    "policy_decisions": 1,
+    "run_manifest": 3,
+    "teacher_attempts": 1
+  },
+  "config_hash": "89d90114bd264a00a39b2760f8b7d7ef51d3577d03a379d4aaae0c5cc6251008",
+  "control_name": null,
+  "cycles_completed": 10,
+  "dataset": "SetFit/sst2",
+  "dataset_revision": null,
+  "dataset_subset": "default",
+  "error": null,
+  "expected_cycles": 10,
+  "final_synthetic_count": 288,
+  "heldout_split": "test",
+  "method_name": "fixed_promptillery",
+  "paper_mode": false,
+  "policy_controller": {
+    "controller_type": "legacy_fixed_promptillery",
+    "policy_name": "fixed_promptillery"
+  },
+  "policy_family": "fixed_promptillery",
+  "policy_name": "fixed_promptillery",
+  "reproducibility": {
+    "artifact_dir": "out/g3/ablation_g3_sst2_ettin_encoder_w10_20260922_185441/g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "config_provenance": {
+      "resolved_sha256": "89d90114bd264a00a39b2760f8b7d7ef51d3577d03a379d4aaae0c5cc6251008",
+      "run_copy_path": "out/g3/ablation_g3_sst2_ettin_encoder_w10_20260922_185441/g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580/experiment_config.yaml",
+      "run_copy_sha256": "7ca9e00c486027befa88094bb98fb25f97f56645442271a3f9d8b0b6108e0436",
+      "source_path": null,
+      "source_sha256": null
+    },
+    "created_at": "2026-09-22T19:09:16.743660+00:00",
+    "dataset_source": {
+      "dataset": "SetFit/sst2",
+      "load_kwargs": {},
+      "revision": null,
+      "subset": "default"
+    },
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "1"
+    },
+    "hardware": {
+      "cpu_count": 240,
+      "torch": {
+        "available": true,
+        "cuda_available": true,
+        "cuda_device_count": 1,
+        "cuda_devices": [
+          "NVIDIA H100 PCIe"
+        ],
+        "cuda_version": "12.6",
+        "cudnn_version": 90501,
+        "mps_available": false,
+        "version": "2.7.1+cu126"
+      }
+    },
+    "models": {
+      "student": {
+        "name": "jhu-clsp/ettin-encoder-150m",
+        "revision": null,
+        "tokenizer_revision": null
+      },
+      "teacher": {
+        "name": "openrouter/openai/gpt-4.1",
+        "policy_teacher_tiers": {},
+        "revision": null
+      }
+    },
+    "runtime": {
+      "lockfiles": {
+        "pyproject.toml": "ecd6a49a3db6d90f0f1fd4e12e3aaf62b0a9e89319ff720b26d6aaa8d6464afe",
+        "uv.lock": "89ee24ef4705f191322295f8618f33388035b4b061f7ce1d7be3ed2daf374a2e"
+      },
+      "packages": {
+        "PyYAML": "6.0.2",
+        "accelerate": "1.8.1",
+        "datasets": "3.6.0",
+        "evaluate": "0.4.4",
+        "litellm": "1.73.6",
+        "numpy": "2.3.1",
+        "pandas": "2.3.0",
+        "peft": "0.19.1",
+        "promptillery": "0.1.0",
+        "pydantic": "2.11.7",
+        "scikit-learn": "1.7.0",
+        "torch": "2.7.1",
+        "transformers": "4.57.6",
+        "typer": "0.16.0"
+      },
+      "platform": {
+        "machine": "x86_64",
+        "platform": "Linux-5.15.0-186-generic-x86_64-with-glibc2.35",
+        "processor": "x86_64",
+        "system": "Linux"
+      },
+      "python": {
+        "executable": "/mnt/big/mrshu/promptillery-dev/.venv/bin/python3",
+        "implementation": "CPython",
+        "version": "3.12.7 (main, Oct 16 2024, 04:37:19) [Clang 18.1.8 ]"
+      }
+    },
+    "schema_version": 1,
+    "source_control": {
+      "package": {
+        "available": true,
+        "branch": "resubmit/eacl2027-demo",
+        "head_sha": "6fabbcffce911fef1113380d87e2907d4515ab2d",
+        "is_dirty": false,
+        "path": "/mnt/big/mrshu/promptillery-dev",
+        "repo_root": "/mnt/big/mrshu/promptillery-dev",
+        "status_entries": []
+      },
+      "workspace": {
+        "available": false,
+        "error": "CalledProcessError: Command '['git', 'rev-parse', '--show-toplevel']' returned non-zero exit status 128.",
+        "path": "/mnt/big/mrshu"
+      }
+    }
+  },
+  "run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+  "schema_version": 3,
+  "seed": 13,
+  "selection_split": "validation",
+  "status": "completed",
+  "student_model": "jhu-clsp/ettin-encoder-150m",
+  "student_revision": null,
+  "student_type": "transformers",
+  "synthetic_record_budget": null,
+  "task_name": "g3_sst2_ettin_encoder_w10_cycles-10",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "teacher_revision": null,
+  "token_budget": 20000000,
+  "tokenizer_revision": null,
+  "training_seconds": 123.257,
+  "training_seconds_by_cycle": [
+    13.61,
+    10.661,
+    12.208,
+    11.248,
+    12.488,
+    11.643,
+    13.475,
+    12.958,
+    12.312,
+    12.654
+  ]
+}

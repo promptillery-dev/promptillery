@@ -1,0 +1,422 @@
+[
+  {
+    "dataset": "agnews",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.8947368421052632,
+    "f1": 0.8944566528117853,
+    "run_id": "m6_agnews_ft1_roberta_base_bs16_20260922_144232_254762_s13_7f957e1f_5ac991"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "same_n",
+    "student": "roberta_base",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.8967105263157895,
+    "f1": 0.8967515370674077,
+    "run_id": "m6_agnews_same_n_roberta_base_bs16_20260922_144551_454568_s13_603c3462_592c61"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.9022515101592532,
+    "f1": 0.9020902090209021,
+    "run_id": "m6_sst2_ft1_roberta_base_20260922_144942_621819_s13_fbb179a3_7c033b"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "same_n",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.9066447007138935,
+    "f1": 0.9036281179138322,
+    "run_id": "m6_sst2_same_n_roberta_base_20260922_145025_927729_s13_4f9ccd8d_717259"
+  },
+  {
+    "dataset": "imdb",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.93204,
+    "f1": 0.9325873903900329,
+    "run_id": "m6_imdb_ft1_roberta_base_bs16_20260922_145133_458172_s13_f12d3dd7_b9f672"
+  },
+  {
+    "dataset": "imdb",
+    "variant": "same_n",
+    "student": "roberta_base",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.92236,
+    "f1": 0.9251590514748409,
+    "run_id": "m6_imdb_same_n_roberta_base_bs16_20260922_150540_925061_s13_24ea28ed_170771"
+  },
+  {
+    "dataset": "yahoo",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.6521666666666667,
+    "f1": 0.6343498284262865,
+    "run_id": "m6_yahoo_ft1_roberta_base_bs16_20260922_152049_997880_s13_c843239f_763cc2"
+  },
+  {
+    "dataset": "yahoo",
+    "variant": "same_n",
+    "student": "roberta_base",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.6784166666666667,
+    "f1": 0.6685821079324132,
+    "run_id": "m6_yahoo_same_n_roberta_base_bs16_20260922_154239_245196_s13_621ce14c_bfcf5c"
+  },
+  {
+    "dataset": "huffpost",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.33045346062052505,
+    "f1": 0.04719129424885396,
+    "run_id": "m6_huffpost_ft1_roberta_base_20260922_160158_027133_s13_9bae5e92_97d7b7"
+  },
+  {
+    "dataset": "huffpost",
+    "variant": "same_n",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.36591885441527444,
+    "f1": 0.06785740889555261,
+    "run_id": "m6_huffpost_same_n_roberta_base_20260922_160443_561912_s13_f51004ac_8f124a"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "ft1",
+    "student": "ettin_encoder",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.8688157894736842,
+    "f1": 0.8680233327371628,
+    "run_id": "m6_agnews_ft1_ettin_encoder_bs16_20260922_164807_871141_s13_8ae1cfe7_d24093"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "same_n",
+    "student": "ettin_encoder",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.876578947368421,
+    "f1": 0.877009404382052,
+    "run_id": "m6_agnews_same_n_ettin_encoder_bs16_20260922_165202_907133_s13_3f743196_6154a9"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "ft1",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.827567270730368,
+    "f1": 0.8359456635318704,
+    "run_id": "m6_sst2_ft1_ettin_encoder_20260922_165624_414203_s13_5aca9e67_0374f8"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "same_n",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.8769906644700713,
+    "f1": 0.881104033970276,
+    "run_id": "m6_sst2_same_n_ettin_encoder_20260922_165711_893819_s13_501c5846_aeb47c"
+  },
+  {
+    "dataset": "yahoo",
+    "variant": "ft1",
+    "student": "ettin_encoder",
+    "batch_size": 8,
+    "seed": 13,
+    "accuracy": 0.6045833333333334,
+    "f1": 0.6025542380700445,
+    "run_id": "m6_yahoo_ft1_ettin_encoder_bs8_20260922_165840_218565_s13_5928b25c_186266"
+  },
+  {
+    "dataset": "yahoo",
+    "variant": "same_n",
+    "student": "ettin_encoder",
+    "batch_size": 8,
+    "seed": 13,
+    "accuracy": 0.6287,
+    "f1": 0.6263220997381655,
+    "run_id": "m6_yahoo_same_n_ettin_encoder_bs8_20260922_173553_011230_s13_377027ff_2672c0"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "same_n_cm",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.9005263157894737,
+    "f1": 0.9002571743642453,
+    "run_id": "m6_agnews_same_n_cm_roberta_base_20260922_175100_428383_s13_ec3d639b_b25a92"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "same_n_cm",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.9077429983525536,
+    "f1": 0.9101604278074866,
+    "run_id": "m6_sst2_same_n_cm_roberta_base_20260922_175852_278797_s13_96c91a6e_84db18"
+  },
+  {
+    "dataset": "imdb",
+    "variant": "same_n_cm",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.93104,
+    "f1": 0.9314021964029922,
+    "run_id": "m6_imdb_same_n_cm_roberta_base_20260922_180136_525040_s13_eae8b97c_3277e0"
+  },
+  {
+    "dataset": "huffpost",
+    "variant": "ft1",
+    "student": "ettin_encoder",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.35957040572792365,
+    "f1": 0.09922812384567471,
+    "run_id": "m6_huffpost_ft1_ettin_encoder_bs16_20260922_181356_752495_s13_74756520_ce1795"
+  },
+  {
+    "dataset": "yahoo",
+    "variant": "same_n_cm",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.6736333333333333,
+    "f1": 0.666874375105384,
+    "run_id": "m6_yahoo_same_n_cm_roberta_base_20260922_181723_705303_s13_ea518b2a_63d459"
+  },
+  {
+    "dataset": "huffpost",
+    "variant": "same_n",
+    "student": "ettin_encoder",
+    "batch_size": 16,
+    "seed": 13,
+    "accuracy": 0.39556085918854417,
+    "f1": 0.13876538838356747,
+    "run_id": "m6_huffpost_same_n_ettin_encoder_bs16_20260922_181826_738385_s13_0f934782_5ff581"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 7,
+    "accuracy": 0.8978583196046128,
+    "f1": 0.9014830508474576,
+    "run_id": "m6_sst2_ft1_roberta_base_s7_20260922_182839_444220_s7_c49739f4_97a010"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 21,
+    "accuracy": 0.8978583196046128,
+    "f1": 0.8952702702702703,
+    "run_id": "m6_sst2_ft1_roberta_base_s21_20260922_182916_945391_s21_f3d859c5_e53333"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 16,
+    "seed": 7,
+    "accuracy": 0.8988157894736842,
+    "f1": 0.8985901797410997,
+    "run_id": "m6_agnews_ft1_roberta_base_bs16_s7_20260922_183008_739989_s7_9a3fe9d2_d5a45f"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "ft1",
+    "student": "roberta_base",
+    "batch_size": 16,
+    "seed": 21,
+    "accuracy": 0.8968421052631579,
+    "f1": 0.8964347869501744,
+    "run_id": "m6_agnews_ft1_roberta_base_bs16_s21_20260922_183258_394818_s21_884f5083_87c2bd"
+  },
+  {
+    "dataset": "huffpost",
+    "variant": "same_n_cm",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.5220047732696897,
+    "f1": 0.21411129237004126,
+    "run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "same_n_cm",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.8610526315789474,
+    "f1": 0.8609755389358533,
+    "run_id": "m6_agnews_same_n_cm_ettin_encoder_20260922_183933_068014_s13_d7a1e3c2_9ace99"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "same_n_cm",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.8396485447556288,
+    "f1": 0.8421621621621621,
+    "run_id": "m6_sst2_same_n_cm_ettin_encoder_20260922_185015_098637_s13_2925d59c_44a046"
+  },
+  {
+    "dataset": "imdb",
+    "variant": "same_n_cm",
+    "student": "ettin_encoder",
+    "batch_size": 8,
+    "seed": 13,
+    "accuracy": 0.92904,
+    "f1": 0.9292607065954223,
+    "run_id": "m6_imdb_same_n_cm_ettin_encoder_bs8_20260922_185426_482593_s13_df42d8a4_1ad1bd"
+  },
+  {
+    "dataset": "yahoo",
+    "variant": "same_n_cm",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.5372666666666667,
+    "f1": 0.5360344124659886,
+    "run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9"
+  },
+  {
+    "dataset": "huffpost",
+    "variant": "same_n_cm",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.3639140811455847,
+    "f1": 0.14506675499711222,
+    "run_id": "m6_huffpost_same_n_cm_ettin_encoder_20260922_220147_017588_s13_f089013b_c3e61e"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "same_n_cm_w10",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.871578947368421,
+    "f1": 0.8717489709962322,
+    "run_id": "m6_agnews_same_n_cm_w10_roberta_base_20260922_230500_192723_s13_a27b6bfa_68ee54"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "same_n_cm_w10",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.9137836353651839,
+    "f1": 0.9132117191818684,
+    "run_id": "m6_sst2_same_n_cm_w10_roberta_base_20260922_231241_582428_s13_a2c5ead0_136e76"
+  },
+  {
+    "dataset": "imdb",
+    "variant": "same_n_cm_w10",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.93216,
+    "f1": 0.9325163138628044,
+    "run_id": "m6_imdb_same_n_cm_w10_roberta_base_20260922_231524_676830_s13_7ea5af4b_5f3b01"
+  },
+  {
+    "dataset": "yahoo",
+    "variant": "same_n_cm_w10",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.66865,
+    "f1": 0.6661099376747088,
+    "run_id": "m6_yahoo_same_n_cm_w10_roberta_base_20260922_233105_560406_s13_608a1b32_ed8c6d"
+  },
+  {
+    "dataset": "huffpost",
+    "variant": "same_n_cm_w10",
+    "student": "roberta_base",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.5616706443914081,
+    "f1": 0.39936051754175944,
+    "run_id": "m6_huffpost_same_n_cm_w10_roberta_base_20260922_234703_153122_s13_b092ec53_842b81"
+  },
+  {
+    "dataset": "agnews",
+    "variant": "same_n_cm_w10",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.8757894736842106,
+    "f1": 0.8751910555159602,
+    "run_id": "m6_agnews_same_n_cm_w10_ettin_encoder_20260922_235307_426397_s13_86a575e5_054557"
+  },
+  {
+    "dataset": "sst2",
+    "variant": "same_n_cm_w10",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.8967600219659527,
+    "f1": 0.8994652406417112,
+    "run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51"
+  },
+  {
+    "dataset": "imdb",
+    "variant": "same_n_cm_w10",
+    "student": "ettin_encoder",
+    "batch_size": 8,
+    "seed": 13,
+    "accuracy": 0.92728,
+    "f1": 0.9286219081272085,
+    "run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6"
+  },
+  {
+    "dataset": "yahoo",
+    "variant": "same_n_cm_w10",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.62475,
+    "f1": 0.6174968952722855,
+    "run_id": "m6_yahoo_same_n_cm_w10_ettin_encoder_20260923_024801_223099_s13_9ede12d5_fc1c5e"
+  },
+  {
+    "dataset": "huffpost",
+    "variant": "same_n_cm_w10",
+    "student": "ettin_encoder",
+    "batch_size": 32,
+    "seed": 13,
+    "accuracy": 0.4467780429594272,
+    "f1": 0.23173944753050746,
+    "run_id": "m6_huffpost_same_n_cm_w10_ettin_encoder_20260923_031506_202947_s13_befd33ff_32f8d6"
+  }
+]

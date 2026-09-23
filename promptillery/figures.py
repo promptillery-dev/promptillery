@@ -16,6 +16,9 @@ def _load_pyplot():
         import matplotlib
 
         matplotlib.use("Agg")
+        # Embed TrueType (Type 42) fonts: venues flag Type 3 fonts in PDFs.
+        matplotlib.rcParams["pdf.fonttype"] = 42
+        matplotlib.rcParams["ps.fonttype"] = 42
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover - exercised by CLI users
         raise RuntimeError(
@@ -156,6 +159,22 @@ def _plot_quality_cost(
     return paths
 
 
+# Paper names (Table tab:recommender) and styles that stay distinct in
+# greyscale: the zero-regret policies overlap, so each gets its own marker.
+_REGRET_SELECTORS: dict[str, dict[str, Any]] = {
+    "expert_default": {"label": "Best encoder", "color": "#0072B2", "marker": "s",
+                       "linestyle": "-", "markersize": 7, "markerfacecolor": "none"},
+    "random": {"label": "Random student", "color": "#E69F00", "marker": "^",
+               "linestyle": "--", "markersize": 5},
+    "volume_threshold": {"label": "Volume threshold", "color": "#CC79A7", "marker": "v",
+                         "linestyle": "-.", "markersize": 5},
+    "recommender_rules": {"label": "Recommender (fixed)", "color": "#009E73",
+                          "marker": "o", "linestyle": "-", "markersize": 4},
+    "recommender_budget_search": {"label": "Recommender (search)", "color": "#000000",
+                                  "marker": "x", "linestyle": ":", "markersize": 5},
+}
+
+
 def _plot_regret_curve(
     rows: list[dict[str, str]],
     output_dir: Path,
@@ -175,26 +194,34 @@ def _plot_regret_curve(
         selector = row.get("selector") or "selector"
         by_dataset[dataset][selector].append((volume, regret))
 
+    order = list(_REGRET_SELECTORS)
     paths: list[Path] = []
     for dataset, by_selector in sorted(by_dataset.items()):
-        fig, ax = plt.subplots(figsize=(7.0, 4.2))
+        fig, ax = plt.subplots(figsize=(3.4, 2.4))
         plotted = False
-        for selector, points in sorted(by_selector.items()):
-            points = sorted(points)
+        selectors = sorted(
+            by_selector, key=lambda s: (order.index(s) if s in order else len(order), s)
+        )
+        for selector in selectors:
+            points = sorted(by_selector[selector])
             if not points:
                 continue
             xs, ys = zip(*points)
-            ax.plot(xs, ys, marker="o", linewidth=1.5, label=selector)
+            style = dict(_REGRET_SELECTORS.get(selector, {"label": selector, "marker": "o"}))
+            ax.plot(xs, ys, linewidth=1.2, **style)
             plotted = True
         if not plotted:
             plt.close(fig)
             continue
         ax.set_xscale("log")
-        ax.set_title(f"Deployment regret vs. volume: {dataset}")
-        ax.set_xlabel("Inference volume (calls)")
-        ax.set_ylabel("Regret (USD vs. held-out oracle)")
+        # Linear below $1 so zero regret stays on the axis, log above it.
+        ax.set_yscale("symlog", linthresh=1.0)
+        ax.set_ylim(bottom=-0.3)
+        ax.set_xlabel("Monthly volume (calls)", fontsize=8)
+        ax.set_ylabel("Regret vs. oracle (USD)", fontsize=8)
+        ax.tick_params(labelsize=7)
         ax.grid(alpha=0.25)
-        ax.legend(fontsize=7, ncol=2)
+        ax.legend(fontsize=6.5, loc="upper left", frameon=False)
         paths.append(_save(fig, output_dir, f"regret_curve_{_slug(dataset)}", fmt))
         plt.close(fig)
     return paths

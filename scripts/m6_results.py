@@ -20,10 +20,22 @@ VARIANT_LABEL = {
     "ft1": "\\quad \\textbf{fine-tuned} (1 cycle)",
     "same_n": "\\quad \\textbf{same-$N$ gold FT}",
     "same_n_cm": "\\quad \\textbf{same-$N$ gold FT}, compute-matched",
+    "same_n_cm_w10": "\\quad \\textbf{same-$N$ gold FT}, compute-matched (warm-up 10)",
     "seed_x10": "\\quad \\textbf{seed-only} $\\times$10 rounds",
 }
 PROTOCOL_BATCH = 32
-_NAME = re.compile(r"^m6_(?P<d>[a-z0-9]+)_(?P<v>ft1|same_n_cm|same_n|seed_x10)_(?P<s>roberta_base|ettin_encoder)(?:_bs(?P<bs>\d+))?(?:_s(?P<seed>\d+))?$")
+_NAME = re.compile(r"^m6_(?P<d>[a-z0-9]+)_(?P<v>ft1|same_n_cm_w10|same_n_cm|same_n|seed_x10)_(?P<s>roberta_base|ettin_encoder)(?:_bs(?P<bs>\d+))?(?:_s(?P<seed>\d+))?$")
+_STAMP = re.compile(r"_(\d{8}_\d{6}_\d{6})_s")
+
+
+def _stamp_key(run_id: str) -> str:
+    """The run-id's timestamp component, for sorting by when the run happened.
+
+    Falls back to the run-id itself if unparsable, so unrecognized names still
+    sort deterministically (just not by time).
+    """
+    m = _STAMP.search(run_id)
+    return m.group(1) if m else run_id
 
 
 def collect(out_root: Path) -> list[dict]:
@@ -46,9 +58,11 @@ def collect(out_root: Path) -> list[dict]:
             "accuracy": float(heldout["accuracy"]), "f1": float(heldout.get("f1", 0.0)),
             "run_id": run_dir.name,
         })
-    # latest run per cell wins (sorted by run dir name = timestamp)
+    # latest run per cell wins, by the timestamp parsed from the run-id (a
+    # `_bsN` suffix inserted before the stamp would otherwise always sort
+    # after the un-suffixed name regardless of when either run happened)
     latest = {}
-    for r in rows:
+    for r in sorted(rows, key=lambda r: _stamp_key(r["run_id"])):
         latest[(r["dataset"], r["variant"], r["student"], r["seed"])] = r
     return list(latest.values())
 
@@ -91,14 +105,21 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--out-root", default="out/m6")
     p.add_argument("--docs", default="docs")
+    p.add_argument("--force-comment", action="store_true",
+                    help="Overwrite docs/M6_ISSUE_COMMENT.md even if it already exists "
+                         "(by default it is written only once, since hand-backs append a "
+                         "hand-written Deviations section to it that a plain regeneration "
+                         "would otherwise erase)")
     args = p.parse_args(argv)
     rows = collect(Path(args.out_root))
     docs = Path(args.docs)
     (docs / "M6_RESULTS.md").write_text(markdown(rows))
     (docs / "M6_RESULTS.json").write_text(json.dumps(rows, indent=2))
     (docs / "M6_TABLE2_ROWS.tex").write_text(table2_rows(rows))
-    comment = markdown(rows) + "\n```latex\n" + table2_rows(rows) + "```\n"
-    (docs / "M6_ISSUE_COMMENT.md").write_text(comment)
+    comment_path = docs / "M6_ISSUE_COMMENT.md"
+    if args.force_comment or not comment_path.exists():
+        comment = markdown(rows) + "\n```latex\n" + table2_rows(rows) + "```\n"
+        comment_path.write_text(comment)
     print(markdown(rows))
     print(table2_rows(rows))
     return 0

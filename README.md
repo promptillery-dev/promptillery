@@ -20,6 +20,8 @@
 
 Promptillery is a config-driven framework and CLI for distilling knowledge from large language models (LLMs) into compact deployment-ready models. It supports iterative teacher-in-the-loop classifier training and pre-materialized causal-LM SFT experiments.
 
+**Walkthrough video (2.5 min):** [promptillery-dev.github.io/walkthrough.mp4](https://promptillery-dev.github.io/walkthrough.mp4)
+
 **Key Features:**
 
 - ⚙️ The **entire workflow is defined via YAML** -- no code required
@@ -628,6 +630,7 @@ promptillery profile <config_file> [--model-path <path>] [--split <split>] [--de
 - `--warmup`: Untimed warmup calls before measurement (default: 5)
 - `--teacher-calls`: Teacher call count to amortize teacher cost over, for the cost-per-1K figure. Omit to report latency/throughput without a teacher $ figure.
 - `--base-dir`, `-d`: Base directory to search for experiment outputs (default: current directory)
+- `--batch-size`: Requests per timed call (default: 1, single-stream). `> 1` times batched calls instead and writes the result to `profile-bsN.json` next to `profile.json`, rather than overwriting it.
 
 **Examples:**
 
@@ -734,6 +737,10 @@ runs from a fresh clone. `recommendation.json` reports the pick for the
 primary target in `targets.yaml`, its dollar cost against calling the
 teacher, and the break-even call volume.
 
+`--profile-batch-size N` (default: 1) joins against `profile-bsN.json`
+instead of the single-stream `profile.json`, to score cells at a batched
+serving throughput.
+
 ## Ablation Studies
 
 Promptillery supports ablation studies for systematic hyperparameter testing. Simply use lists for any parameter you want to vary:
@@ -833,6 +840,7 @@ Any configuration parameter can be varied:
 - `augmentation_batch_size`: Number of synthetic samples per augmentation cycle
 - `learning_rate`: Learning rate (default: 2e-5)
 - `batch_size`: Training batch size (default: 16)
+- `eval_batch_size`: Batch size for evaluation/prediction passes (default: 64); independent of `batch_size` and never lowered by the out-of-memory ladder
 - `num_train_epochs`: Number of training epochs (default: 3)
 - `warmup_steps`: Warmup steps (default: 500)
 - `weight_decay`: Weight decay (default: 0.01)

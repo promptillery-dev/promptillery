@@ -1,0 +1,20 @@
+{
+  "0": {
+    "accuracy": 0.895,
+    "f1": 0.8944723618090452,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_roberta_base_20260922_145025_927729_s13_4f9ccd8d_717259",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.9066447007138935,
+    "f1": 0.9036281179138322,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m6_sst2_same_n_roberta_base_20260922_145025_927729_s13_4f9ccd8d_717259"
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "0": {
+    "accuracy": 0.88,
+    "f1": 0.875,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.89,
+    "f1": 0.8942307692307693,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 5620,
+    "_teacher_output_tokens_at_eval": 1687,
+    "_teacher_tokens_at_eval": 7307,
+    "_teacher_cost_at_eval": 0.024736
+  },
+  "2": {
+    "accuracy": 0.86,
+    "f1": 0.8426966292134831,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 10698,
+    "_teacher_output_tokens_at_eval": 3412,
+    "_teacher_tokens_at_eval": 14110,
+    "_teacher_cost_at_eval": 0.048692
+  },
+  "3": {
+    "accuracy": 0.925,
+    "f1": 0.9253731343283582,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 14223,
+    "_teacher_output_tokens_at_eval": 4775,
+    "_teacher_tokens_at_eval": 18998,
+    "_teacher_cost_at_eval": 0.066646
+  },
+  "4": {
+    "accuracy": 0.91,
+    "f1": 0.90625,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 17699,
+    "_teacher_output_tokens_at_eval": 6409,
+    "_teacher_tokens_at_eval": 24108,
+    "_teacher_cost_at_eval": 0.08667
+  },
+  "5": {
+    "accuracy": 0.895,
+    "f1": 0.896551724137931,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 24232,
+    "_teacher_output_tokens_at_eval": 8134,
+    "_teacher_tokens_at_eval": 32366,
+    "_teacher_cost_at_eval": 0.113536
+  },
+  "6": {
+    "accuracy": 0.93,
+    "f1": 0.93,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 26214,
+    "_teacher_output_tokens_at_eval": 9769,
+    "_teacher_tokens_at_eval": 35983,
+    "_teacher_cost_at_eval": 0.13058
+  },
+  "7": {
+    "accuracy": 0.92,
+    "f1": 0.9207920792079208,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 28600,
+    "_teacher_output_tokens_at_eval": 11385,
+    "_teacher_tokens_at_eval": 39985,
+    "_teacher_cost_at_eval": 0.14828
+  },
+  "8": {
+    "accuracy": 0.925,
+    "f1": 0.9238578680203046,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 30917,
+    "_teacher_output_tokens_at_eval": 12846,
+    "_teacher_tokens_at_eval": 43763,
+    "_teacher_cost_at_eval": 0.164602
+  },
+  "9": {
+    "accuracy": 0.905,
+    "f1": 0.9054726368159204,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c",
+    "_teacher_input_tokens_at_eval": 34041,
+    "_teacher_output_tokens_at_eval": 14546,
+    "_teacher_tokens_at_eval": 48587,
+    "_teacher_cost_at_eval": 0.18445
+  },
+  "heldout_test": {
+    "accuracy": 0.93328,
+    "f1": 0.9329635881360019,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-10_20260922_201756_134030_s13_8aeb56cf_005a9c"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.18445,
+    "total_tokens": 48587,
+    "total_cycles": 10
+  }
+}

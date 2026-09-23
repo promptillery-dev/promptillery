@@ -1,0 +1,110 @@
+{
+  "0": {
+    "accuracy": 0.91,
+    "f1": 0.9117647058823529,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.88,
+    "f1": 0.8878504672897196,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "2": {
+    "accuracy": 0.935,
+    "f1": 0.9333333333333333,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "3": {
+    "accuracy": 0.925,
+    "f1": 0.926829268292683,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "4": {
+    "accuracy": 0.93,
+    "f1": 0.9292929292929293,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "5": {
+    "accuracy": 0.935,
+    "f1": 0.9326424870466321,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "6": {
+    "accuracy": 0.92,
+    "f1": 0.9191919191919192,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "7": {
+    "accuracy": 0.935,
+    "f1": 0.9353233830845771,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "8": {
+    "accuracy": 0.91,
+    "f1": 0.9081632653061225,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "9": {
+    "accuracy": 0.935,
+    "f1": 0.9353233830845771,
+    "_selection_split": "validation",
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.92728,
+    "f1": 0.9286219081272085,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6"
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "action_space": {
+    "action_space_id": "42aa62de56d4",
+    "batch_sizes": [
+      16,
+      32,
+      64
+    ],
+    "include_stop": true,
+    "prompt_operators": [
+      "coverage",
+      "boundary",
+      "repair"
+    ],
+    "teacher_tiers": [
+      "cheap",
+      "strong"
+    ]
+  },
+  "artifact_paths": {
+    "heldout_metrics": "metrics.json#heldout_test",
+    "metrics": "metrics.json",
+    "policy_decisions": "policy_decisions.jsonl",
+    "teacher_attempts": "teacher_attempts.jsonl",
+    "token_usage": "token_usage.json"
+  },
+  "artifact_schema_versions": {
+    "policy_decisions": 1,
+    "run_manifest": 3,
+    "teacher_attempts": 1
+  },
+  "config_hash": "53948018407a349fb076ea1f27a6894e2259e2287980b88be5044d5f52ec504c",
+  "control_name": null,
+  "cycles_completed": 1,
+  "dataset": "stanfordnlp/imdb",
+  "dataset_revision": null,
+  "dataset_subset": "plain_text",
+  "error": {
+    "message": "CUDA out of memory. Tried to allocate 208.00 MiB. GPU 0 has a total capacity of 79.19 GiB of which 88.50 MiB is free. Including non-PyTorch memory, this process has 79.09 GiB memory in use. Of the allocated memory 77.90 GiB is allocated by PyTorch, and 629.16 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)",
+    "type": "OutOfMemoryError"
+  },
+  "expected_cycles": 10,
+  "final_synthetic_count": 0,
+  "heldout_split": "test",
+  "method_name": "fixed_promptillery",
+  "paper_mode": false,
+  "policy_controller": {
+    "controller_type": "legacy_fixed_promptillery",
+    "policy_name": "fixed_promptillery"
+  },
+  "policy_family": "fixed_promptillery",
+  "policy_name": "fixed_promptillery",
+  "reproducibility": {
+    "artifact_dir": "out/g3/ablation_g3_imdb_ettin_encoder_w10_20260922_191235/g3_imdb_ettin_encoder_w10_cycles-10_20260922_191254_060995_s13_53948018_11a6f7",
+    "config_provenance": {
+      "resolved_sha256": "53948018407a349fb076ea1f27a6894e2259e2287980b88be5044d5f52ec504c",
+      "run_copy_path": "out/g3/ablation_g3_imdb_ettin_encoder_w10_20260922_191235/g3_imdb_ettin_encoder_w10_cycles-10_20260922_191254_060995_s13_53948018_11a6f7/experiment_config.yaml",
+      "run_copy_sha256": "52c2bd596c02c1bfac70d2899849ca63c657ab108388bd518706fb5d05a46974",
+      "source_path": null,
+      "source_sha256": null
+    },
+    "created_at": "2026-09-22T19:13:03.415926+00:00",
+    "dataset_source": {
+      "dataset": "stanfordnlp/imdb",
+      "load_kwargs": {},
+      "revision": null,
+      "subset": "plain_text"
+    },
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "1"
+    },
+    "hardware": {
+      "cpu_count": 240,
+      "torch": {
+        "available": true,
+        "cuda_available": true,
+        "cuda_device_count": 1,
+        "cuda_devices": [
+          "NVIDIA H100 PCIe"
+        ],
+        "cuda_version": "12.6",
+        "cudnn_version": 90501,
+        "mps_available": false,
+        "version": "2.7.1+cu126"
+      }
+    },
+    "models": {
+      "student": {
+        "name": "jhu-clsp/ettin-encoder-150m",
+        "revision": null,
+        "tokenizer_revision": null
+      },
+      "teacher": {
+        "name": "openrouter/openai/gpt-4.1",
+        "policy_teacher_tiers": {},
+        "revision": null
+      }
+    },
+    "runtime": {
+      "lockfiles": {
+        "pyproject.toml": "ecd6a49a3db6d90f0f1fd4e12e3aaf62b0a9e89319ff720b26d6aaa8d6464afe",
+        "uv.lock": "89ee24ef4705f191322295f8618f33388035b4b061f7ce1d7be3ed2daf374a2e"
+      },
+      "packages": {
+        "PyYAML": "6.0.2",
+        "accelerate": "1.8.1",
+        "datasets": "3.6.0",
+        "evaluate": "0.4.4",
+        "litellm": "1.73.6",
+        "numpy": "2.3.1",
+        "pandas": "2.3.0",
+        "peft": "0.19.1",
+        "promptillery": "0.1.0",
+        "pydantic": "2.11.7",
+        "scikit-learn": "1.7.0",
+        "torch": "2.7.1",
+        "transformers": "4.57.6",
+        "typer": "0.16.0"
+      },
+      "platform": {
+        "machine": "x86_64",
+        "platform": "Linux-5.15.0-186-generic-x86_64-with-glibc2.35",
+        "processor": "x86_64",
+        "system": "Linux"
+      },
+      "python": {
+        "executable": "/mnt/big/mrshu/promptillery-dev/.venv/bin/python3",
+        "implementation": "CPython",
+        "version": "3.12.7 (main, Oct 16 2024, 04:37:19) [Clang 18.1.8 ]"
+      }
+    },
+    "schema_version": 1,
+    "source_control": {
+      "package": {
+        "available": true,
+        "branch": "resubmit/eacl2027-demo",
+        "head_sha": "6fabbcffce911fef1113380d87e2907d4515ab2d",
+        "is_dirty": false,
+        "path": "/mnt/big/mrshu/promptillery-dev",
+        "repo_root": "/mnt/big/mrshu/promptillery-dev",
+        "status_entries": []
+      },
+      "workspace": {
+        "available": false,
+        "error": "CalledProcessError: Command '['git', 'rev-parse', '--show-toplevel']' returned non-zero exit status 128.",
+        "path": "/mnt/big/mrshu"
+      }
+    }
+  },
+  "run_id": "g3_imdb_ettin_encoder_w10_cycles-10_20260922_191254_060995_s13_53948018_11a6f7",
+  "schema_version": 3,
+  "seed": 13,
+  "selection_split": "validation",
+  "status": "failed",
+  "student_model": "jhu-clsp/ettin-encoder-150m",
+  "student_revision": null,
+  "student_type": "transformers",
+  "synthetic_record_budget": null,
+  "task_name": "g3_imdb_ettin_encoder_w10_cycles-10",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "teacher_revision": null,
+  "token_budget": 20000000,
+  "tokenizer_revision": null,
+  "training_seconds": 4.607,
+  "training_seconds_by_cycle": [
+    4.607
+  ]
+}

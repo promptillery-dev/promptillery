@@ -1,0 +1,120 @@
+{
+  "0": {
+    "accuracy": 0.33,
+    "f1": 0.07173090555979685,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.37,
+    "f1": 0.1101097020224106,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 5743,
+    "_teacher_output_tokens_at_eval": 768,
+    "_teacher_tokens_at_eval": 6511,
+    "_teacher_cost_at_eval": 0.01763
+  },
+  "2": {
+    "accuracy": 0.37,
+    "f1": 0.1293649202200528,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 11071,
+    "_teacher_output_tokens_at_eval": 1374,
+    "_teacher_tokens_at_eval": 12445,
+    "_teacher_cost_at_eval": 0.033134
+  },
+  "3": {
+    "accuracy": 0.415,
+    "f1": 0.1596696861796135,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 16418,
+    "_teacher_output_tokens_at_eval": 2145,
+    "_teacher_tokens_at_eval": 18563,
+    "_teacher_cost_at_eval": 0.049996
+  },
+  "4": {
+    "accuracy": 0.41,
+    "f1": 0.1366879813451225,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 21406,
+    "_teacher_output_tokens_at_eval": 2913,
+    "_teacher_tokens_at_eval": 24319,
+    "_teacher_cost_at_eval": 0.066116
+  },
+  "5": {
+    "accuracy": 0.435,
+    "f1": 0.15769056144904878,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 26283,
+    "_teacher_output_tokens_at_eval": 3691,
+    "_teacher_tokens_at_eval": 29974,
+    "_teacher_cost_at_eval": 0.082094
+  },
+  "6": {
+    "accuracy": 0.435,
+    "f1": 0.18759397752798995,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 31149,
+    "_teacher_output_tokens_at_eval": 4454,
+    "_teacher_tokens_at_eval": 35603,
+    "_teacher_cost_at_eval": 0.09793
+  },
+  "7": {
+    "accuracy": 0.43,
+    "f1": 0.15537006032382572,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 36023,
+    "_teacher_output_tokens_at_eval": 5218,
+    "_teacher_tokens_at_eval": 41241,
+    "_teacher_cost_at_eval": 0.11379
+  },
+  "8": {
+    "accuracy": 0.43,
+    "f1": 0.15605007276106414,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 40919,
+    "_teacher_output_tokens_at_eval": 5962,
+    "_teacher_tokens_at_eval": 46881,
+    "_teacher_cost_at_eval": 0.129534
+  },
+  "9": {
+    "accuracy": 0.435,
+    "f1": 0.17125061613811773,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201",
+    "_teacher_input_tokens_at_eval": 45782,
+    "_teacher_output_tokens_at_eval": 6692,
+    "_teacher_tokens_at_eval": 52474,
+    "_teacher_cost_at_eval": 0.1451
+  },
+  "heldout_test": {
+    "accuracy": 0.41140811455847254,
+    "f1": 0.20576408562583634,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-10_20260922_195609_384671_s13_70a946bb_258201"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.1451,
+    "total_tokens": 52474,
+    "total_cycles": 10
+  }
+}

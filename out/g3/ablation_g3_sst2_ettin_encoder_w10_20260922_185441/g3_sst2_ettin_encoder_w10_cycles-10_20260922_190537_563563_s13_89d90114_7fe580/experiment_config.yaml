@@ -1,0 +1,115 @@
+name: g3_sst2_ettin_encoder_w10_cycles-10
+teacher: openrouter/openai/gpt-4.1
+student: jhu-clsp/ettin-encoder-150m
+teacher_revision: null
+student_revision: null
+tokenizer_revision: null
+student_type: transformers
+dataset: SetFit/sst2
+dataset_revision: null
+dataset_kwargs: {}
+dataset_config:
+  name: default
+  num_classes: 2
+  text_field: text
+  label_field: label
+num_labels: null
+metrics:
+- accuracy
+- f1
+cycles: 10
+seed: 13
+early_stopping:
+  enabled: false
+  patience: 2
+  metric: accuracy
+  mode: max
+  min_delta: 0.0
+  restore_best: true
+sampling:
+  enabled: true
+  sample_size: 1000
+  train_ratio: 0.8
+  stratify_column: label
+  seed: 13
+output_repo: null
+base_output_dir: out/g3/ablation_g3_sst2_ettin_encoder_w10_20260922_185441
+prompt: 'You are a teacher model in a knowledge-distillation pipeline for the SST-2
+
+  binary sentiment task (negative vs positive movie-review sentences).
+
+
+  # Reference Examples
+
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+
+  # Student Model Performance
+
+  ```
+
+  {{ classification_report }}
+
+  ```
+
+
+  # Student Model Errors
+
+
+  ## High Uncertainty Samples
+
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+
+  ## Confident Misclassifications
+
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+
+  # Task
+
+  Generate {{ augmentation_batch_size }} new movie-review-sentence samples that
+
+  target the student''s weakest and most-confused classes. Each sample must use
+
+  a valid sentiment label (negative/positive) as its gold label and cover
+
+  diverse phrasings within each targeted class.
+
+  '
+prompt_vars: null
+augmentation_batch_size: 32
+teacher_max_output_tokens: 4096
+policy_name: fixed_promptillery
+policy_prompt_operators:
+- coverage
+- boundary
+- repair
+policy_teacher_tiers: {}
+policy_batch_sizes:
+- 16
+- 32
+- 64
+policy_include_stop: true
+policy_lambda_cost: 0.0001
+policy_exploration_bonus: 0.0
+policy_pacing_epsilon: 1.0e-06
+budget_warning: null
+token_budget: 20000000
+synthetic_record_budget: null
+budget_stop: true
+control_name: null
+price_table_path: null
+learning_rate: 2.0e-05
+batch_size: 32
+eval_batch_size: 64
+num_train_epochs: 3
+warmup_steps: 10
+weight_decay: 0.01
+trainer_config:
+  trust_remote_code: true
+  report_held_out_test: true
+persist_datasets: true
+require_validation_split: true
+paper_mode: false
+auto_modify_name: false

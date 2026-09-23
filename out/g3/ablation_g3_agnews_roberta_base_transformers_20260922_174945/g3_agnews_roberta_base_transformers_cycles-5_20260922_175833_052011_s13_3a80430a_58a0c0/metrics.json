@@ -1,0 +1,70 @@
+{
+  "0": {
+    "accuracy": 0.86,
+    "f1": 0.858812487842832,
+    "_selection_split": "validation",
+    "_run_id": "g3_agnews_roberta_base_transformers_cycles-5_20260922_175833_052011_s13_3a80430a_58a0c0",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.875,
+    "f1": 0.8738532507096864,
+    "_selection_split": "validation",
+    "_run_id": "g3_agnews_roberta_base_transformers_cycles-5_20260922_175833_052011_s13_3a80430a_58a0c0",
+    "_teacher_input_tokens_at_eval": 1797,
+    "_teacher_output_tokens_at_eval": 1151,
+    "_teacher_tokens_at_eval": 2948,
+    "_teacher_cost_at_eval": 0.012802
+  },
+  "2": {
+    "accuracy": 0.87,
+    "f1": 0.8680400611067559,
+    "_selection_split": "validation",
+    "_run_id": "g3_agnews_roberta_base_transformers_cycles-5_20260922_175833_052011_s13_3a80430a_58a0c0",
+    "_teacher_input_tokens_at_eval": 3502,
+    "_teacher_output_tokens_at_eval": 2392,
+    "_teacher_tokens_at_eval": 5894,
+    "_teacher_cost_at_eval": 0.026139999999999997
+  },
+  "3": {
+    "accuracy": 0.885,
+    "f1": 0.8845217955168866,
+    "_selection_split": "validation",
+    "_run_id": "g3_agnews_roberta_base_transformers_cycles-5_20260922_175833_052011_s13_3a80430a_58a0c0",
+    "_teacher_input_tokens_at_eval": 5264,
+    "_teacher_output_tokens_at_eval": 3429,
+    "_teacher_tokens_at_eval": 8693,
+    "_teacher_cost_at_eval": 0.037959999999999994
+  },
+  "4": {
+    "accuracy": 0.855,
+    "f1": 0.8536712557363371,
+    "_selection_split": "validation",
+    "_run_id": "g3_agnews_roberta_base_transformers_cycles-5_20260922_175833_052011_s13_3a80430a_58a0c0",
+    "_teacher_input_tokens_at_eval": 7044,
+    "_teacher_output_tokens_at_eval": 4467,
+    "_teacher_tokens_at_eval": 11511,
+    "_teacher_cost_at_eval": 0.04982399999999999
+  },
+  "heldout_test": {
+    "accuracy": 0.8928947368421053,
+    "f1": 0.8925055751407971,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 4,
+    "_run_id": "g3_agnews_roberta_base_transformers_cycles-5_20260922_175833_052011_s13_3a80430a_58a0c0"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.04982399999999999,
+    "total_tokens": 11511,
+    "total_cycles": 5
+  }
+}

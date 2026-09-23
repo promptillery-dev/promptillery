@@ -1,0 +1,20 @@
+{
+  "0": {
+    "accuracy": 0.395,
+    "f1": 0.123284039221226,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_ettin_encoder_bs16_20260922_181826_738385_s13_0f934782_5ff581",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.39556085918854417,
+    "f1": 0.13876538838356747,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m6_huffpost_same_n_ettin_encoder_bs16_20260922_181826_738385_s13_0f934782_5ff581"
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "0": {
+    "accuracy": 0.835,
+    "f1": 0.8506787330316742,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.9,
+    "f1": 0.9019607843137255,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 1014,
+    "_teacher_output_tokens_at_eval": 844,
+    "_teacher_tokens_at_eval": 1858,
+    "_teacher_cost_at_eval": 0.00878
+  },
+  "2": {
+    "accuracy": 0.885,
+    "f1": 0.8909952606635071,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 1975,
+    "_teacher_output_tokens_at_eval": 1722,
+    "_teacher_tokens_at_eval": 3697,
+    "_teacher_cost_at_eval": 0.017726
+  },
+  "3": {
+    "accuracy": 0.895,
+    "f1": 0.896551724137931,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 2753,
+    "_teacher_output_tokens_at_eval": 2380,
+    "_teacher_tokens_at_eval": 5133,
+    "_teacher_cost_at_eval": 0.024546
+  },
+  "4": {
+    "accuracy": 0.89,
+    "f1": 0.897196261682243,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 3584,
+    "_teacher_output_tokens_at_eval": 3225,
+    "_teacher_tokens_at_eval": 6809,
+    "_teacher_cost_at_eval": 0.032968
+  },
+  "5": {
+    "accuracy": 0.88,
+    "f1": 0.8899082568807339,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 4356,
+    "_teacher_output_tokens_at_eval": 3936,
+    "_teacher_tokens_at_eval": 8292,
+    "_teacher_cost_at_eval": 0.0402
+  },
+  "6": {
+    "accuracy": 0.9,
+    "f1": 0.898989898989899,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 5068,
+    "_teacher_output_tokens_at_eval": 4826,
+    "_teacher_tokens_at_eval": 9894,
+    "_teacher_cost_at_eval": 0.048743999999999996
+  },
+  "7": {
+    "accuracy": 0.905,
+    "f1": 0.909952606635071,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 5835,
+    "_teacher_output_tokens_at_eval": 6259,
+    "_teacher_tokens_at_eval": 12094,
+    "_teacher_cost_at_eval": 0.061742
+  },
+  "8": {
+    "accuracy": 0.89,
+    "f1": 0.8981481481481481,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 6619,
+    "_teacher_output_tokens_at_eval": 7235,
+    "_teacher_tokens_at_eval": 13854,
+    "_teacher_cost_at_eval": 0.071118
+  },
+  "9": {
+    "accuracy": 0.93,
+    "f1": 0.9313725490196079,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580",
+    "_teacher_input_tokens_at_eval": 7429,
+    "_teacher_output_tokens_at_eval": 8211,
+    "_teacher_tokens_at_eval": 15640,
+    "_teacher_cost_at_eval": 0.080546
+  },
+  "heldout_test": {
+    "accuracy": 0.9055464030752334,
+    "f1": 0.9034792368125701,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-10_20260922_190537_563563_s13_89d90114_7fe580"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.080546,
+    "total_tokens": 15640,
+    "total_cycles": 10
+  }
+}

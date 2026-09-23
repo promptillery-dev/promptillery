@@ -2,17 +2,19 @@
 """Generate the M6 encoder-baseline configs (EACL 2027 resubmission, E1/E2).
 
 Variants per (dataset, student):
-  ft1        1 cycle on the gold seed subset, warmup_steps 10   -> Table 2 "fine-tuned (1 cycle)"
-  same_n     1 cycle on same-N gold data,     warmup_steps 10   -> Table 2 "same-N gold FT"
-  same_n_cm  10 cycles on same-N gold data, package-default warmup (500): the exact
-             per-round schedule of the promptillery arm            -> "same-N gold FT, compute-matched"
-  seed_x10   10 cycles on the gold seed subset, default warmup     -> Appendix "seed-only x10"
+  ft1            1 cycle on the gold seed subset, warmup_steps 10   -> Table 2 "fine-tuned (1 cycle)"
+  same_n         1 cycle on same-N gold data,     warmup_steps 10   -> Table 2 "same-N gold FT"
+  same_n_cm      10 cycles on same-N gold data, package-default warmup (500): the exact
+                 per-round schedule of the promptillery arm            -> "same-N gold FT, compute-matched"
+  same_n_cm_w10  same-N gold, compute-matched: 10 rounds, warmup_steps 10 -> "same-N gold FT,
+                 compute-matched (warm-up 10)": twin of the corrected loop re-runs (#42, #46)
+  seed_x10       10 cycles on the gold seed subset, default warmup     -> Appendix "seed-only x10"
 
 Why warmup 10: the EMNLP 2026 reviewers found that the package default of 500
 warmup steps never ends in a ~100-step run, so the old 1-cycle baselines were
 trained at a tiny learning rate; 10 is the value every decoder config already uses.
 
-    uv run python scripts/gen_m6_configs.py                      # all 40 files
+    uv run python scripts/gen_m6_configs.py                      # all 50 files
     uv run python scripts/gen_m6_configs.py --only m6_sst2_ft1_roberta_base --batch-size 16 --print-path
 """
 from __future__ import annotations
@@ -27,7 +29,7 @@ import yaml
 DATASETS = ["agnews", "sst2", "imdb", "yahoo", "huffpost"]
 STUDENTS = {"roberta_base": "FacebookAI/roberta-base",
             "ettin_encoder": "jhu-clsp/ettin-encoder-150m"}
-VARIANTS = ["ft1", "same_n", "same_n_cm", "seed_x10"]
+VARIANTS = ["ft1", "same_n", "same_n_cm", "same_n_cm_w10", "seed_x10"]
 BASELINE_WARMUP = 10
 AUGMENTATION_KEYS = ("prompt", "augmentation_batch_size", "teacher_max_output_tokens")
 
@@ -44,15 +46,18 @@ TITLES = {
     "ft1": "fine-tuned (1 cycle) on the gold seed subset, warmup_steps 10",
     "same_n": "same-N gold fine-tune (1 cycle), warmup_steps 10",
     "same_n_cm": "same-N gold, compute-matched: 10 rounds, default warmup",
+    "same_n_cm_w10": "same-N gold, compute-matched: 10 rounds, warmup_steps 10",
     "seed_x10": "gold seed only, 10 rounds, default warmup (repeated-training control)",
 }
 WHY = {
     "ft1": "warmup_steps 10: the package default (500) never ends in a ~100-step run.",
     "same_n": "warmup_steps 10: the package default (500) never ends in a ~100-step run.",
     "same_n_cm": "Default warmup on purpose: each of the 10 rounds trains exactly like the promptillery arm.",
+    "same_n_cm_w10": "warmup_steps 10 in every round: twins the corrected loop re-runs (#42, #46), "
+                      "which also use 10 warm-up steps in every cycle.",
     "seed_x10": "Default warmup on purpose: each of the 10 rounds trains exactly like the promptillery arm.",
 }
-_NAME = re.compile(r"^m6_(?P<d>[a-z0-9]+)_(?P<v>ft1|same_n_cm|same_n|seed_x10)_(?P<s>roberta_base|ettin_encoder)(?:_bs\d+)?(?:_s\d+)?$")
+_NAME = re.compile(r"^m6_(?P<d>[a-z0-9]+)_(?P<v>ft1|same_n_cm_w10|same_n_cm|same_n|seed_x10)_(?P<s>roberta_base|ettin_encoder)(?:_bs\d+)?(?:_s\d+)?$")
 
 
 def _load(path: Path) -> dict:
@@ -79,7 +84,7 @@ def build(variant: str, dataset: str, student: str, examples: Path,
         cfg = dict(_load(examples / f"M5_{dataset}_same_n_{student}.yaml"))
         cfg["cycles"] = 1 if variant == "same_n" else 10
         source = f"M5_{dataset}_same_n_{student}.yaml"
-    if variant in ("ft1", "same_n"):
+    if variant in ("ft1", "same_n", "same_n_cm_w10"):
         cfg["warmup_steps"] = BASELINE_WARMUP
     else:
         cfg.pop("warmup_steps", None)

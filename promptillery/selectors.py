@@ -40,7 +40,12 @@ _ENCODER_TYPES = {"transformers", "modernbert", "encoder"}
 def oracle(
     cells: Iterable[Cell], target: Target, prices: HardwarePrices, teacher: Teacher
 ) -> Selection:
-    """Cheapest cell feasible under *held-out* accuracy; trains all cells."""
+    """Cheapest cell feasible under *held-out* accuracy; trains all cells.
+
+    Below the cheapest feasible cell's break-even volume the sunk distillation
+    cost is not recovered, so this falls back to the teacher instead
+    (``reason="teacher_cheaper_at_volume"``, ``cell=None``).
+    """
     cells = list(cells)
     feasible = [
         c

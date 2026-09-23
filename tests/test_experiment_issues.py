@@ -33,6 +33,27 @@ def test_laptop_blocks_are_tagged_laptop():
         assert "gpu:24gb" not in b["labels"]
 
 
+def test_e4b_ettin_rerun_block_exists_and_is_not_stretch():
+    by_id = {b["id"]: b for b in ei.BLOCKS}
+    assert "e4b-24gb-ettin-rerun" in by_id
+    assert by_id["e4b-24gb-ettin-rerun"]["stretch"] is False
+
+
+def test_e2c_compute_matched_w10_block_exists_with_its_ten_configs():
+    by_id = {b["id"]: b for b in ei.BLOCKS}
+    assert "e2c-24gb-compute-matched-w10" in by_id
+    block = by_id["e2c-24gb-compute-matched-w10"]
+    assert block["stretch"] is False
+    assert "gpu:24gb" in block["labels"]
+    expected = {
+        f"examples/M6_{d}_same_n_cm_w10_{s}.yaml"
+        for d in ["agnews", "sst2", "imdb", "yahoo", "huffpost"]
+        for s in ["roberta_base", "ettin_encoder"]
+    }
+    assert set(block["configs"]) == expected
+    assert len(block["configs"]) == 10
+
+
 def test_every_config_named_in_a_block_exists():
     for b in ei.BLOCKS:
         for cfg in b["configs"]:

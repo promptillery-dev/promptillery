@@ -1,0 +1,110 @@
+{
+  "0": {
+    "accuracy": 0.065,
+    "f1": 0.008176292448790347,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.17,
+    "f1": 0.007087763185324162,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "2": {
+    "accuracy": 0.32,
+    "f1": 0.03587079392081273,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "3": {
+    "accuracy": 0.345,
+    "f1": 0.060559917544780704,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "4": {
+    "accuracy": 0.4,
+    "f1": 0.09814308976281338,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "5": {
+    "accuracy": 0.465,
+    "f1": 0.15582122418308966,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "6": {
+    "accuracy": 0.49,
+    "f1": 0.17715456350605063,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "7": {
+    "accuracy": 0.505,
+    "f1": 0.18193047733029208,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "8": {
+    "accuracy": 0.515,
+    "f1": 0.19027732985832926,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "9": {
+    "accuracy": 0.525,
+    "f1": 0.19863564031114406,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.5220047732696897,
+    "f1": 0.21411129237004126,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf"
+  }
+}

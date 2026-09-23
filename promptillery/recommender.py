@@ -168,7 +168,10 @@ def recommend(
     With ``search_budget=False`` the candidate set is first collapsed to each
     student's default (lowest-``expected_cycles``) budget arm; with ``True`` the
     full student x approach x budget cross-product is searched. The cheapest-first
-    walk itself is identical either way.
+    walk itself is identical either way. The first cell clearing the floor is
+    still checked against the teacher: below its break-even volume the sunk
+    distillation cost is not recovered, so the recommendation falls back to the
+    teacher (``reason="teacher_cheaper_at_volume"``, ``cell=None``) instead.
     """
     cells = list(cells)
     if not search_budget:

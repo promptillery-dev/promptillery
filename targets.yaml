@@ -1,12 +1,12 @@
 # Deployment-target grid for tab:recommender (§8) + the regret figure (§9).
 #
-# RESEARCHER DEGREES OF FREEDOM (§12.5). The accuracy floors, the volume-threshold
+# RESEARCHER DEGREES OF FREEDOM. The accuracy floors, the volume-threshold
 # baseline's threshold, and the price table (prices.yaml) all decide where the
-# recommender wins. Pre-register them from the VALIDATION distribution / a stated
-# rule BEFORE looking at any G2/G3 held-out numbers -- picking floors where the
-# recommender happens to win, or hand-tuning the threshold to make the baseline
-# look bad, is test-set tuning. The values below are pre-registration placeholders
-# to be finalized in the §12.5 pass; they are declared here, paper-visible.
+# recommender wins, so none of them is hand-picked: each is derived by a stated
+# rule from validation accuracies and logged costs (scripts/derive_targets.py,
+# docs/TARGETS_DERIVATION.md). Picking floors where the recommender happens to
+# win, or tuning the threshold to make the baseline look bad, would be test-set
+# tuning. These are the final values behind the paper's recommender evaluation.
 
 # Teacher-API fallback: dollars per call if no student is deployed.
 teacher:
@@ -23,7 +23,7 @@ volumes: [1000, 10000, 100000, 1000000, 10000000, 100000000]
 
 # Volume-threshold baseline: below this volume it calls the teacher, above it it
 # deploys the cheapest-to-serve cell. Derive from a stated rule, never hand-tuned.
-volume_threshold: 263     # median break-even volume across cells (scripts/derive_targets.py)
+volume_threshold: 262     # median break-even volume across cells (scripts/derive_targets.py)
 random_seed: 0
 
 # The single target whose full cost receipt is written to recommendation.json.

@@ -9,11 +9,11 @@ uv run python scripts/derive_targets.py --cells out/recommender_g2/paper_main_re
 teacher:
   usd_per_call: 0.0011
 accuracy_floors: [0.89, 0.91, 0.92]
-volume_threshold: 263
-#   jhu-clsp/ettin-decoder-150m      sel=0.8840 intercept=$0.792 break_even=731
-#   jhu-clsp/ettin-encoder-150m      sel=0.9180 intercept=$0.290 break_even=265
-#   fasttext                         sel=0.8066 intercept=$0.183 break_even=167
-#   google/gemma-3-270m-it           sel=0.9020 intercept=$1.205 break_even=1113
-#   answerdotai/ModernBERT-base      sel=0.9165 intercept=$0.286 break_even=262
-#   FacebookAI/roberta-base          sel=0.9330 intercept=$0.261 break_even=238
+volume_threshold: 262
+#   jhu-clsp/ettin-decoder-150m      sel=0.8840 intercept=$0.792 break_even=727
+#   jhu-clsp/ettin-encoder-150m      sel=0.9180 intercept=$0.290 break_even=264
+#   fasttext                         sel=0.8066 intercept=$0.183 break_even=166
+#   google/gemma-3-270m-it           sel=0.9020 intercept=$1.205 break_even=1107
+#   answerdotai/ModernBERT-base      sel=0.9165 intercept=$0.286 break_even=260
+#   FacebookAI/roberta-base          sel=0.9330 intercept=$0.261 break_even=237
 ```

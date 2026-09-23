@@ -1,0 +1,28 @@
+{
+  "model": "answerdotai/ModernBERT-base",
+  "student_type": "transformers",
+  "dataset": "PolyAI/banking77",
+  "hardware": {
+    "device": "cuda",
+    "gpu_name": "NVIDIA H100 PCIe",
+    "cpu": "x86_64",
+    "torch_version": "2.7.1+cu126"
+  },
+  "measurement": {
+    "n_iterations": 50,
+    "warmup": 5,
+    "latency_batch_size": 8
+  },
+  "student": {
+    "p50_latency_ms": 14.838005532510579,
+    "p95_latency_ms": 15.228523360565305,
+    "mean_latency_ms": 14.829360679723322,
+    "throughput_calls_per_sec": 539.470323284986
+  },
+  "teacher": {
+    "model": "openrouter/openai/gpt-4.1",
+    "estimated_cost": 0.169332,
+    "n_calls": null,
+    "cost_per_1k_calls": null
+  }
+}

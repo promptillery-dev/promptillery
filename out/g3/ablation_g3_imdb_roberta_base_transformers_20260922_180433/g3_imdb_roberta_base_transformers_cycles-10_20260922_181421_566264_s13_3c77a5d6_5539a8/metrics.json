@@ -1,0 +1,120 @@
+{
+  "0": {
+    "accuracy": 0.915,
+    "f1": 0.914572864321608,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.92,
+    "f1": 0.9207920792079208,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 4824,
+    "_teacher_output_tokens_at_eval": 1774,
+    "_teacher_tokens_at_eval": 6598,
+    "_teacher_cost_at_eval": 0.02384
+  },
+  "2": {
+    "accuracy": 0.935,
+    "f1": 0.9353233830845771,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 10272,
+    "_teacher_output_tokens_at_eval": 3555,
+    "_teacher_tokens_at_eval": 13827,
+    "_teacher_cost_at_eval": 0.048984
+  },
+  "3": {
+    "accuracy": 0.92,
+    "f1": 0.9207920792079208,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 16216,
+    "_teacher_output_tokens_at_eval": 5352,
+    "_teacher_tokens_at_eval": 21568,
+    "_teacher_cost_at_eval": 0.075248
+  },
+  "4": {
+    "accuracy": 0.915,
+    "f1": 0.9186602870813397,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 20099,
+    "_teacher_output_tokens_at_eval": 7154,
+    "_teacher_tokens_at_eval": 27253,
+    "_teacher_cost_at_eval": 0.09742999999999999
+  },
+  "5": {
+    "accuracy": 0.915,
+    "f1": 0.916256157635468,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 23865,
+    "_teacher_output_tokens_at_eval": 8757,
+    "_teacher_tokens_at_eval": 32622,
+    "_teacher_cost_at_eval": 0.11778599999999999
+  },
+  "6": {
+    "accuracy": 0.91,
+    "f1": 0.9117647058823529,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 26615,
+    "_teacher_output_tokens_at_eval": 10640,
+    "_teacher_tokens_at_eval": 37255,
+    "_teacher_cost_at_eval": 0.13834999999999997
+  },
+  "7": {
+    "accuracy": 0.915,
+    "f1": 0.9170731707317074,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 29406,
+    "_teacher_output_tokens_at_eval": 12369,
+    "_teacher_tokens_at_eval": 41775,
+    "_teacher_cost_at_eval": 0.15776399999999996
+  },
+  "8": {
+    "accuracy": 0.92,
+    "f1": 0.9207920792079208,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 31823,
+    "_teacher_output_tokens_at_eval": 13807,
+    "_teacher_tokens_at_eval": 45630,
+    "_teacher_cost_at_eval": 0.17410199999999995
+  },
+  "9": {
+    "accuracy": 0.925,
+    "f1": 0.9253731343283582,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8",
+    "_teacher_input_tokens_at_eval": 34961,
+    "_teacher_output_tokens_at_eval": 15373,
+    "_teacher_tokens_at_eval": 50334,
+    "_teacher_cost_at_eval": 0.19290599999999994
+  },
+  "heldout_test": {
+    "accuracy": 0.9248,
+    "f1": 0.9243338968043145,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "g3_imdb_roberta_base_transformers_cycles-10_20260922_181421_566264_s13_3c77a5d6_5539a8"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.19290599999999994,
+    "total_tokens": 50334,
+    "total_cycles": 10
+  }
+}

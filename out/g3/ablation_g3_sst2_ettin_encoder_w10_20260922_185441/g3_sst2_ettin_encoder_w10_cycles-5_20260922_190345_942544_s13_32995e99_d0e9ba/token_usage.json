@@ -1,0 +1,99 @@
+{
+  "experiment_name": "g3_sst2_ettin_encoder_w10_cycles-5",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "cycles_completed": 5,
+  "per_cycle": [
+    {
+      "cycle": 0,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 959,
+          "output_tokens": 766,
+          "total_tokens": 1725,
+          "estimated_cost": 0.008046
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 959,
+        "output_tokens": 766,
+        "total_tokens": 1725,
+        "estimated_cost": 0.008046
+      }
+    },
+    {
+      "cycle": 1,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 783,
+          "output_tokens": 1009,
+          "total_tokens": 1792,
+          "estimated_cost": 0.009637999999999999
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 783,
+        "output_tokens": 1009,
+        "total_tokens": 1792,
+        "estimated_cost": 0.009637999999999999
+      }
+    },
+    {
+      "cycle": 2,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 736,
+          "output_tokens": 929,
+          "total_tokens": 1665,
+          "estimated_cost": 0.008903999999999999
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 736,
+        "output_tokens": 929,
+        "total_tokens": 1665,
+        "estimated_cost": 0.008903999999999999
+      }
+    },
+    {
+      "cycle": 3,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 711,
+          "output_tokens": 804,
+          "total_tokens": 1515,
+          "estimated_cost": 0.007854
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 711,
+        "output_tokens": 804,
+        "total_tokens": 1515,
+        "estimated_cost": 0.007854
+      }
+    },
+    {
+      "cycle": 4,
+      "operations": {},
+      "cycle_total": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost": null
+      }
+    }
+  ],
+  "totals": {
+    "augmentation": {
+      "input_tokens": 3189,
+      "output_tokens": 3508,
+      "total_tokens": 6697,
+      "estimated_cost": 0.034442
+    }
+  },
+  "grand_total": {
+    "input_tokens": 3189,
+    "output_tokens": 3508,
+    "total_tokens": 6697,
+    "estimated_cost": 0.034442
+  }
+}

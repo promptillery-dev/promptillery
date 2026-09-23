@@ -56,6 +56,10 @@ def main(argv=None) -> int:
     usd_per_call = teacher_usd_per_call(manifest, args.teacher_calls,
                                         input_usd_per_m=args.input_usd_per_m,
                                         output_usd_per_m=args.output_usd_per_m)
+    # Round to the 4 dp that targets.yaml actually carries before deriving
+    # break-evens/the median threshold, so the printed per-cell break-evens
+    # (and recommendation.json, which reads targets.yaml) agree.
+    usd_per_call = round(usd_per_call, 4)
     teacher = Teacher(usd_per_call=usd_per_call)
     floors = quartile_floors([c.selection_accuracy for c in cells])
     threshold = median_break_even(cells, prices, teacher)

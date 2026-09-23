@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Export this private dev repo into the public package checkout.
 #   scripts/export_public.sh /path/to/promptillery-public
-# Paper configs move to examples/paper/; M5 (superseded) stays private; results under out/
-# are force-added (out/ is gitignored in both repos). Review `git status` there, then commit.
+# Paper configs move to examples/paper/; M5 ships too (superseded, see M5_README.md's
+# superseded note) because the exported scripts/gen_m6_configs.py derives the same-N M6
+# configs from the M5 configs. Results under out/ are force-added (out/ is gitignored in
+# both repos). Review `git status` there, then commit.
 set -euo pipefail
 DST="${1:?public checkout path}"
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,7 +27,7 @@ rsync -a --delete --delete-excluded --include 'G[0-9]_*' --include 'M6_*' --incl
 rsync -a --delete "$SRC/examples/demo/" "$DST/examples/demo/"
 
 # frozen artifacts (JSON/CSV/YAML/PDF only; never weights or dataset snapshots; g3/m5 ship run records but not their jsonl data pools, which scripts/prep_g3_datasets.py and scripts/prep_m5_same_n.py regenerate)
-for d in g2 g3 g4 g5 m5 m6 recommender_g2; do
+for d in g2 g2_verifier g3 g4 g5 m5 m6 recommender_g2; do
   [ -d "$SRC/out/$d" ] || continue
   mkdir -p "$DST/out/$d"
   extra=()

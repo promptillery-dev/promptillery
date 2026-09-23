@@ -76,7 +76,7 @@ class TransformersTrainer(BaseTrainer):
             output_dir=str(self.out_dir / "training"),
             num_train_epochs=self.cfg.num_train_epochs,
             per_device_train_batch_size=self.cfg.batch_size,
-            per_device_eval_batch_size=self.cfg.batch_size,
+            per_device_eval_batch_size=self.cfg.eval_batch_size,
             warmup_steps=self.cfg.warmup_steps,
             weight_decay=self.cfg.weight_decay,
             learning_rate=self.cfg.learning_rate,
@@ -235,7 +235,7 @@ class TransformersTrainer(BaseTrainer):
         # Create a Trainer instance for evaluation
         args = TrainingArguments(
             output_dir=str(model_path / "eval_output"),
-            per_device_eval_batch_size=16,
+            per_device_eval_batch_size=self.cfg.eval_batch_size,
             report_to=[],
         )
 

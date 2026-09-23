@@ -96,6 +96,13 @@ def cell_row(run_dir: Path, *, dataset: str, utc_offset_hours: float,
         wall = wall_clock_seconds(manifest, utc_offset_hours)
         seconds = wall or 0.0
         source = "run_wall_clock_upper_bound" if wall is not None else "unavailable"
+        if source == "unavailable":
+            print(
+                f"warning: {run_dir}: no parsable run-id stamp or manifest "
+                "created_at; training_seconds falls back to 0.0 (cost intercept "
+                "will omit training cost for this cell)",
+                file=sys.stderr,
+            )
     return {
         "dataset": dataset,
         "dataset_subset": manifest.get("dataset_subset") or "",

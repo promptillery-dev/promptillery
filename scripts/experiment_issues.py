@@ -91,6 +91,19 @@ BLOCKS = [
         "notes": "The two run lines can go in parallel on two GPUs (CUDA_VISIBLE_DEVICES=0 / 1). About 20-40 minutes per run.",
     },
     {
+        "id": "e2c-24gb-compute-matched-w10", "tier": "24gb",
+        "title": "E2c (24 GB): same-N gold, compute-matched, warm-up 10 (twin of #42/#46), both encoders, 5 datasets",
+        "labels": ["experiment", "gpu:24gb"], "cut_line": "2026-09-23 22:00 CEST",
+        "fills": "Table 2 row `same-N gold FT, compute-matched` at warm-up 10 for both encoders (replaces the warm-up-500 row from #40 when it lands)",
+        "extra_setup": "", "prep": PREP,
+        "configs": _m6(DATASETS, ["same_n_cm_w10"], ["roberta_base", "ettin_encoder"]),
+        "runs": ["scripts/run_m6.sh " + " ".join(_m6(DATASETS, ["same_n_cm_w10"], ["roberta_base"])),
+                 "scripts/run_m6.sh " + " ".join(_m6(DATASETS, ["same_n_cm_w10"], ["ettin_encoder"]))],
+        "results_script": "uv run python scripts/m6_results.py",
+        "results_globs": M6_RESULTS_GLOBS + M6_DOCS, "stretch": False,
+        "notes": "Same as #40 but with `warmup_steps: 10` in every one of the 10 rounds, so this control trains exactly like the corrected loop re-runs (#42, #46). No teacher calls, no API key. On a 24 GB card the imdb/ettin arm needs the batch ladder (32 -> 16 -> 8) and takes about 2.5 h at batch 8; on an 80 GB card it runs at batch 32 in well under an hour. The two run lines can go in parallel on two GPUs (CUDA_VISIBLE_DEVICES=0 / 1). The other nine runs take 7-25 minutes each.",
+    },
+    {
         "id": "e2b-24gb-seed-x10", "tier": "24gb",
         "title": "E2b (24 GB, stretch): gold seed only, 10 rounds, both encoders, 5 datasets",
         "labels": ["experiment", "gpu:24gb", "stretch"], "cut_line": "2026-09-23 22:00 CEST",
@@ -105,9 +118,9 @@ BLOCKS = [
     },
     {
         "id": "e4-24gb-roberta-rerun", "tier": "24gb",
-        "title": "E4 (24 GB, stretch, ~$1 API): RoBERTa promptillery arms 1/5/10 cycles, 5 datasets, shipped configs",
-        "labels": ["experiment", "gpu:24gb", "stretch"], "cut_line": "launch by 2026-09-23 12:00 CEST, results by 22:00",
-        "fills": "Table 2 RoBERTa `promptillery (5/10 cycles)` rows, replacing the prior-version numbers",
+        "title": "E4 (24 GB, ~$1 API): RoBERTa promptillery arms 1/5/10 cycles with corrected warmup, 5 datasets, shipped configs",
+        "labels": ["experiment", "gpu:24gb"], "cut_line": "launch by 2026-09-23 12:00 CEST, results by 22:00",
+        "fills": "Table 2 RoBERTa `promptillery (5/10 cycles)` rows, replacing the prior-version numbers (trained with 500 warm-up steps per cycle)",
         "extra_setup": "printf 'OPENROUTER_API_KEY=%s\\n' '<your OpenRouter key>' > .env   # the CLI loads .env; about $0.20 per dataset",
         "prep": "for D in yahoo huffpost; do uv run python scripts/prep_g3_datasets.py --dataset $D --seed 13; done",
         "configs": [f"examples/G3_{d}_roberta_base.yaml" for d in DATASETS],
@@ -116,8 +129,24 @@ BLOCKS = [
         "results_globs": ["out/g3/ablation_g3_*_roberta_base_*/*/metrics.json", "out/g3/ablation_g3_*_roberta_base_*/*/run_manifest.json",
                           "out/g3/ablation_g3_*_roberta_base_*/*/token_usage.json", "out/g3/ablation_g3_*_roberta_base_*/*/experiment_config.yaml",
                           "out/g3/ablation_g3_*_roberta_base_*/ablation_summary.md", "out/g3/roberta_rerun_summary.csv"],
-        "stretch": True,
-        "notes": "Paste the heldout_test accuracy of the cycles-1, cycles-5 and cycles-10 arms per dataset into the comment.",
+        "stretch": False,
+        "notes": "Paste the heldout_test accuracy of the cycles-1, cycles-5 and cycles-10 arms per dataset into the comment. Disk: with `--no-cleanup` each ablation leaves about 15 GB of checkpoints under `training/`; after a run line finishes you may `rm -rf out/g3/ablation_g3_*/*/training` (those files are never committed).",
+    },
+    {
+        "id": "e4b-24gb-ettin-rerun", "tier": "24gb",
+        "title": "E4b (24 GB, ~$1 API): Ettin-encoder promptillery arms 1/5/10 cycles with corrected warmup, 5 datasets",
+        "labels": ["experiment", "gpu:24gb"], "cut_line": "launch by 2026-09-23 12:00 CEST, results by 20:00",
+        "fills": "Table 2 Ettin-encoder promptillery (5/10 cycles) rows, replacing the July runs trained with 500 warm-up steps per cycle",
+        "extra_setup": "printf 'OPENROUTER_API_KEY=%s\\n' '<your OpenRouter key>' > .env   # the CLI loads .env; about $0.20 per dataset",
+        "prep": "for D in yahoo huffpost; do uv run python scripts/prep_g3_datasets.py --dataset $D --seed 13; done",
+        "configs": [f"examples/G3_{d}_ettin_encoder_w10.yaml" for d in DATASETS],
+        "runs": [f"uv run promptillery ablation examples/G3_{d}_ettin_encoder_w10.yaml --no-cleanup" for d in DATASETS],
+        "results_script": "uv run promptillery analyze out/g3 --metric accuracy --output out/g3/ettin_w10_rerun_summary.csv",
+        "results_globs": ["out/g3/ablation_g3_*_ettin_encoder_w10_*/*/metrics.json", "out/g3/ablation_g3_*_ettin_encoder_w10_*/*/run_manifest.json",
+                          "out/g3/ablation_g3_*_ettin_encoder_w10_*/*/token_usage.json", "out/g3/ablation_g3_*_ettin_encoder_w10_*/*/experiment_config.yaml",
+                          "out/g3/ablation_g3_*_ettin_encoder_w10_*/ablation_summary.md", "out/g3/ettin_w10_rerun_summary.csv"],
+        "stretch": False,
+        "notes": "Paste the heldout_test accuracy of the cycles-1, cycles-5 and cycles-10 arms per dataset into the comment. IMDB is the long one; the others take 20-40 minutes each on a 24 GB card. Disk: with `--no-cleanup` each ablation leaves about 15 GB of checkpoints under `training/`; after a run line finishes you may `rm -rf out/g3/ablation_g3_*/*/training` (those files are never committed).",
     },
     {
         "id": "e5-laptop-seeds", "tier": "laptop",
@@ -168,6 +197,15 @@ def render(block: dict) -> str:
     runs = "\n".join(block["runs"])
     globs = " ".join(block["results_globs"])
     stretch = "**Stretch: the paper ships without this block if the cut line passes.**\n\n" if block["stretch"] else ""
+    ablation = any("promptillery ablation" in run for run in block["runs"])
+    oom_rule = (
+        "If an arm dies with CUDA out of memory at batch 32, copy that config next to it with `batch_size: 16` "
+        "and its `name` suffixed `_bs16` (the copy is not committed), rerun the copy, and report it. "
+        "`scripts/run_m6.sh` does not apply to `promptillery ablation`."
+        if ablation else
+        "The only permitted change is the out-of-memory ladder built into `scripts/run_m6.sh` (batch 32 → 16 → 8), "
+        "which records the batch size in the run name."
+    )
     return f"""# {block['title']}
 
 Labels: {', '.join(block['labels'])} · GPU tier: **{block['tier']}** · Cut line: **{block['cut_line']}**
@@ -200,7 +238,7 @@ uv run python -c "import torch; print(torch.cuda.get_device_name(0))"
 
 ## Ground rules
 
-1. **Never edit a config.** The only permitted change is the out-of-memory ladder built into `scripts/run_m6.sh` (batch 32 → 16 → 8), which records the batch size in the run name.
+1. **Never edit a config.** {oom_rule}
 2. One seed (13) unless the block says otherwise. No repeats, no hyper-parameter changes.
 3. If a run fails for a reason other than memory, keep going with the next config and report it.
 4. Report every deviation, even ones you fixed.
@@ -218,6 +256,8 @@ gh issue comment <THIS ISSUE NUMBER> --repo {REPO} --body-file docs/M6_ISSUE_COM
 ```
 
 If this block does not produce `docs/M6_ISSUE_COMMENT.md`, write the comment by hand: one markdown table with the numbers named under **Fills**, then a `Deviations` list. Never commit model weights, `training/`, `dataset_cycle_*`, or logs.
+
+If the first hand-back line fails because a run is not `completed` (a crashed or failed arm), drop the summary CSV from the `git add` line, commit the rest, and list that arm under Deviations; the `metrics.json` files carry every number the paper needs.
 """
 
 
