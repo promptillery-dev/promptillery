@@ -1,8 +1,10 @@
-# M5 Same-N Gold-FT Baseline — the main-results table `same-N gold FT` row
+> **Superseded (2026-09-22):** the M5 rows in the EMNLP 2026 submission inherited the package default `warmup_steps: 500`; see `examples/M6_README.md` for the corrected runs.
+
+# M5 Same-N Gold-FT Baseline — `tab:main-results` `same-N gold FT` row (issue #8)
 
 **Status:** prep runs OFF THE SHELF on any checkout (no campaign artifacts
 needed in `--nominal` mode; the prep script bootstraps every free prerequisite
-itself). Training is not exercised in CI and needs a GPU.
+itself). Training is NOT CI-verified — run it on a GPU box.
 
 For each (student, dataset) cell this trains ONE plain supervised fine-tune on
 real gold data volume-matched to the `promptillery (10 cycles)` arm:
@@ -34,7 +36,7 @@ sst2, imdb, yahoo, huffpost (NOT Banking77).
 
 There are NO M5 materialize configs, and no manual G3 pre-steps: for decoder
 cells the prep script gold-materializes `train_sft.jsonl` by reusing
-`examples/paper/G3_<D>_materialize.yaml` (prompt-format identity with the
+`examples/G3_<D>_materialize.yaml` (prompt-format identity with the
 promptillery arms by construction), auto-fills any missing
 `out/g3/<D>/{validation,test}_sft.jsonl` + `canonical_labels.json` the same
 way (never overwriting existing campaign files), and auto-runs
@@ -56,7 +58,7 @@ uv run python scripts/prep_m5_same_n.py --dataset <D> --student <S> --nominal
 #      ... --run-dir out/g3/ablation_g3_<D>_<S>_*/g3_<D>_<S>_*_cycles-10_*
 
 # 2) single fine-tune (zero teacher calls; no OPENROUTER_API_KEY needed):
-uv run promptillery train examples/paper/M5_<D>_same_n_<S>.yaml
+uv run promptillery train examples/M5_<D>_same_n_<S>.yaml
 
 # 3) the table cell = the run's heldout_test accuracy (encoders) /
 #    exact_match (decoders), from out/m5/<run>/metrics.json:
@@ -67,7 +69,7 @@ uv run promptillery analyze out/m5 --metric accuracy
 
 ```bash
 uv run python scripts/prep_m5_same_n.py --dataset sst2 --student ettin_decoder --nominal
-uv run promptillery train examples/paper/M5_sst2_same_n_ettin_decoder.yaml
+uv run promptillery train examples/M5_sst2_same_n_ettin_decoder.yaml
 ```
 
 ## Notes
@@ -98,7 +100,7 @@ uv run promptillery train examples/paper/M5_sst2_same_n_ettin_decoder.yaml
 
 ## Fresh checkout = just run it
 
-Run `uv sync`, then the two commands above per cell. `--nominal` mode
+`git pull && uv sync`, then the two commands above per cell. `--nominal` mode
 was executed end-to-end on a machine without campaign artifacts for all 15
 prep cells (5 datasets x 3 students) on 2026-07-10: the script auto-downloaded
 the HF datasets, auto-normalized yahoo/huffpost, auto-materialized the missing

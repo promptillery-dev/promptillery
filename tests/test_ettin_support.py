@@ -1,4 +1,4 @@
-"""Ettin matched-pair enablement.
+"""Ettin matched-pair enablement (issue #3).
 
 Ettin ships identically-trained encoder and decoder checkpoints. The decoder
 path (SFT trainer) already forwards trust_remote_code; these tests lock the

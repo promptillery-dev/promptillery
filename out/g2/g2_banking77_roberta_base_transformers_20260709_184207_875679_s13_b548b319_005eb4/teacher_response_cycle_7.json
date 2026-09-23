@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783615965-qfKGtRxaG0cR0V7czGwG",
+  "created": 1783615965,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  { \"text\": \"Can you explain why my direct deposit hasn\u2019t shown up yet?\", \"label\": 58 },\n  { \"text\": \"Is it normal for my paycheck deposit to be delayed? I haven\u2019t received it.\", \"label\": 58 },\n  { \"text\": \"How long should it take for a direct deposit to clear?\", \"label\": 58 },\n  { \"text\": \"My employer says they sent my salary but it\u2019s not in my bank yet. Is this a normal delay?\", \"label\": 58 },\n  \n  { \"text\": \"What happens if my top-up gets cancelled by the app?\", \"label\": 59 },\n  { \"text\": \"I received a notification that my top up was cancelled. What should I do next?\", \"label\": 59 },\n  { \"text\": \"Why would a card top up be cancelled and how can I resolve this?\", \"label\": 59 },\n  { \"text\": \"My attempt to top up my account was unsuccessful, and the transaction was cancelled. Help?\", \"label\": 59 },\n  \n  { \"text\": \"How do I change my PIN if I forgot the current one?\", \"label\": 49 },\n  { \"text\": \"I don\u2019t remember my PIN, can I reset it?\", \"label\": 49 },\n  { \"text\": \"If I forgot my PIN, what steps should I follow to create a new one?\", \"label\": 49 },\n  { \"text\": \"What are my options for setting a new PIN if I don't know the old one?\", \"label\": 49 },\n  \n  { \"text\": \"Where can I find more information about a failed card payment?\", \"label\": 53 },\n  { \"text\": \"Is there an explanation log for why my payment got declined?\", \"label\": 53 },\n  { \"text\": \"How do I see details about a cancelled card payment?\", \"label\": 53 },\n  { \"text\": \"Where can I get the reason for a payment that was rejected by the bank?\", \"label\": 53 },\n  \n  { \"text\": \"What are the current exchange rates for transferring USD to EUR?\", \"label\": 36 },\n  { \"text\": \"How can I check today\u2019s foreign exchange rates in the app?\", \"label\": 36 },\n  { \"text\": \"Where do I access the latest exchange rates for converting funds?\", \"label\": 36 },\n  { \"text\": \"Which currencies can I hold or convert to at the moment, and what are their current rates?\", \"label\": 36 },\n  \n  { \"text\": \"Is ZAR (South African Rand) supported for holding or exchange?\", \"label\": 36 },\n  { \"text\": \"Can I have an account balance in JPY or only exchange to it?\", \"label\": 36 },\n  { \"text\": \"Do you show the list of all supported fiat currencies within the app?\", \"label\": 36 },\n  { \"text\": \"Which fiat currencies am I allowed to keep and convert my money into?\", \"label\": 36 },\n  \n  { \"text\": \"My salary deposit hasn't landed, should I be worried about a hold?\", \"label\": 58 },\n  { \"text\": \"Do direct deposits ever get delayed for verification?\", \"label\": 58 },\n  \n  { \"text\": \"I received a cancelled top-up email but no refund yet, what now?\", \"label\": 59 },\n  { \"text\": \"Top up reversal notification received, what caused it?\", \"label\": 59 },\n  \n  { \"text\": \"I see a cancelled transaction in my payment history, can I find out why?\", \"label\": 53 },\n  { \"text\": \"The app shows my card payment was cancelled, is there a way to get more details?\", \"label\": 53 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 806,
+    "prompt_tokens": 6187,
+    "total_tokens": 6993,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.018822,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.018822,
+      "upstream_inference_prompt_cost": 0.012374,
+      "upstream_inference_completions_cost": 0.006448
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

@@ -4,7 +4,8 @@ Deterministic and seeded (default 13). Writes {question, answer, answer_number}
 JSONL under out/g4/gsm8k/. GSM8K has no class labels and the engine sampling
 block has no unstratified path (engine.py:187-192 skips silently), so the
 1000-row carve happens here. Calculator annotations <<...>> are stripped (free
-parameter, recorded here).
+parameter, recorded here). See
+docs/superpowers/specs/2026-07-10-g4-g5-gsm8k-generative-kd-design.md §4.
 """
 from __future__ import annotations
 

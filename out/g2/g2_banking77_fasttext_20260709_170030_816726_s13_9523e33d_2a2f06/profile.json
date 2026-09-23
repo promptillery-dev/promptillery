@@ -1,0 +1,28 @@
+{
+  "model": "fasttext",
+  "student_type": "fasttext",
+  "dataset": "PolyAI/banking77",
+  "hardware": {
+    "device": "cpu",
+    "gpu_name": null,
+    "cpu": "x86_64",
+    "torch_version": "2.7.1+cu126"
+  },
+  "measurement": {
+    "n_iterations": 50,
+    "warmup": 5,
+    "latency_batch_size": 1
+  },
+  "student": {
+    "p50_latency_ms": 0.008556526154279709,
+    "p95_latency_ms": 0.012275716289877888,
+    "mean_latency_ms": 0.009018722921609879,
+    "throughput_calls_per_sec": 110880.44379364257
+  },
+  "teacher": {
+    "model": "openrouter/openai/gpt-4.1",
+    "estimated_cost": null,
+    "n_calls": null,
+    "cost_per_1k_calls": null
+  }
+}

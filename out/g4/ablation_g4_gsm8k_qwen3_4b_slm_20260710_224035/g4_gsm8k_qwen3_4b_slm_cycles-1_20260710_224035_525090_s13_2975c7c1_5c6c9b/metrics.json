@@ -1,0 +1,40 @@
+{
+  "0": {
+    "eval_loss": 0.4711579978466034,
+    "perplexity": 1.6018480562252064,
+    "examples": 200,
+    "exact_match": 0.83,
+    "canonical_label_count": 489,
+    "observed_gold_label_count": 114,
+    "invalid_label_rate": 0.03,
+    "_selection_split": "validation",
+    "_run_id": "g4_gsm8k_qwen3_4b_slm_cycles-1_20260710_224035_525090_s13_2975c7c1_5c6c9b",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.5132172703742981,
+    "perplexity": 1.6706575147940779,
+    "examples": 1319,
+    "exact_match": 0.7968157695223654,
+    "canonical_label_count": 489,
+    "observed_gold_label_count": 351,
+    "invalid_label_rate": 0.06520090978013647,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "g4_gsm8k_qwen3_4b_slm_cycles-1_20260710_224035_525090_s13_2975c7c1_5c6c9b"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

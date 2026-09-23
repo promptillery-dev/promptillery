@@ -1,4 +1,4 @@
-"""Student-vs-teacher fidelity metric.
+"""Student-vs-teacher fidelity metric (issue #3).
 
 Fidelity is the top-1 label agreement between a distilled student and the
 teacher that supervised it, measured on the held-out test split:

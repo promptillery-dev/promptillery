@@ -249,7 +249,7 @@ PAPER_MAIN_RESULT_FIELDS = [
     "std_estimated_cost",
     "mean_final_synthetic_count",
 ]
-# Recommender comparison table -- one row per (dataset, selector).
+# tab:recommender -- one row per (dataset, selector).
 RECOMMENDER_FIELDS = [
     "dataset",
     "selector",
@@ -2467,7 +2467,7 @@ def _paper_result_key(row: Dict[str, Any]) -> tuple[Any, ...]:
 
     ``expected_cycles`` is part of the key: G3 runs three cycle arms of the same
     cell, and without it they collapse into one averaged row that looks like three
-    seeds -- which also erases the recommender's budget axis.
+    seeds -- which also erases the recommender's budget axis (§5.1).
     """
     return (
         row.get("dataset"),

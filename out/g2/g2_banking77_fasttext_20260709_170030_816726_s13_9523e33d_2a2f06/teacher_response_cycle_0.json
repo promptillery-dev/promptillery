@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609234-vxC5C8aqRzazfs7nTiDF",
+  "created": 1783609234,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n    { \"text\": \"My contactless isn't working on my card, how can I get it running?\", \"label\": 23 },\n    { \"text\": \"I've tried to set up contactless several times, but it keeps failing, what am I missing?\", \"label\": 23 },\n    { \"text\": \"Why can't I pay with contactless at certain stores?\", \"label\": 23 },\n    { \"text\": \"Contactless always fails at checkout, do I need to set something else up?\", \"label\": 23 },\n    { \"text\": \"Why did my card get blocked when I entered the pin too many times?\", \"label\": 49 },\n    { \"text\": \"How do I unblock my card after too many incorrect pins?\", \"label\": 49 },\n    { \"text\": \"I've been locked out of my card because I forgot the pin. What's the process to get access again?\", \"label\": 49 },\n    { \"text\": \"My card says it's blocked, I think it's because of pin attempts. How do I resolve this?\", \"label\": 49 },\n    { \"text\": \"I see a payment listed as pending, but it should be final. When will it clear?\", \"label\": 45 },\n    { \"text\": \"Why is one of my card charges still showing up as pending after 4 days?\", \"label\": 45 },\n    { \"text\": \"How long can a transaction stay pending in my account?\", \"label\": 45 },\n    { \"text\": \"I'm worried about a pending transaction; is there a delay or issue on your end?\", \"label\": 45 },\n    { \"text\": \"My cash withdrawal from the ATM earlier is showing up as pending, when will it be completed?\", \"label\": 46 },\n    { \"text\": \"I received cash but my statement says it hasn't left my account yet, what can I do?\", \"label\": 46 },\n    { \"text\": \"Will pending ATM withdrawals reverse automatically if they weren't successful?\", \"label\": 46 },\n    { \"text\": \"There\u2019s a pending withdrawal from an ATM that I didn\u2019t get any cash for. How do I fix this?\", \"label\": 46 },\n    { \"text\": \"I added money to my account but it\u2019s not reflected, what should I do?\", \"label\": 47 },\n    { \"text\": \"Why can't I see the top-up in my balance right after depositing cash?\", \"label\": 47 },\n    { \"text\": \"I've been waiting for my transfer to clear all day. Can you speed it up?\", \"label\": 47 },\n    { \"text\": \"My recent deposit is not showing in my available balance, is there a delay?\", \"label\": 47 },\n    { \"text\": \"How much longer until my transfer arrives? It's urgent and I've already waited hours.\", \"label\": 48 },\n    { \"text\": \"There is a transfer from this morning that isn't in my account yet. Should I be worried?\", \"label\": 48 },\n    { \"text\": \"It took too long for my funds to be credited from a recent transfer. What's the fastest way?\", \"label\": 48 },\n    { \"text\": \"Is there a way to track a delayed transfer? It hasn't cleared and it's urgent.\", \"label\": 48 },\n    { \"text\": \"I transferred money into my account but the amount is lower than what I sent. Why did this happen?\", \"label\": 64 },\n    { \"text\": \"Are there fees deducted when I move money to another account?\", \"label\": 64 },\n    { \"text\": \"Can foreign transaction fees reduce the amount received in a transfer?\", \"label\": 64 },\n    { \"text\": \"My recipient didn't get the full transfer amount, could it be a currency conversion fee?\", \"label\": 64 },\n    { \"text\": \"It tells me my ID verification failed. What should I fix for next time?\", \"label\": 68 },\n    { \"text\": \"Verification keeps failing and I don't know why. Can you tell me what I'm doing wrong?\", \"label\": 68 },\n    { \"text\": \"How do I pass the ID check? It always says I'm not recognized.\", \"label\": 68 },\n    { \"text\": \"I'm unable to finish account verification, it keeps rejecting my details.\", \"label\": 68 }\n] }",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 920,
+    "prompt_tokens": 6541,
+    "total_tokens": 7461,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.020442,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.020442,
+      "upstream_inference_prompt_cost": 0.013082,
+      "upstream_inference_completions_cost": 0.00736
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

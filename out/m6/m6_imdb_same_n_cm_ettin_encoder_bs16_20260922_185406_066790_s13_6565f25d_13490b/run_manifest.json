@@ -1,0 +1,176 @@
+{
+  "action_space": {
+    "action_space_id": "42aa62de56d4",
+    "batch_sizes": [
+      16,
+      32,
+      64
+    ],
+    "include_stop": true,
+    "prompt_operators": [
+      "coverage",
+      "boundary",
+      "repair"
+    ],
+    "teacher_tiers": [
+      "cheap",
+      "strong"
+    ]
+  },
+  "artifact_paths": {
+    "heldout_metrics": "metrics.json#heldout_test",
+    "metrics": "metrics.json",
+    "policy_decisions": "policy_decisions.jsonl",
+    "teacher_attempts": "teacher_attempts.jsonl",
+    "token_usage": "token_usage.json"
+  },
+  "artifact_schema_versions": {
+    "policy_decisions": 1,
+    "run_manifest": 3,
+    "teacher_attempts": 1
+  },
+  "config_hash": "6565f25d661a8fee9026706a151528a8d7e70640cfbb9be555d26709c4850f89",
+  "control_name": null,
+  "cycles_completed": 1,
+  "dataset": "json",
+  "dataset_revision": null,
+  "dataset_subset": "default",
+  "error": {
+    "message": "CUDA out of memory. Tried to allocate 296.00 MiB. GPU 0 has a total capacity of 23.68 GiB of which 225.81 MiB is free. Including non-PyTorch memory, this process has 23.46 GiB memory in use. Of the allocated memory 22.99 GiB is allocated by PyTorch, and 175.27 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)",
+    "type": "OutOfMemoryError"
+  },
+  "expected_cycles": 10,
+  "final_synthetic_count": 0,
+  "heldout_split": "test",
+  "method_name": "fixed_promptillery",
+  "paper_mode": false,
+  "policy_controller": {
+    "controller_type": "legacy_fixed_promptillery",
+    "policy_name": "fixed_promptillery"
+  },
+  "policy_family": "fixed_promptillery",
+  "policy_name": "fixed_promptillery",
+  "reproducibility": {
+    "artifact_dir": "out/m6/m6_imdb_same_n_cm_ettin_encoder_bs16_20260922_185406_066790_s13_6565f25d_13490b",
+    "config_provenance": {
+      "resolved_sha256": "6565f25d661a8fee9026706a151528a8d7e70640cfbb9be555d26709c4850f89",
+      "run_copy_path": "out/m6/m6_imdb_same_n_cm_ettin_encoder_bs16_20260922_185406_066790_s13_6565f25d_13490b/experiment_config.yaml",
+      "run_copy_sha256": "e92215cfe5f342adc0ce8b6db677f35ba16bc336737706e172d34ba05a76a665",
+      "source_path": "examples/M6_imdb_same_n_cm_ettin_encoder_bs16.yaml",
+      "source_sha256": "3d74d29f519fea0971f134c2e3c4e5e6189a7b8a868da365ecca4a09704ae866"
+    },
+    "created_at": "2026-09-22T16:54:14.233542+00:00",
+    "dataset_source": {
+      "dataset": "json",
+      "load_kwargs": {
+        "data_files": {
+          "test": "out/m5/imdb/test.jsonl",
+          "train": "out/m5/imdb/ettin_encoder/train.jsonl",
+          "validation": "out/m5/imdb/validation.jsonl"
+        }
+      },
+      "revision": null,
+      "subset": "default"
+    },
+    "environment": {},
+    "hardware": {
+      "cpu_count": 4,
+      "torch": {
+        "available": true,
+        "cuda_available": true,
+        "cuda_device_count": 1,
+        "cuda_devices": [
+          "NVIDIA GeForce RTX 3090"
+        ],
+        "cuda_version": "12.6",
+        "cudnn_version": 90501,
+        "mps_available": false,
+        "version": "2.7.1+cu126"
+      }
+    },
+    "models": {
+      "student": {
+        "name": "jhu-clsp/ettin-encoder-150m",
+        "revision": null,
+        "tokenizer_revision": null
+      },
+      "teacher": {
+        "name": "openrouter/openai/gpt-4.1",
+        "policy_teacher_tiers": {},
+        "revision": null
+      }
+    },
+    "runtime": {
+      "lockfiles": {
+        "pyproject.toml": "ecd6a49a3db6d90f0f1fd4e12e3aaf62b0a9e89319ff720b26d6aaa8d6464afe",
+        "uv.lock": "89ee24ef4705f191322295f8618f33388035b4b061f7ce1d7be3ed2daf374a2e"
+      },
+      "packages": {
+        "PyYAML": "6.0.2",
+        "accelerate": "1.8.1",
+        "datasets": "3.6.0",
+        "evaluate": "0.4.4",
+        "litellm": "1.73.6",
+        "numpy": "2.2.6",
+        "pandas": "2.3.0",
+        "peft": "0.19.1",
+        "promptillery": "0.1.0",
+        "pydantic": "2.11.7",
+        "scikit-learn": "1.7.0",
+        "torch": "2.7.1",
+        "transformers": "4.57.6",
+        "typer": "0.16.0"
+      },
+      "platform": {
+        "machine": "x86_64",
+        "platform": "Linux-5.15.0-191-generic-x86_64-with-glibc2.35",
+        "processor": "x86_64",
+        "system": "Linux"
+      },
+      "python": {
+        "executable": "/data/promptillery-eacl27/promptillery-dev/.venv/bin/python",
+        "implementation": "CPython",
+        "version": "3.10.20 (main, Jun 23 2026, 15:20:26) [Clang 22.1.3 ]"
+      }
+    },
+    "schema_version": 1,
+    "source_control": {
+      "package": {
+        "available": true,
+        "branch": "resubmit/eacl2027-demo",
+        "head_sha": "bed1813c5395e91e31ec005d69ba1961ec6034a9",
+        "is_dirty": true,
+        "path": "/data/promptillery-eacl27/promptillery-dev",
+        "repo_root": "/data/promptillery-eacl27/promptillery-dev",
+        "status_entries": [
+          "?? examples/M6_imdb_same_n_cm_ettin_encoder_bs16.yaml",
+          "?? prep.log",
+          "?? run.log"
+        ]
+      },
+      "workspace": {
+        "available": false,
+        "error": "CalledProcessError: Command '['git', 'rev-parse', '--show-toplevel']' returned non-zero exit status 128.",
+        "path": "/data/promptillery-eacl27"
+      }
+    }
+  },
+  "run_id": "m6_imdb_same_n_cm_ettin_encoder_bs16_20260922_185406_066790_s13_6565f25d_13490b",
+  "schema_version": 3,
+  "seed": 13,
+  "selection_split": "validation",
+  "status": "failed",
+  "student_model": "jhu-clsp/ettin-encoder-150m",
+  "student_revision": null,
+  "student_type": "transformers",
+  "synthetic_record_budget": null,
+  "task_name": "m6_imdb_same_n_cm_ettin_encoder_bs16",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "teacher_revision": null,
+  "token_budget": null,
+  "tokenizer_revision": null,
+  "training_seconds": 4.933,
+  "training_seconds_by_cycle": [
+    4.933
+  ]
+}

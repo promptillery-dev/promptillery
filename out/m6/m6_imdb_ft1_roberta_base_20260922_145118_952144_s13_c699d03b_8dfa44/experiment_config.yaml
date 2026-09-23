@@ -1,0 +1,72 @@
+name: m6_imdb_ft1_roberta_base
+teacher: openrouter/openai/gpt-4.1
+student: FacebookAI/roberta-base
+teacher_revision: null
+student_revision: null
+tokenizer_revision: null
+student_type: transformers
+dataset: stanfordnlp/imdb
+dataset_revision: null
+dataset_kwargs: {}
+dataset_config:
+  name: plain_text
+  num_classes: 2
+  text_field: text
+  label_field: label
+num_labels: null
+metrics:
+- accuracy
+- f1
+cycles: 1
+seed: 13
+early_stopping:
+  enabled: false
+  patience: 2
+  metric: accuracy
+  mode: max
+  min_delta: 0.0
+  restore_best: true
+sampling:
+  enabled: true
+  sample_size: 1000
+  train_ratio: 0.8
+  stratify_column: label
+  seed: 13
+output_repo: null
+base_output_dir: out/m6
+prompt: null
+prompt_vars: null
+augmentation_batch_size: 10
+teacher_max_output_tokens: null
+policy_name: fixed_promptillery
+policy_prompt_operators:
+- coverage
+- boundary
+- repair
+policy_teacher_tiers: {}
+policy_batch_sizes:
+- 16
+- 32
+- 64
+policy_include_stop: true
+policy_lambda_cost: 0.0001
+policy_exploration_bonus: 0.0
+policy_pacing_epsilon: 1.0e-06
+budget_warning: null
+token_budget: 20000000
+synthetic_record_budget: null
+budget_stop: true
+control_name: null
+price_table_path: null
+learning_rate: 2.0e-05
+batch_size: 32
+num_train_epochs: 3
+warmup_steps: 10
+weight_decay: 0.01
+trainer_config:
+  trust_remote_code: true
+  report_held_out_test: true
+persist_datasets: false
+require_validation_split: true
+paper_mode: false
+auto_modify_name: false

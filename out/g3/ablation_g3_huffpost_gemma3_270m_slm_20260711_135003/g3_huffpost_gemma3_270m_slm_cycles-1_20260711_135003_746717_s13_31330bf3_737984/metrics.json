@@ -1,0 +1,44 @@
+{
+  "0": {
+    "eval_loss": 0.5522565245628357,
+    "perplexity": 1.7371685619750858,
+    "examples": 200,
+    "exact_match": 0.155,
+    "canonical_label_count": 41,
+    "observed_gold_label_count": 41,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.08461677998947204,
+    "macro_f1_full_canonical": 0.08461677998947204,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_gemma3_270m_slm_cycles-1_20260711_135003_746717_s13_31330bf3_737984",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.5814704895019531,
+    "perplexity": 1.788666713470047,
+    "examples": 20950,
+    "exact_match": 0.1707398568019093,
+    "canonical_label_count": 41,
+    "observed_gold_label_count": 41,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.10933500107116184,
+    "macro_f1_full_canonical": 0.10933500107116184,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "g3_huffpost_gemma3_270m_slm_cycles-1_20260711_135003_746717_s13_31330bf3_737984"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

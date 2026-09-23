@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783611021-7pbB0nlMIuBbe9BHhdjp",
+  "created": 1783611021,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\": \"I'm pretty sure you gave me the wrong rate when I exchanged money last night. Can you review this for me?\", \"label\": 17},\n  {\"text\": \"Why did the app calculate a different exchange rate for my recent transaction?\", \"label\": 17},\n  {\"text\": \"There\u2019s an error with the exchange rate used in my transfer from yesterday.\", \"label\": 17},\n  {\"text\": \"I got less money than expected after exchanging currencies. What went wrong?\", \"label\": 17},\n  {\"text\": \"The amount I was credited after exchanging currency isn't matching the rate you advertised.\", \"label\": 17},\n  {\"text\": \"During my trip, the currency conversion rate was much lower than it said on your website. Can you check why?\", \"label\": 17},\n  {\"text\": \"For my last transfer, there was a discrepancy in the exchange rate. Please provide details.\", \"label\": 17},\n  {\"text\": \"What should I do if the converted amount is off due to a wrong exchange rate?\", \"label\": 17},\n  {\"text\": \"How does your system decide the exchange rate? Mine seems inconsistent with the market.\", \"label\": 17},\n  {\"text\": \"Why did your app charge me with an unusual exchange rate yesterday evening?\", \"label\": 17},\n\n  {\"text\": \"While abroad last week, your ATM debited the wrong cash amount. Why is that?\", \"label\": 76},\n  {\"text\": \"Can you clarify what the current exchange rate is for ATM withdrawals?\", \"label\": 76},\n  {\"text\": \"Your cash withdrawal converted at a rate that looks off. What is the set rate?\", \"label\": 76},\n  {\"text\": \"The ATM gave less cash than expected due to currency conversion. Check the applied rate.\", \"label\": 76},\n  {\"text\": \"How do I confirm the exchange rate for overseas ATM withdrawals in advance?\", \"label\": 76},\n  {\"text\": \"I was charged more than I planned for international ATM cash. Was the wrong rate used?\", \"label\": 76},\n  {\"text\": \"Please explain why my ATM withdrawal didn\u2019t match the rate I found online.\", \"label\": 76},\n  {\"text\": \"ATM cash came through, but the converted amount was not as anticipated. Explain?\", \"label\": 76},\n\n  {\"text\": \"My payment isn\u2019t visible in the app after I got confirmation from the sender. Help me locate it.\", \"label\": 5},\n  {\"text\": \"Why isn't the deposit from this morning appearing on my app\u2019s transactions?\", \"label\": 5},\n  {\"text\": \"I received confirmation my transfer was done, but the money isn't showing in the app yet.\", \"label\": 5},\n  {\"text\": \"Is there a delay for incoming payments to be visible on my app?\", \"label\": 5},\n  {\"text\": \"Why does my app not immediately reflect payments from other accounts?\", \"label\": 5},\n\n  {\"text\": \"It says my card has unauthorized activity, what should I do?\", \"label\": 22},\n  {\"text\": \"Someone used my card without my approval. What are my options?\", \"label\": 22},\n  {\"text\": \"I\u2019ve found unapproved transactions on my account, please advise.\", \"label\": 22},\n\n  {\"text\": \"Why is my card showing pending withdrawal when I received cash already?\", \"label\": 46},\n  {\"text\": \"I withdrew cash, but my account balance hasn't updated and it's pending.\", \"label\": 46},\n\n  {\"text\": \"I transferred money, but the app doesn\u2019t update the status and it\u2019s urgent.\", \"label\": 48},\n  {\"text\": \"Funds sent this morning aren't showing as available. How long does it usually take?\", \"label\": 48},\n\n  {\"text\": \"Exchange rate on my refund is lower than the original payment rate. Why is that?\", \"label\": 17}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 840,
+    "prompt_tokens": 6237,
+    "total_tokens": 7077,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 1280,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.017274,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.017274,
+      "upstream_inference_prompt_cost": 0.010554,
+      "upstream_inference_completions_cost": 0.00672
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

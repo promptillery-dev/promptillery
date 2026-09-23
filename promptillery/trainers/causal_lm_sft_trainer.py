@@ -370,7 +370,7 @@ class CausalLMSFTTrainer(BaseTrainer):
 
         mapped = ds.map(tokenize, batched=True, remove_columns=ds.column_names)
         if mask_completion and label_token_count:
-            # Evidence that masking was active for this split.
+            # Gate G1 evidence (issue #1): masking was active for this split.
             logger.info(
                 "completion-only loss: masked %d/%d prompt tokens (%.1f%%) in split %s",
                 masked_token_count,

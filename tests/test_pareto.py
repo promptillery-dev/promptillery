@@ -1,4 +1,4 @@
-"""Tests for pareto.py -- the volume-free deployment frontier.
+"""Tests for pareto.py -- the volume-free deployment frontier (issue #6, M4).
 
 A ``Cell`` is one row of ``paper_main_results.csv`` joined to its student
 profile: two accuracies (selection = what a selector sees, held-out = the
@@ -114,3 +114,10 @@ def test_dominates_is_false_for_the_dominated_direction():
 
     assert dominates(strong, weak, _prices(), accuracy_key="selection_accuracy")
     assert not dominates(weak, strong, _prices(), accuracy_key="selection_accuracy")
+
+
+def test_training_cost_usd_is_hours_times_rate():
+    import pytest
+
+    from promptillery.pareto import training_cost_usd
+    assert training_cost_usd(1800.0, 0.40) == pytest.approx(0.20)

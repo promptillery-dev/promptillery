@@ -1,0 +1,30 @@
+{
+  "0": {
+    "accuracy": 0.32,
+    "f1": 0.04074180895449281,
+    "_selection_split": "validation",
+    "_run_id": "m6_huffpost_ft1_roberta_base_20260922_160158_027133_s13_9bae5e92_97d7b7",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.33045346062052505,
+    "f1": 0.04719129424885396,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m6_huffpost_ft1_roberta_base_20260922_160158_027133_s13_9bae5e92_97d7b7"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

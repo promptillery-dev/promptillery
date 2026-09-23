@@ -1,0 +1,15 @@
+{
+  "report_dir": "out/recommender_g2",
+  "output_dir": "out/recommender_g2/figures",
+  "format": "pdf",
+  "created": [
+    "out/recommender_g2/figures/regret_curve_banking77.pdf"
+  ],
+  "skipped": [
+    "paper_action_cycle_frequencies.csv",
+    "paper_budget_audit.csv",
+    "paper_pairwise_summary.csv",
+    "paper_quality_cost_points.csv",
+    "teacher_calibration.csv"
+  ]
+}

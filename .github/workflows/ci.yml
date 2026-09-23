@@ -26,10 +26,19 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }}
+        run: uv sync --extra paper --python ${{ matrix.python-version }}
 
       - name: Lint
         run: uv run ruff check .
 
       - name: Test
         run: uv run pytest -q
+
+      - name: Demo replay (frozen Banking77 artifacts, no GPU)
+        run: |
+          uv run promptillery recommend \
+            --main-results examples/demo/banking77/paper_main_results.csv \
+            --profile-dir examples/demo/banking77/profiles \
+            --prices prices.yaml --targets targets.yaml -o out/demo_report
+          uv run promptillery paper-figures out/demo_report --format pdf
+          test -f out/demo_report/recommendation.json

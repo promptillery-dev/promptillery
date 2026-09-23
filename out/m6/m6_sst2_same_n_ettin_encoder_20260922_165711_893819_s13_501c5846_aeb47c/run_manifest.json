@@ -1,0 +1,179 @@
+{
+  "action_space": {
+    "action_space_id": "42aa62de56d4",
+    "batch_sizes": [
+      16,
+      32,
+      64
+    ],
+    "include_stop": true,
+    "prompt_operators": [
+      "coverage",
+      "boundary",
+      "repair"
+    ],
+    "teacher_tiers": [
+      "cheap",
+      "strong"
+    ]
+  },
+  "artifact_paths": {
+    "heldout_metrics": "metrics.json#heldout_test",
+    "metrics": "metrics.json",
+    "policy_decisions": "policy_decisions.jsonl",
+    "teacher_attempts": "teacher_attempts.jsonl",
+    "token_usage": "token_usage.json"
+  },
+  "artifact_schema_versions": {
+    "policy_decisions": 1,
+    "run_manifest": 3,
+    "teacher_attempts": 1
+  },
+  "config_hash": "501c5846db7110b140623077ad05993c299b0dc25b7ea8d729634b323fb29209",
+  "control_name": null,
+  "cycles_completed": 1,
+  "dataset": "json",
+  "dataset_revision": null,
+  "dataset_subset": "default",
+  "error": null,
+  "expected_cycles": 1,
+  "final_synthetic_count": 0,
+  "heldout_split": "test",
+  "method_name": "fixed_promptillery",
+  "paper_mode": false,
+  "policy_controller": {
+    "controller_type": "legacy_fixed_promptillery",
+    "policy_name": "fixed_promptillery"
+  },
+  "policy_family": "fixed_promptillery",
+  "policy_name": "fixed_promptillery",
+  "reproducibility": {
+    "artifact_dir": "out/m6/m6_sst2_same_n_ettin_encoder_20260922_165711_893819_s13_501c5846_aeb47c",
+    "config_provenance": {
+      "resolved_sha256": "501c5846db7110b140623077ad05993c299b0dc25b7ea8d729634b323fb29209",
+      "run_copy_path": "out/m6/m6_sst2_same_n_ettin_encoder_20260922_165711_893819_s13_501c5846_aeb47c/experiment_config.yaml",
+      "run_copy_sha256": "9daecc18fa22106180368862aa5f04e8aa341bf6fec018b8b913a23e9d8fd760",
+      "source_path": "examples/M6_sst2_same_n_ettin_encoder.yaml",
+      "source_sha256": "9a63dd61b3149f97ccdea41fcbfd1ddbea0a533ca72ec7d1c4e0497aa5ab41b0"
+    },
+    "created_at": "2026-09-22T14:58:01.944864+00:00",
+    "dataset_source": {
+      "dataset": "json",
+      "load_kwargs": {
+        "data_files": {
+          "test": "out/m5/sst2/test.jsonl",
+          "train": "out/m5/sst2/ettin_encoder/train.jsonl",
+          "validation": "out/m5/sst2/validation.jsonl"
+        }
+      },
+      "revision": null,
+      "subset": "default"
+    },
+    "environment": {},
+    "hardware": {
+      "cpu_count": 22,
+      "torch": {
+        "available": true,
+        "cuda_available": true,
+        "cuda_device_count": 1,
+        "cuda_devices": [
+          "NVIDIA GeForce RTX 4060 Laptop GPU"
+        ],
+        "cuda_version": "12.6",
+        "cudnn_version": 90501,
+        "mps_available": false,
+        "version": "2.7.1+cu126"
+      }
+    },
+    "models": {
+      "student": {
+        "name": "jhu-clsp/ettin-encoder-150m",
+        "revision": null,
+        "tokenizer_revision": null
+      },
+      "teacher": {
+        "name": "openrouter/openai/gpt-4.1",
+        "policy_teacher_tiers": {},
+        "revision": null
+      }
+    },
+    "runtime": {
+      "lockfiles": {
+        "pyproject.toml": "ecd6a49a3db6d90f0f1fd4e12e3aaf62b0a9e89319ff720b26d6aaa8d6464afe",
+        "uv.lock": "89ee24ef4705f191322295f8618f33388035b4b061f7ce1d7be3ed2daf374a2e"
+      },
+      "packages": {
+        "PyYAML": "6.0.2",
+        "accelerate": "1.8.1",
+        "datasets": "3.6.0",
+        "evaluate": "0.4.4",
+        "litellm": "1.73.6",
+        "numpy": "2.3.1",
+        "pandas": "2.3.0",
+        "peft": "0.19.1",
+        "promptillery": "0.1.0",
+        "pydantic": "2.11.7",
+        "scikit-learn": "1.7.0",
+        "torch": "2.7.1",
+        "transformers": "4.57.6",
+        "typer": "0.16.0"
+      },
+      "platform": {
+        "machine": "x86_64",
+        "platform": "Linux-7.2.3-arch1-3-x86_64-with-glibc2.44",
+        "processor": "",
+        "system": "Linux"
+      },
+      "python": {
+        "executable": "/home/rajo/Work/promptillery/friction/.venv/bin/python",
+        "implementation": "CPython",
+        "version": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]"
+      }
+    },
+    "schema_version": 1,
+    "source_control": {
+      "package": {
+        "available": true,
+        "branch": "resubmit/eacl2027-demo",
+        "head_sha": "2bba6493e01f7ee3d9e34bfa5c90a14607de6124",
+        "is_dirty": true,
+        "path": "/home/rajo/Work/promptillery/friction",
+        "repo_root": "/home/rajo/Work/promptillery/friction",
+        "status_entries": [
+          "?? examples/M6_agnews_ft1_ettin_encoder_bs16.yaml",
+          "?? examples/M6_agnews_ft1_roberta_base_bs16.yaml",
+          "?? examples/M6_agnews_same_n_ettin_encoder_bs16.yaml",
+          "?? examples/M6_agnews_same_n_roberta_base_bs16.yaml",
+          "?? examples/M6_imdb_ft1_roberta_base_bs16.yaml",
+          "?? examples/M6_imdb_same_n_roberta_base_bs16.yaml",
+          "?? examples/M6_yahoo_ft1_roberta_base_bs16.yaml",
+          "?? examples/M6_yahoo_same_n_roberta_base_bs16.yaml",
+          "?? run_m6_e1_ettin.log"
+        ]
+      },
+      "workspace": {
+        "available": false,
+        "error": "CalledProcessError: Command '['git', 'rev-parse', '--show-toplevel']' returned non-zero exit status 128.",
+        "path": "/home/rajo/Work/promptillery"
+      }
+    }
+  },
+  "run_id": "m6_sst2_same_n_ettin_encoder_20260922_165711_893819_s13_501c5846_aeb47c",
+  "schema_version": 3,
+  "seed": 13,
+  "selection_split": "validation",
+  "status": "completed",
+  "student_model": "jhu-clsp/ettin-encoder-150m",
+  "student_revision": null,
+  "student_type": "transformers",
+  "synthetic_record_budget": null,
+  "task_name": "m6_sst2_same_n_ettin_encoder",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "teacher_revision": null,
+  "token_budget": null,
+  "tokenizer_revision": null,
+  "training_seconds": 39.171,
+  "training_seconds_by_cycle": [
+    39.171
+  ]
+}

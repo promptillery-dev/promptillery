@@ -1,0 +1,70 @@
+{
+  "0": {
+    "accuracy": 0.41,
+    "f1": 0.3954532725406694,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_ettin_encoder_w10_cycles-5_20260922_192415_048726_s13_59dcde98_a35b51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.505,
+    "f1": 0.4897786254492537,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_ettin_encoder_w10_cycles-5_20260922_192415_048726_s13_59dcde98_a35b51",
+    "_teacher_input_tokens_at_eval": 2098,
+    "_teacher_output_tokens_at_eval": 617,
+    "_teacher_tokens_at_eval": 2715,
+    "_teacher_cost_at_eval": 0.009132
+  },
+  "2": {
+    "accuracy": 0.51,
+    "f1": 0.501702363410655,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_ettin_encoder_w10_cycles-5_20260922_192415_048726_s13_59dcde98_a35b51",
+    "_teacher_input_tokens_at_eval": 4029,
+    "_teacher_output_tokens_at_eval": 1315,
+    "_teacher_tokens_at_eval": 5344,
+    "_teacher_cost_at_eval": 0.018577999999999997
+  },
+  "3": {
+    "accuracy": 0.555,
+    "f1": 0.5547147613451962,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_ettin_encoder_w10_cycles-5_20260922_192415_048726_s13_59dcde98_a35b51",
+    "_teacher_input_tokens_at_eval": 6225,
+    "_teacher_output_tokens_at_eval": 2059,
+    "_teacher_tokens_at_eval": 8284,
+    "_teacher_cost_at_eval": 0.028921999999999996
+  },
+  "4": {
+    "accuracy": 0.525,
+    "f1": 0.5284846398432459,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_ettin_encoder_w10_cycles-5_20260922_192415_048726_s13_59dcde98_a35b51",
+    "_teacher_input_tokens_at_eval": 8798,
+    "_teacher_output_tokens_at_eval": 2812,
+    "_teacher_tokens_at_eval": 11610,
+    "_teacher_cost_at_eval": 0.040091999999999996
+  },
+  "heldout_test": {
+    "accuracy": 0.5792333333333334,
+    "f1": 0.5802109950151213,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 4,
+    "_run_id": "g3_yahoo_ettin_encoder_w10_cycles-5_20260922_192415_048726_s13_59dcde98_a35b51"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.040091999999999996,
+    "total_tokens": 11610,
+    "total_cycles": 5
+  }
+}

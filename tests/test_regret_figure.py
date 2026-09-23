@@ -1,4 +1,4 @@
-"""Test for the regret-curve figure. Needs the `paper` extra."""
+"""Test for the regret-curve figure (issue #6, M4). Needs the `paper` extra."""
 
 import csv
 
@@ -42,3 +42,15 @@ def test_write_paper_figures_picks_up_regret_curve_csv(tmp_path):
     created = " ".join(manifest["created"])
     assert "regret_curve_agnews" in created
     assert "regret_curve_imdb" in created
+
+
+def test_regret_curve_uses_paper_names_and_truetype_fonts(tmp_path):
+    import matplotlib
+
+    from promptillery.figures import _REGRET_SELECTORS
+
+    paths = _plot_regret_curve(_regret_rows(), tmp_path, "pdf")
+
+    assert matplotlib.rcParams["pdf.fonttype"] == 42
+    assert _REGRET_SELECTORS["recommender_budget_search"]["label"] == "Recommender (search)"
+    assert b"/Type3" not in paths[0].read_bytes()

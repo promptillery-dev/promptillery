@@ -8,6 +8,7 @@ import csv
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from promptillery.cli import app
@@ -33,6 +34,7 @@ def _row(student_model, student_type, final, heldout, cost, throughput_note=""):
         "expected_cycles": "1", "policy_name": "uncertainty", "control_name": "",
         "mean_final_metric": final, "mean_heldout_metric": heldout,
         "mean_estimated_cost": cost, "std_estimated_cost": "0.1",
+        "training_seconds": "3600",
     }
 
 
@@ -87,3 +89,14 @@ def test_recommend_cli_writes_the_three_artifacts(tmp_path):
     }
     recommendation = json.loads((out / "recommendation.json").read_text())
     assert "agnews" in recommendation
+
+    receipt = recommendation["agnews"]["receipt"]
+    assert "training_usd" in receipt and "teacher_labelling_usd" in receipt
+
+
+def test_committed_prices_and_targets_carry_no_placeholders():
+    for name in ("prices.yaml", "targets.yaml"):
+        text = (REPO_ROOT / name).read_text()
+        assert "TODO" not in text, f"{name} still has a placeholder"
+    config = load_targets(REPO_ROOT / "targets.yaml")
+    assert config.teacher.usd_per_call == pytest.approx(0.0011)

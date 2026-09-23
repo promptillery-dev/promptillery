@@ -1,0 +1,46 @@
+# M6 results (held-out test accuracy)
+
+| dataset | variant | student | batch | seed | accuracy | f1 | run |
+|---|---|---|---:|---:|---:|---:|---|
+| agnews | ft1 | ettin_encoder | 16 | 13 | 0.8688 | 0.8680 | `m6_agnews_ft1_ettin_encoder_bs16_20260922_164807_871141_s13_8ae1cfe7_d24093` |
+| huffpost | ft1 | ettin_encoder | 16 | 13 | 0.3596 | 0.0992 | `m6_huffpost_ft1_ettin_encoder_bs16_20260922_181356_752495_s13_74756520_ce1795` |
+| sst2 | ft1 | ettin_encoder | 32 | 13 | 0.8276 | 0.8359 | `m6_sst2_ft1_ettin_encoder_20260922_165624_414203_s13_5aca9e67_0374f8` |
+| yahoo | ft1 | ettin_encoder | 8 | 13 | 0.6046 | 0.6026 | `m6_yahoo_ft1_ettin_encoder_bs8_20260922_165840_218565_s13_5928b25c_186266` |
+| agnews | same_n | ettin_encoder | 16 | 13 | 0.8766 | 0.8770 | `m6_agnews_same_n_ettin_encoder_bs16_20260922_165202_907133_s13_3f743196_6154a9` |
+| huffpost | same_n | ettin_encoder | 16 | 13 | 0.3956 | 0.1388 | `m6_huffpost_same_n_ettin_encoder_bs16_20260922_181826_738385_s13_0f934782_5ff581` |
+| sst2 | same_n | ettin_encoder | 32 | 13 | 0.8770 | 0.8811 | `m6_sst2_same_n_ettin_encoder_20260922_165711_893819_s13_501c5846_aeb47c` |
+| yahoo | same_n | ettin_encoder | 8 | 13 | 0.6287 | 0.6263 | `m6_yahoo_same_n_ettin_encoder_bs8_20260922_173553_011230_s13_377027ff_2672c0` |
+| agnews | same_n_cm | ettin_encoder | 32 | 13 | 0.8611 | 0.8610 | `m6_agnews_same_n_cm_ettin_encoder_20260922_183933_068014_s13_d7a1e3c2_9ace99` |
+| huffpost | same_n_cm | ettin_encoder | 32 | 13 | 0.3639 | 0.1451 | `m6_huffpost_same_n_cm_ettin_encoder_20260922_220147_017588_s13_f089013b_c3e61e` |
+| imdb | same_n_cm | ettin_encoder | 8 | 13 | 0.9290 | 0.9293 | `m6_imdb_same_n_cm_ettin_encoder_bs8_20260922_185426_482593_s13_df42d8a4_1ad1bd` |
+| sst2 | same_n_cm | ettin_encoder | 32 | 13 | 0.8396 | 0.8422 | `m6_sst2_same_n_cm_ettin_encoder_20260922_185015_098637_s13_2925d59c_44a046` |
+| yahoo | same_n_cm | ettin_encoder | 32 | 13 | 0.5373 | 0.5360 | `m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9` |
+| agnews | same_n_cm_w10 | ettin_encoder | 32 | 13 | 0.8758 | 0.8752 | `m6_agnews_same_n_cm_w10_ettin_encoder_20260922_235307_426397_s13_86a575e5_054557` |
+| huffpost | same_n_cm_w10 | ettin_encoder | 32 | 13 | 0.4468 | 0.2317 | `m6_huffpost_same_n_cm_w10_ettin_encoder_20260923_031506_202947_s13_befd33ff_32f8d6` |
+| imdb | same_n_cm_w10 | ettin_encoder | 8 | 13 | 0.9273 | 0.9286 | `m6_imdb_same_n_cm_w10_ettin_encoder_bs8_20260923_000753_003024_s13_add66645_9892e6` |
+| sst2 | same_n_cm_w10 | ettin_encoder | 32 | 13 | 0.8968 | 0.8995 | `m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51` |
+| yahoo | same_n_cm_w10 | ettin_encoder | 32 | 13 | 0.6248 | 0.6175 | `m6_yahoo_same_n_cm_w10_ettin_encoder_20260923_024801_223099_s13_9ede12d5_fc1c5e` |
+| agnews | ft1 | roberta_base | 16 | 13 | 0.8947 | 0.8945 | `m6_agnews_ft1_roberta_base_bs16_20260922_144232_254762_s13_7f957e1f_5ac991` |
+| agnews | ft1 | roberta_base | 16 | 7 | 0.8988 | 0.8986 | `m6_agnews_ft1_roberta_base_bs16_s7_20260922_183008_739989_s7_9a3fe9d2_d5a45f` |
+| agnews | ft1 | roberta_base | 16 | 21 | 0.8968 | 0.8964 | `m6_agnews_ft1_roberta_base_bs16_s21_20260922_183258_394818_s21_884f5083_87c2bd` |
+| huffpost | ft1 | roberta_base | 32 | 13 | 0.3305 | 0.0472 | `m6_huffpost_ft1_roberta_base_20260922_160158_027133_s13_9bae5e92_97d7b7` |
+| imdb | ft1 | roberta_base | 16 | 13 | 0.9320 | 0.9326 | `m6_imdb_ft1_roberta_base_bs16_20260922_145133_458172_s13_f12d3dd7_b9f672` |
+| sst2 | ft1 | roberta_base | 32 | 13 | 0.9023 | 0.9021 | `m6_sst2_ft1_roberta_base_20260922_144942_621819_s13_fbb179a3_7c033b` |
+| sst2 | ft1 | roberta_base | 32 | 7 | 0.8979 | 0.9015 | `m6_sst2_ft1_roberta_base_s7_20260922_182839_444220_s7_c49739f4_97a010` |
+| sst2 | ft1 | roberta_base | 32 | 21 | 0.8979 | 0.8953 | `m6_sst2_ft1_roberta_base_s21_20260922_182916_945391_s21_f3d859c5_e53333` |
+| yahoo | ft1 | roberta_base | 16 | 13 | 0.6522 | 0.6343 | `m6_yahoo_ft1_roberta_base_bs16_20260922_152049_997880_s13_c843239f_763cc2` |
+| agnews | same_n | roberta_base | 16 | 13 | 0.8967 | 0.8968 | `m6_agnews_same_n_roberta_base_bs16_20260922_144551_454568_s13_603c3462_592c61` |
+| huffpost | same_n | roberta_base | 32 | 13 | 0.3659 | 0.0679 | `m6_huffpost_same_n_roberta_base_20260922_160443_561912_s13_f51004ac_8f124a` |
+| imdb | same_n | roberta_base | 16 | 13 | 0.9224 | 0.9252 | `m6_imdb_same_n_roberta_base_bs16_20260922_150540_925061_s13_24ea28ed_170771` |
+| sst2 | same_n | roberta_base | 32 | 13 | 0.9066 | 0.9036 | `m6_sst2_same_n_roberta_base_20260922_145025_927729_s13_4f9ccd8d_717259` |
+| yahoo | same_n | roberta_base | 16 | 13 | 0.6784 | 0.6686 | `m6_yahoo_same_n_roberta_base_bs16_20260922_154239_245196_s13_621ce14c_bfcf5c` |
+| agnews | same_n_cm | roberta_base | 32 | 13 | 0.9005 | 0.9003 | `m6_agnews_same_n_cm_roberta_base_20260922_175100_428383_s13_ec3d639b_b25a92` |
+| huffpost | same_n_cm | roberta_base | 32 | 13 | 0.5220 | 0.2141 | `m6_huffpost_same_n_cm_roberta_base_20260922_183328_266475_s13_0cdeebfa_b5cccf` |
+| imdb | same_n_cm | roberta_base | 32 | 13 | 0.9310 | 0.9314 | `m6_imdb_same_n_cm_roberta_base_20260922_180136_525040_s13_eae8b97c_3277e0` |
+| sst2 | same_n_cm | roberta_base | 32 | 13 | 0.9077 | 0.9102 | `m6_sst2_same_n_cm_roberta_base_20260922_175852_278797_s13_96c91a6e_84db18` |
+| yahoo | same_n_cm | roberta_base | 32 | 13 | 0.6736 | 0.6669 | `m6_yahoo_same_n_cm_roberta_base_20260922_181723_705303_s13_ea518b2a_63d459` |
+| agnews | same_n_cm_w10 | roberta_base | 32 | 13 | 0.8716 | 0.8717 | `m6_agnews_same_n_cm_w10_roberta_base_20260922_230500_192723_s13_a27b6bfa_68ee54` |
+| huffpost | same_n_cm_w10 | roberta_base | 32 | 13 | 0.5617 | 0.3994 | `m6_huffpost_same_n_cm_w10_roberta_base_20260922_234703_153122_s13_b092ec53_842b81` |
+| imdb | same_n_cm_w10 | roberta_base | 32 | 13 | 0.9322 | 0.9325 | `m6_imdb_same_n_cm_w10_roberta_base_20260922_231524_676830_s13_7ea5af4b_5f3b01` |
+| sst2 | same_n_cm_w10 | roberta_base | 32 | 13 | 0.9138 | 0.9132 | `m6_sst2_same_n_cm_w10_roberta_base_20260922_231241_582428_s13_a2c5ead0_136e76` |
+| yahoo | same_n_cm_w10 | roberta_base | 32 | 13 | 0.6686 | 0.6661 | `m6_yahoo_same_n_cm_w10_roberta_base_20260922_233105_560406_s13_608a1b32_ed8c6d` |

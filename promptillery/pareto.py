@@ -1,4 +1,4 @@
-"""Volume-free deployment frontier for the recommender.
+"""Volume-free deployment frontier for the recommender (issue #6, M4).
 
 Each row of ``paper_main_results.csv`` -- joined to its student profile -- is one
 :class:`Cell`. Dominance runs over four axes that do **not** depend on volume:
@@ -25,8 +25,8 @@ class UnknownHardwareError(KeyError):
     """No price-table entry for a cell's stamped ``gpu_name``/``device``.
 
     Distinct from ``profiler.ProfileStampError`` (a wrong-GPU *profile*): this is
-    a missing *price*, and it hard-fails so a mispriced cell never enters the
-    recommender table.
+    a missing *price*, and it hard-fails so a mispriced cell never enters
+    ``tab:recommender``.
     """
 
 
@@ -54,7 +54,10 @@ class Cell:
     device: str  # profile hardware stamp
     gpu_name: Optional[str]
     distillation_usd_std: float = 0.0  # std_estimated_cost -- across-seed cost wobble
-    expected_cycles: int = 0  # the budget arm; teacher spend scales with it
+    expected_cycles: int = 0  # the budget arm (§5.1); teacher spend scales with it
+    teacher_usd: float = 0.0  # teacher labelling spend alone
+    training_seconds: float = 0.0  # student-training wall-clock (upper bound for old runs)
+    training_usd: float = 0.0  # training_seconds / 3600 * device rate
 
 
 @dataclass(frozen=True)
@@ -77,6 +80,11 @@ class HardwarePrices:
 def serving_cost_per_call(cell: Cell, prices: HardwarePrices) -> float:
     """Dollars to serve one call: hourly rate / 3600 / throughput."""
     return prices.rate_for(cell) / 3600.0 / cell.throughput_calls_per_sec
+
+
+def training_cost_usd(training_seconds: float, usd_per_hour: float) -> float:
+    """Dollars of device time spent training the student."""
+    return training_seconds / 3600.0 * usd_per_hour
 
 
 def dominates(a: Cell, b: Cell, prices: HardwarePrices, *, accuracy_key: str) -> bool:

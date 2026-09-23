@@ -1,4 +1,4 @@
-"""Tests for the gold-anchored label-consistency components."""
+"""Tests for the gold-anchored label-consistency components (issue #7)."""
 
 from pathlib import Path
 

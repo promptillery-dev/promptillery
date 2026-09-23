@@ -1,0 +1,30 @@
+{
+  "0": {
+    "accuracy": 0.545,
+    "f1": 0.512459469984741,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_roberta_base_transformers_cycles-1_20260922_180821_949657_s13_5b4c6180_3b76a9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.5560666666666667,
+    "f1": 0.5245141297335839,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "g3_yahoo_roberta_base_transformers_cycles-1_20260922_180821_949657_s13_5b4c6180_3b76a9"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

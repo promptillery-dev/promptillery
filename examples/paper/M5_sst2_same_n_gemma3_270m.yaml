@@ -1,18 +1,18 @@
 # =============================================================================
-# M5 — SST-2: same-N gold FT baseline (gemma3_270m)
+# M5 — tab:main-results, SST-2: same-N gold FT baseline (gemma3_270m)
 # =============================================================================
-# Volume-matched control for the promptillery (10 cycles)
+# Issue #8 (part a): volume-matched control for the promptillery (10 cycles)
 # row. One SFT pass over out/m5/sst2/gemma3_270m/train_sft.jsonl = gold seed-train
 # (800) + matched gold top-up, gold-materialized BY THE PREP SCRIPT (it reuses
-# examples/paper/G3_sst2_materialize.yaml, so the prompt format is identical to the
+# examples/G3_sst2_materialize.yaml, so the prompt format is identical to the
 # promptillery arms by construction). validation/test SFT and canonical labels
 # are the G3 files (identical evaluation to the promptillery arms).
 #
-# Run order (see examples/paper/M5_README.md):
+# Run order (see examples/M5_README.md):
 #   1) uv run python scripts/prep_m5_same_n.py --dataset sst2 --student gemma3_270m \
 #        --run-dir <the cell's completed g3 cycles-10 run dir>
 #      (writes train.jsonl AND gold-materializes train_sft.jsonl; free)
-#   2) uv run promptillery train examples/paper/M5_sst2_same_n_gemma3_270m.yaml
+#   2) uv run promptillery train examples/M5_sst2_same_n_gemma3_270m.yaml
 #
 # No `prompt:` key -> augmentation disabled -> ZERO teacher calls (GPU-only).
 # Same recipe/seed as the G3 "fine-tuned (1 cycle)" row. Full-test eval:

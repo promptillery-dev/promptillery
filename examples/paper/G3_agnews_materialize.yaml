@@ -1,5 +1,5 @@
 # =============================================================================
-# G3 — AG News: materialization SOURCE config
+# G3 — tab:main-results, AG News: materialization SOURCE config
 # =============================================================================
 # Companion to the G3_agnews_{ettin_encoder,ettin_decoder,gemma3_270m}.yaml
 # training configs, which cannot drive materialize-sft themselves: the decoders
@@ -28,10 +28,10 @@
 #    calls, so this is free; AG News ships label_text already, so gold
 #    materialization is a direct column copy):
 #
-#      uv run promptillery materialize-sft examples/paper/G3_agnews_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_agnews_materialize.yaml \
 #        --mode gold --split train \
 #        --output out/g3/agnews/train_sft.jsonl --overwrite
-#      uv run promptillery materialize-sft examples/paper/G3_agnews_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_agnews_materialize.yaml \
 #        --mode gold --split validation \
 #        --output out/g3/agnews/validation_sft.jsonl --overwrite
 #
@@ -39,7 +39,7 @@
 #    train/validation passes above), reused verbatim as the decoders' `test`
 #    data_file:
 #
-#      uv run promptillery materialize-sft examples/paper/G3_agnews_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_agnews_materialize.yaml \
 #        --mode gold --split test \
 #        --output out/g3/agnews/test_sft.jsonl --overwrite
 #

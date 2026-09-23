@@ -1,0 +1,20 @@
+{
+  "0": {
+    "accuracy": 0.825,
+    "f1": 0.8108108108108109,
+    "_selection_split": "validation",
+    "_run_id": "m5_imdb_same_n_ettin_encoder_bs8_retry_transformers_20260711_091217_035702_s13_01f583c4_54d031",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.84268,
+    "f1": 0.8310929783122182,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m5_imdb_same_n_ettin_encoder_bs8_retry_transformers_20260711_091217_035702_s13_01f583c4_54d031"
+  }
+}

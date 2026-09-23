@@ -1,0 +1,28 @@
+{
+  "model": "FacebookAI/roberta-base",
+  "student_type": "transformers",
+  "dataset": "PolyAI/banking77",
+  "hardware": {
+    "device": "cuda:0",
+    "gpu_name": "NVIDIA GeForce RTX 4090",
+    "cpu": "x86_64",
+    "torch_version": "2.7.1+cu126"
+  },
+  "measurement": {
+    "n_iterations": 50,
+    "warmup": 5,
+    "latency_batch_size": 1
+  },
+  "student": {
+    "p50_latency_ms": 4.064303822815418,
+    "p95_latency_ms": 4.159815702587366,
+    "mean_latency_ms": 4.079966265708208,
+    "throughput_calls_per_sec": 245.1000657542001
+  },
+  "teacher": {
+    "model": "openrouter/openai/gpt-4.1",
+    "estimated_cost": null,
+    "n_calls": null,
+    "cost_per_1k_calls": null
+  }
+}

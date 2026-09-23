@@ -1,5 +1,5 @@
 # =============================================================================
-# G3 — IMDB: materialization SOURCE config
+# G3 — tab:main-results, IMDB: materialization SOURCE config
 # =============================================================================
 # Companion to the G3_imdb_{ettin_encoder,ettin_decoder,gemma3_270m}.yaml
 # training configs, which cannot drive materialize-sft themselves: the decoders
@@ -37,10 +37,10 @@
 #    calls, so this is free; gold materialization maps the int label to its
 #    neg/pos ClassLabel name):
 #
-#      uv run promptillery materialize-sft examples/paper/G3_imdb_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_imdb_materialize.yaml \
 #        --mode gold --split train \
 #        --output out/g3/imdb/train_sft.jsonl --overwrite
-#      uv run promptillery materialize-sft examples/paper/G3_imdb_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_imdb_materialize.yaml \
 #        --mode gold --split validation \
 #        --output out/g3/imdb/validation_sft.jsonl --overwrite
 #
@@ -48,7 +48,7 @@
 #    train/validation passes above), reused verbatim as the decoders' `test`
 #    data_file:
 #
-#      uv run promptillery materialize-sft examples/paper/G3_imdb_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G3_imdb_materialize.yaml \
 #        --mode gold --split test \
 #        --output out/g3/imdb/test_sft.jsonl --overwrite
 #

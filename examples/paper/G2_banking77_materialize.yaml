@@ -34,10 +34,10 @@
 #    Every student then runs the identical AL loop (same 20M-token budget cap)
 #    spending teacher tokens purely on augmentation:
 #
-#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G2_banking77_materialize.yaml \
 #        --mode gold --split train \
 #        --output out/g2/banking77_sft_train.jsonl --overwrite
-#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G2_banking77_materialize.yaml \
 #        --mode gold --split validation \
 #        --output out/g2/banking77_sft_validation.jsonl --overwrite
 #
@@ -46,7 +46,7 @@
 #    data_file. Materialize the FULL test split so the fidelity denominator is
 #    the whole test set:
 #
-#      uv run promptillery materialize-sft examples/paper/G2_banking77_materialize.yaml \
+#      uv run promptillery materialize-sft examples/G2_banking77_materialize.yaml \
 #        --mode teacher --split test --token-budget 5000000 \
 #        --output out/g2/banking77_teacher_test.jsonl --overwrite
 #

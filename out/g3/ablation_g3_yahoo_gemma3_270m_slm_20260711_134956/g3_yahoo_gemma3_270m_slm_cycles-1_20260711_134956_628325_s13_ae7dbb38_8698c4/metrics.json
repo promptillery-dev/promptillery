@@ -1,0 +1,44 @@
+{
+  "0": {
+    "eval_loss": 0.2751401662826538,
+    "perplexity": 1.3167152210115889,
+    "examples": 200,
+    "exact_match": 0.5,
+    "canonical_label_count": 10,
+    "observed_gold_label_count": 10,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.45626591712863285,
+    "macro_f1_full_canonical": 0.45626591712863285,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_gemma3_270m_slm_cycles-1_20260711_134956_628325_s13_ae7dbb38_8698c4",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.33113202452659607,
+    "perplexity": 1.392543630085906,
+    "examples": 60000,
+    "exact_match": 0.5127166666666667,
+    "canonical_label_count": 10,
+    "observed_gold_label_count": 10,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.4706679268285173,
+    "macro_f1_full_canonical": 0.4706679268285173,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "g3_yahoo_gemma3_270m_slm_cycles-1_20260711_134956_628325_s13_ae7dbb38_8698c4"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

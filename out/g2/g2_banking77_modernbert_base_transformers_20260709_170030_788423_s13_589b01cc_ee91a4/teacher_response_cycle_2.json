@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609530-rADQkFHpytzG6a7hH311",
+  "created": 1783609530,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\": \"Which foreign currencies are accepted when I want to add money to my account?\", \"label\": 54},\n  {\"text\": \"Can I use JPY or AUD cards to top up my balance?\", \"label\": 54},\n  {\"text\": \"If I am using a Canadian card, will that work for topping up?\", \"label\": 54},\n  {\"text\": \"Does your service support top up from multiple currencies?\", \"label\": 54},\n  {\"text\": \"Is there a limit on which currencies I can use for top ups?\", \"label\": 54},\n  {\"text\": \"How do I top up my account with a foreign currency?\", \"label\": 54},\n  {\"text\": \"What types of bank cards and currencies are compatible with your top up system?\", \"label\": 54},\n  {\"text\": \"Which types of currencies do you allow for adding funds?\", \"label\": 54},\n  {\"text\": \"Do you have a list of accepted currencies for account top ups?\", \"label\": 54},\n  {\"text\": \"Will Euros or US Dollars work when adding money to my account?\", \"label\": 54},\n  {\"text\": \"How is the value of different currencies determined before I exchange them?\", \"label\": 32},\n  {\"text\": \"What is the method for finding out what exchange rate I\u2019ll receive?\", \"label\": 32},\n  {\"text\": \"Where do I see the rate used to convert my money during top up?\", \"label\": 32},\n  {\"text\": \"Can you break down the calculation of the current exchange rate you give?\", \"label\": 32},\n  {\"text\": \"How often do you update exchange rates for international transfers?\", \"label\": 32},\n  {\"text\": \"Why does the currency conversion amount change?\", \"label\": 32},\n  {\"text\": \"Is there a fixed rate I can expect when adding or withdrawing in different currencies?\", \"label\": 32},\n  {\"text\": \"How do you source your exchange rates for different money movements?\", \"label\": 32},\n  {\"text\": \"My virtual card is not working during an online checkout, what should I do?\", \"label\": 72},\n  {\"text\": \"Are there known issues with disposable cards not functioning?\", \"label\": 72},\n  {\"text\": \"Why does my single-use virtual card get rejected at some merchants?\", \"label\": 72},\n  {\"text\": \"The virtual card is being declined everywhere, is there a fix?\", \"label\": 72},\n  {\"text\": \"Every time I try to use my disposable card, the transaction fails. Why?\", \"label\": 72},\n  {\"text\": \"Is there a restriction for where I can use my disposable card?\", \"label\": 72},\n  {\"text\": \"Help, my virtual disposable card works in-store but not online.\", \"label\": 72},\n  {\"text\": \"Why is it that only some online stores accept my disposable card?\", \"label\": 72},\n  {\"text\": \"Can you explain the process if a transfer doesn\u2019t complete successfully?\", \"label\": 27},\n  {\"text\": \"Why would the system block my transfer from going through?\", \"label\": 27},\n  {\"text\": \"What are common reasons my transfer attempt doesn\u2019t succeed?\", \"label\": 27},\n  {\"text\": \"If my money transfer is rejected, what steps should I take next?\", \"label\": 27},\n  {\"text\": \"I tried to send funds but it didn\u2019t work \u2013 what could be the cause?\", \"label\": 27},\n  {\"text\": \"When a transfer is denied, how can I find out why?\", \"label\": 27},\n  {\"text\": \"Is there a way to resolve failed transfer attempts quickly?\", \"label\": 27}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 802,
+    "prompt_tokens": 6075,
+    "total_tokens": 6877,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 1280,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.016646,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.016646,
+      "upstream_inference_prompt_cost": 0.01023,
+      "upstream_inference_completions_cost": 0.006416
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

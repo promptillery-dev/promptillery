@@ -6,16 +6,19 @@
 # decoder. LoRA-tuned via classification-via-generation (score each canonical
 # Banking77 label).
 #
-# This config follows the G2 protocol exactly (10 cycles, full gold train split,
-# OpenRouter teacher, shared fidelity file), so the Gemma row in the deployment
-# table is protocol-consistent with every other student.
+# NOTE vs G1: examples/G1_gemma3_270m_banking77.yaml is the M1 GATE runbook
+# (5 cycles, 1,540-row stratified subset, direct-OpenAI teacher). THIS config is
+# the tab:deployment run — it follows the G2 protocol exactly (10 cycles, full
+# gold train split, OpenRouter teacher, shared fidelity file) so the Gemma row
+# in the paper's deployment table is protocol-consistent with every other
+# student. Do NOT paste G1 gate numbers into the table.
 #
 # Requires accepting the Gemma license on huggingface.co + `hf auth login`.
 # NOT CI-verified: needs a GPU, HF hub access, and a real teacher key. The
 # offline CI proxy for this code path is examples/causal_lm_sft_tiny.yaml.
 #
 # Materialize all SFT artifacts from the shared companion config
-# examples/paper/G2_banking77_materialize.yaml (gold train/validation SFT + the shared
+# examples/G2_banking77_materialize.yaml (gold train/validation SFT + the shared
 # teacher TEST-label file + out/g2/canonical_labels.json), then train, then
 # analyze -- same flow as G2_banking77_ettin_decoder.yaml (see its header for
 # the exact materialize-sft commands).
@@ -25,8 +28,8 @@ name: "g2_banking77_gemma3_270m"
 
 teacher: "openrouter/openai/gpt-4.1"
 
-# Instruction-tuned variant so the SFT template lines up with its chat
-# format.
+# Instruction-tuned variant so the SFT template lines up with its chat format
+# (same choice as the G1 gate).
 student: "google/gemma-3-270m-it"
 student_type: "slm"
 
@@ -37,7 +40,7 @@ dataset_kwargs:
     validation: "out/g2/banking77_sft_validation.jsonl"
     # Shared teacher test-label file: this split's data (student_prompt +
     # gold_answer) and the fidelity reference (teacher label per row) in one.
-    # Without a test split, decoder fidelity/held-out never fire.
+    # Without a test split, decoder fidelity/held-out never fire (blocker #2).
     test: "out/g2/banking77_teacher_test.jsonl"
 dataset_config:
   # This is the HF builder config name passed to load_dataset("json", name, ...).
@@ -64,7 +67,7 @@ metrics:
 cycles: 10
 seed: 13
 
-# Gemma-270M LoRA hyperparameters (match the Ettin-decoder settings).
+# Gemma-270M LoRA hyperparameters (match the G1 gate / Ettin-decoder settings).
 learning_rate: 2e-4
 num_train_epochs: 3
 batch_size: 16
@@ -74,7 +77,7 @@ augmentation_batch_size: 32
 
 # Active-learning-loop teacher output cap: must fit augmentation_batch_size
 # record generation, not just one label. Materialization no longer reads this
-# (that moved to examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the
+# (that moved to examples/G2_banking77_materialize.yaml, at 16 tokens), but the
 # AL loop still needs it: with token_budget set, an UNSET cap makes the
 # augmentation preflight mask every teacher call (engine.py:959-961), silently
 # disabling online augmentation.
@@ -92,9 +95,9 @@ trainer_config:
   max_seq_length: 256
 
   # Cycle selection uses validation; report final metrics (incl. fidelity) on
-  # the held-out test split. The fidelity split is
+  # the held-out test split (blocker #2 / major #4). The fidelity split is
   # scored in full despite max_eval_generation_samples, so its denominator
-  # matches the encoders.
+  # matches the encoders (blocker #3).
   report_held_out_test: true
 
   use_lora: true

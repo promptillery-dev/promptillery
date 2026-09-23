@@ -1,13 +1,13 @@
 # =============================================================================
 # G2 — Banking77 cross-architecture hub: RoBERTa-base (encoder reference)
 # =============================================================================
-# The classic encoder reference profile: a well-understood baseline
+# The classic encoder reference profile (issue #3): a well-understood baseline
 # that anchors the ModernBERT / Ettin encoder numbers against a familiar model.
 #
 # Same protocol as G2_banking77_modernbert_base.yaml (see its header): teacher
 # GPT-4.1 via OpenRouter, one monotonic 10-cycle run, single seed, fidelity via
 # the shared out/g2/banking77_teacher_test.jsonl (materialize it once from
-# examples/paper/G2_banking77_materialize.yaml, --mode teacher --split test). NOT
+# examples/G2_banking77_materialize.yaml, --mode teacher --split test). NOT
 # CI-verified; run on the remote 2xA100 box.
 # =============================================================================
 
@@ -43,12 +43,12 @@ batch_size: 32
 augmentation_batch_size: 32
 
 # Carve validation from train (Banking77 has only train+test) so cycle
-# selection never touches the held-out test set.
+# selection never touches the held-out test set (major #4).
 require_validation_split: true
 
 # Active-learning-loop teacher output cap: must fit augmentation_batch_size
 # record generation, not just one label. Materialization no longer reads this
-# (that moved to examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the AL
+# (that moved to examples/G2_banking77_materialize.yaml, at 16 tokens), but the AL
 # loop still needs it: with token_budget set, an UNSET cap makes the
 # augmentation preflight mask every teacher call (engine.py:959-961), silently
 # disabling online augmentation.
@@ -62,11 +62,11 @@ early_stopping:
   enabled: false
 
 trainer_config:
-  # Select on validation, report finals on a clean held-out test pass.
+  # Select on validation, report finals on a clean held-out test pass (major #4).
   report_held_out_test: true
 
   # Student-vs-teacher fidelity on the held-out test split. Points at the shared
-  # teacher test-label file materialized from examples/paper/G2_banking77_materialize.yaml.
+  # teacher test-label file materialized from examples/G2_banking77_materialize.yaml.
   fidelity:
     teacher_labels_path: "out/g2/banking77_teacher_test.jsonl"
     split: "test"

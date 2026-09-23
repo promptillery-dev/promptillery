@@ -3,6 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from promptillery.config import DatasetConfig, ExperimentConfig
+from _paths import PAPER_EXAMPLES
 
 
 def _base(**overrides):
@@ -41,8 +42,8 @@ def test_num_classes_still_floor_checked_when_set():
 
 
 def test_existing_g3_configs_still_parse():
-    ExperimentConfig.from_yaml("examples/paper/G3_agnews_ettin_encoder.yaml")
-    ExperimentConfig.from_yaml("examples/paper/G3_agnews_ettin_decoder.yaml")
+    ExperimentConfig.from_yaml(str(PAPER_EXAMPLES / "G3_agnews_ettin_encoder.yaml"))
+    ExperimentConfig.from_yaml(str(PAPER_EXAMPLES / "G3_agnews_ettin_decoder.yaml"))
 
 
 def test_optional_set_matches_sft_student_types():

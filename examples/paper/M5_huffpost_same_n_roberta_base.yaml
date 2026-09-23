@@ -1,10 +1,10 @@
 # =============================================================================
-# M5 — HuffPost: same-N gold FT baseline, RoBERTa-base
+# M5 — tab:main-results, HuffPost: same-N gold FT baseline, RoBERTa-base
 # =============================================================================
-# RoBERTa's promptillery rows are prior-submission reruns
+# Issue #8 (part a). RoBERTa's promptillery rows are prior-submission reruns
 # (percentage-based augmentation; no current-schema artifacts), so this cell's
-# matched N REUSES the Ettin-encoder run's N for the same dataset. Same seed +
-# same N => the prep top-up is byte-identical, so this
+# matched N REUSES the Ettin-encoder run's N for the same dataset (decision
+# 2026-07-10). Same seed + same N => the prep top-up is byte-identical, so this
 # config reads out/m5/huffpost/ettin_encoder/train.jsonl directly — run the
 # ettin_encoder prep first; there is NO roberta_base prep invocation:
 #
@@ -12,10 +12,10 @@
 #   uv run python scripts/prep_m5_same_n.py --dataset huffpost --student ettin_encoder \
 #     --run-dir out/g3/ablation_g3_huffpost_ettin_encoder_*/g3_huffpost_ettin_encoder_*_cycles-10_*
 #
-# Then:  uv run promptillery train examples/paper/M5_huffpost_same_n_roberta_base.yaml
+# Then:  uv run promptillery train examples/M5_huffpost_same_n_roberta_base.yaml
 # No `prompt:` key -> augmentation disabled -> ZERO teacher calls (GPU-only).
 # Same recipe/seed as the encoder "fine-tuned (1 cycle)" protocol. NOT
-# CI-verified; run on the remote GPU box. See examples/paper/M5_README.md.
+# CI-verified; run on the remote GPU box. See examples/M5_README.md.
 # =============================================================================
 
 name: "m5_huffpost_same_n_roberta_base"

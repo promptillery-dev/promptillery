@@ -1,0 +1,110 @@
+{
+  "0": {
+    "accuracy": 0.24,
+    "f1": 0.23476934534306926,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.325,
+    "f1": 0.3091897126107653,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "2": {
+    "accuracy": 0.405,
+    "f1": 0.3910166000928916,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "3": {
+    "accuracy": 0.43,
+    "f1": 0.4186749450430495,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "4": {
+    "accuracy": 0.46,
+    "f1": 0.4566449282752236,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "5": {
+    "accuracy": 0.515,
+    "f1": 0.5125228330363119,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "6": {
+    "accuracy": 0.515,
+    "f1": 0.5126669827832618,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "7": {
+    "accuracy": 0.515,
+    "f1": 0.5148118922901739,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "8": {
+    "accuracy": 0.505,
+    "f1": 0.505331420098862,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "9": {
+    "accuracy": 0.505,
+    "f1": 0.5042791136321988,
+    "_selection_split": "validation",
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.5372666666666667,
+    "f1": 0.5360344124659886,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "m6_yahoo_same_n_cm_ettin_encoder_20260922_213441_588296_s13_2a36b886_25e9e9"
+  }
+}

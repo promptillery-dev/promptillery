@@ -1,0 +1,65 @@
+# G2 -- gold-only Banking77 verifier (E6): RoBERTa-base, one cycle,
+# warmup_steps 10, no prompt so it makes zero teacher calls. Output under
+# out/g2_verifier. Derived from G2_banking77_roberta_base.yaml.
+
+name: "g2_banking77_verifier_roberta"
+
+teacher: "openrouter/openai/gpt-4.1"
+
+student: "FacebookAI/roberta-base"
+student_type: "transformers"
+
+dataset: "PolyAI/banking77"
+# PolyAI/banking77 ships a loader script; recent `datasets` refuses to run it
+# without trust_remote_code, so a fresh `train`/`materialize-sft` fails to load
+# the data unless we opt in here.
+dataset_kwargs:
+  trust_remote_code: true
+dataset_config:
+  name: "default"
+  num_classes: 77
+  text_field: "text"
+  label_field: "label"
+
+metrics:
+  - accuracy
+  - f1
+
+cycles: 1
+seed: 13
+
+learning_rate: 2e-5
+num_train_epochs: 3
+batch_size: 32
+augmentation_batch_size: 32
+
+# Carve validation from train (Banking77 has only train+test) so cycle
+# selection never touches the held-out test set (major #4).
+require_validation_split: true
+
+# Active-learning-loop teacher output cap: must fit augmentation_batch_size
+# record generation, not just one label. Materialization no longer reads this
+# (that moved to examples/G2_banking77_materialize.yaml, at 16 tokens), but the AL
+# loop still needs it: with token_budget set, an UNSET cap makes the
+# augmentation preflight mask every teacher call (engine.py:959-961), silently
+# disabling online augmentation.
+teacher_max_output_tokens: 4096
+
+token_budget: 20000000
+budget_stop: true
+base_output_dir: "out/g2_verifier"
+
+early_stopping:
+  enabled: false
+
+warmup_steps: 10
+
+trainer_config:
+  # Select on validation, report finals on a clean held-out test pass (major #4).
+  report_held_out_test: true
+
+  # Student-vs-teacher fidelity on the held-out test split. Points at the shared
+  # teacher test-label file materialized from examples/G2_banking77_materialize.yaml.
+  fidelity:
+    teacher_labels_path: "out/g2/banking77_teacher_test.jsonl"
+    split: "test"

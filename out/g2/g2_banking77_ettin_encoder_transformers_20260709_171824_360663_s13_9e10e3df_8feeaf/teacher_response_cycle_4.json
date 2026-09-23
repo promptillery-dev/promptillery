@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783610815-gpSavUFS4PPMO2gsxbju",
+  "created": 1783610815,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"I need help understanding why there is a direct debit showing up that I didn\u2019t set up.\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"Are these two payments from the same shop supposed to be on my history? I think they may be duplicated.\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"The seller sent my refund and my balance is still the same, what\u2019s the holdup?\",\n      \"label\": 51\n    },\n    {\n      \"text\": \"I keep getting error messages when trying to transfer out of my account. How do I complete the transfer?\",\n      \"label\": 27\n    },\n    {\n      \"text\": \"Can you explain why the exchange rate is different than what I expected for my transfer?\",\n      \"label\": 17\n    },\n    {\n      \"text\": \"Why does it look like the app is missing several recent card transactions?\",\n      \"label\": 66\n    },\n    {\n      \"text\": \"Why did my last card top up fail and what should I do?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"How can I get a complete list of all the supported currencies?\",\n      \"label\": 36\n    },\n    {\n      \"text\": \"Help! I recognized a payment on my card I didn\u2019t authorize.\",\n      \"label\": 16\n    },\n    {\n      \"text\": \"Does it cost me anything to use my card to pay in another currency?\",\n      \"label\": 31\n    },\n    {\n      \"text\": \"My disposable card is declined online. Why does this happen?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"I made a transfer and the money hasn\u2019t gone through yet, is something wrong?\",\n      \"label\": 5\n    },\n    {\n      \"text\": \"If there\u2019s a duplicate item in my transaction list, can you remove it?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"How do I know my transfer won\u2019t fail again?\",\n      \"label\": 27\n    },\n    {\n      \"text\": \"Why are there extra fees charged for my bank transfer?\",\n      \"label\": 64\n    },\n    {\n      \"text\": \"When I travel, how is the cash exchange rate determined?\",\n      \"label\": 76\n    },\n    {\n      \"text\": \"My friend tried to top up my account but nothing arrived. What went wrong?\",\n      \"label\": 62\n    },\n    {\n      \"text\": \"How do I correct an exchange rate mistake from a recent transaction?\",\n      \"label\": 17\n    },\n    {\n      \"text\": \"I scheduled a payment and now see two of them in my app. Why am I being double charged?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"What if my direct debit payment is a scam?\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"Why is my refund not updating in my transaction list?\",\n      \"label\": 51\n    },\n    {\n      \"text\": \"What could cause a disposable card to not work for online stores?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"What happens if a transfer fails and I try again?\",\n      \"label\": 27\n    },\n    {\n      \"text\": \"Is there something wrong with the currency conversion for cash withdrawals abroad?\",\n      \"label\": 76\n    },\n    {\n      \"text\": \"Are you able to reverse a duplicate payment?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"My app doesn\u2019t show my latest payment. Can you help?\",\n      \"label\": 66\n    },\n    {\n      \"text\": \"I want to know why my direct debit was set up when I never consented.\",\n      \"label\": 28\n    },\n    {\n      \"text\": \"I requested a refund a week ago, it still isn't in my account.\",\n      \"label\": 51\n    },\n    {\n      \"text\": \"How can I get a list of all currencies available for holding money?\",\n      \"label\": 36\n    },\n    {\n      \"text\": \"Why do I see an unrecognized card payment in the app?\",\n      \"label\": 16\n    },\n    {\n      \"text\": \"Why haven't you fixed the exchange rate on my recent international purchase?\",\n      \"label\": 17\n    },\n    {\n      \"text\": \"I keep getting failed top-ups when I use my international card.\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"What might prevent my disposable card from completing a transaction?\",\n      \"label\": 72\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 1011,
+    "prompt_tokens": 6049,
+    "total_tokens": 7060,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.020186,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.020186,
+      "upstream_inference_prompt_cost": 0.012098,
+      "upstream_inference_completions_cost": 0.008088
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

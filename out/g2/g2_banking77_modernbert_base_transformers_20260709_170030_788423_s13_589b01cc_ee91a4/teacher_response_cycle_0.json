@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609328-GZukA6rXGNLTBsueOlKs",
+  "created": 1783609328,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\": \"I just got locked out after entering my PIN too many times, how do I get access again?\", \"label\": 49},\n  {\"text\": \"What's the process to unfreeze my account after multiple incorrect PIN attempts?\", \"label\": 49},\n  {\"text\": \"If I can't remember my PIN, can I reset it somehow and unlock my card?\", \"label\": 49},\n  {\"text\": \"I've tried my PIN twice already, is there a limit before my account gets blocked?\", \"label\": 49},\n  {\"text\": \"Why can't I use my card after forgetting my PIN?\", \"label\": 49},\n  {\"text\": \"What should I do if I can't remember my PIN and the app says I'm locked out?\", \"label\": 49},\n  \n  {\"text\": \"Why did my card payment fail when I tried it at the store today?\", \"label\": 25},\n  {\"text\": \"My payment was declined for no clear reason. How can I fix this?\", \"label\": 25},\n  {\"text\": \"For some reason, my card keeps getting declined. What could be causing this?\", \"label\": 25},\n  {\"text\": \"None of my payments are going through with this card, can you check what\u2019s wrong?\", \"label\": 25},\n  {\"text\": \"Why is every transaction I attempt being refused by your bank?\", \"label\": 25},\n  {\"text\": \"The card terminal keeps declining my payment but my account has enough funds.\", \"label\": 25},\n\n  {\"text\": \"The ATM let me withdraw cash but then it showed up as pending. Why?\", \"label\": 46},\n  {\"text\": \"After using the ATM, there\u2019s a transaction stuck as pending in my history.\", \"label\": 46},\n  {\"text\": \"I withdrew money but the ATM transaction is still pending in my account.\", \"label\": 46},\n  {\"text\": \"It says ATM withdrawal is still not fully processed, how long does that usually last?\", \"label\": 46},\n  {\"text\": \"What does it mean if my ATM action is pending but I got the cash?\", \"label\": 46},\n  {\"text\": \"Is it normal for cash withdrawals to be pending for a while?\", \"label\": 46},\n\n  {\"text\": \"Why hasn't my transfer appeared in the recipient's account yet? It's taking too long.\", \"label\": 48},\n  {\"text\": \"The transfer I sent this morning is still pending. When will it arrive?\", \"label\": 48},\n  {\"text\": \"I expected the money to be received today but it is still showing as pending.\", \"label\": 48},\n  {\"text\": \"How come my funds transfer hasn't finalized yet? It's really urgent.\", \"label\": 48},\n  {\"text\": \"Transferred money hours ago and it's still not showing on the other end. Why the delay?\", \"label\": 48},\n  {\"text\": \"I keep checking but the money I sent hasn't come through yet. What's happening?\", \"label\": 48},\n\n  {\"text\": \"What documents are accepted for identification verification?\", \"label\": 68},\n  {\"text\": \"Do I need a passport to verify my identity or is a driver's license fine?\", \"label\": 68},\n  {\"text\": \"I'm being asked to bring ID, what kind should I provide?\", \"label\": 68},\n  {\"text\": \"Why do I need to provide additional identification to update my account?\", \"label\": 68},\n  {\"text\": \"Which forms of ID are accepted for opening an account?\", \"label\": 68},\n  {\"text\": \"Can I use my national ID card for bank verification purposes?\", \"label\": 68},\n\n  {\"text\": \"Why wasn't the full amount transferred to the recipient?\", \"label\": 64},\n  {\"text\": \"I see a transfer fee I wasn't expecting, can you clarify the charges?\", \"label\": 64},\n  {\"text\": \"Is there a reason why the transfer sent is less than what I entered?\", \"label\": 64},\n  {\"text\": \"How are transfer fees calculated between accounts?\", \"label\": 64}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 877,
+    "prompt_tokens": 6255,
+    "total_tokens": 7132,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 2176,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.016262,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.016262,
+      "upstream_inference_prompt_cost": 0.009246,
+      "upstream_inference_completions_cost": 0.007016
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

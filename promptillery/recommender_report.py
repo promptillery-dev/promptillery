@@ -1,4 +1,4 @@
-"""Orchestrate the recommender comparison over a target grid.
+"""Orchestrate the recommender comparison over a target grid (issue #6, M4).
 
 Shapes the rows the CLI writes:
 

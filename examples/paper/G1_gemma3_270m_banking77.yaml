@@ -1,0 +1,180 @@
+# =============================================================================
+# GATE G1 — Gemma-3-270M / Banking77 end-to-end AL loop (SLM student)
+# =============================================================================
+# Milestone M1 gate for issue #1. The SLM trainer (student_type: "slm", a.k.a.
+# "causal_lm_sft") must complete a full budget-bounded active-learning loop on
+# Gemma-3-270M / Banking77 BEFORE any Qwen3-4B run is attempted.
+#
+# STATUS: this config is the runbook for the manual gate. It is NOT verified in
+# CI — it needs a GPU, a Gemma license (accept at huggingface.co + `hf auth
+# login`), and a real teacher API key. The offline CI proxy that exercises the
+# same code path (completion-only masking + TRL SFTTrainer) is
+# `examples/causal_lm_sft_tiny.yaml`, covered by
+# tests/test_sft_online_augmentation.py::test_tiny_slm_config_runs_end_to_end_offline
+#
+# -----------------------------------------------------------------------------
+# HOW TO RUN (two steps: materialize SFT records, then train the AL loop)
+# -----------------------------------------------------------------------------
+# 1) Materialize teacher SFT records from Banking77 using the COMPANION config
+#    examples/G1_gemma3_270m_banking77_materialize.yaml (this config cannot
+#    drive materialize-sft: its `dataset: json` points at the JSONL files the
+#    step creates, and its cycle-level `prompt` references AL-only variables).
+#    Writes train/validation JSONL + a canonical_labels.json artifact:
+#
+#      uv run promptillery materialize-sft \
+#        examples/G1_gemma3_270m_banking77_materialize.yaml \
+#        --mode teacher --max-samples 1540 \
+#        --output out/g1/banking77_sft_train.jsonl \
+#        --split train --overwrite
+#      uv run promptillery materialize-sft \
+#        examples/G1_gemma3_270m_banking77_materialize.yaml \
+#        --mode teacher --max-samples 385 \
+#        --output out/g1/banking77_sft_validation.jsonl \
+#        --split validation --overwrite
+#
+#    (--max-samples 1540 = 20/label stratified; the full 10k-row train pass
+#    predicts ~5-7M teacher tokens and is not needed for the gate.)
+#
+# 2) Run the AL loop (online augmentation adds SFT records each cycle):
+#
+#      uv run promptillery train examples/G1_gemma3_270m_banking77.yaml
+#
+# -----------------------------------------------------------------------------
+# WHAT TO RECORD FOR THE GATE (paste into issue #1)
+# -----------------------------------------------------------------------------
+#   - loop completed all cycles without error (the gate is "runs end-to-end")
+#   - final macro-F1 and exact-match on the held-out test split
+#   - per-cycle teacher token usage + cost from token_usage.json
+#   - confirmation that a >0 fraction of prompt tokens were masked: the
+#     trainer logs "completion-only loss: masked N/M prompt tokens (...)"
+#     per split when completion_only_loss is active
+# =============================================================================
+
+name: "g1_gemma3_270m_banking77"
+
+# Teacher: GPT-4.1 routed via OpenRouter (uses OPENROUTER_API_KEY), matching the
+# G2 cross-arch configs and the central Banking77 experiment (issue #3).
+teacher: "openrouter/openai/gpt-4.1"
+
+# Student: Gemma-3-270M. Use the instruction-tuned variant so the SFT template
+# lines up with its chat format; the base "google/gemma-3-270m" also works.
+student: "google/gemma-3-270m-it"
+student_type: "slm"
+
+# Banking77 SFT records materialized in step (1) above.
+dataset: "json"
+dataset_kwargs:
+  data_files:
+    train: "out/g1/banking77_sft_train.jsonl"
+    validation: "out/g1/banking77_sft_validation.jsonl"
+dataset_config:
+  # `dataset: json` → `name` is the HF *builder config*, not a dataset id;
+  # "PolyAI/banking77" contains a "/" and raises InvalidConfigName before a row
+  # is read. The 77 intents come from the materialize step (companion config).
+  name: "default"
+  num_classes: 77
+  # This config trains on the materialized SFT JSONL, whose columns are
+  # student_prompt / gold_answer / teacher_response — not text / label. The AL
+  # loop's per-cycle augmentation reads these fields, so they must match.
+  text_field: "student_prompt"
+  label_field: "gold_answer"
+
+metrics:
+  - eval_loss
+  - perplexity
+  - exact_match
+  - macro_f1
+
+# The gate is "does one full loop run"; {1,5,10} is the sweep for issue #3.
+cycles: 5
+seed: 13
+
+# LoRA SFT hyperparameters (sensible Gemma-270M starting points; tune as needed).
+learning_rate: 2e-4
+num_train_epochs: 3
+batch_size: 16
+warmup_steps: 10
+weight_decay: 0.0
+
+# Synthetic SFT records the teacher authors per cycle.
+augmentation_batch_size: 32
+
+# Active-learning-loop teacher output cap: must fit augmentation_batch_size
+# record generation, not just one label. With token_budget set, an UNSET cap
+# makes the augmentation preflight mask every teacher call (engine.py:959-961),
+# silently disabling online augmentation -- which would VOID this gate: the loop
+# must actually augment to prove sequence-entropy AL works on a generative
+# student. (The G1 materialize companion keeps its own smaller 16-token cap.)
+teacher_max_output_tokens: 4096
+
+token_budget: 20000000
+budget_stop: true
+require_validation_split: true
+base_output_dir: "out/g1"
+
+early_stopping:
+  enabled: false
+
+trainer_config:
+  max_seq_length: 256
+
+  # Explicit gate-run precision (recorded on issue #1): bf16 on the gate
+  # hardware; precision is opt-in since the #19 SFTConfig fix.
+  bf16: true
+
+  # LoRA (PEFT); TRL SFTTrainer wraps the LoRA-adapted model.
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules: "all-linear"
+
+  # SFT record schema (produced by materialize-sft).
+  prompt_field: "student_prompt"
+  response_field: "teacher_response"
+  gold_answer_field: "gold_answer"
+
+  # Classification-via-generation: score each canonical Banking77 label.
+  answer_extraction: "canonical_label"
+  canonical_label_decoding: "score"
+  canonical_labels_path: "out/g1/canonical_labels.json"
+  task_metric: "macro_f1"
+
+  # Completion-only loss (issue #1): train on the response tokens only.
+  completion_only_loss: true
+
+  generation_max_new_tokens: 16
+  generation_batch_size: 16
+  max_eval_generation_samples: 500
+
+  budget_splits: ["train"]
+  require_teacher_token_fields: true
+
+# -----------------------------------------------------------------------------
+# TEACHER PROMPT — authors new Banking77 SFT records from the student's errors.
+# -----------------------------------------------------------------------------
+prompt: |
+  You are a teacher model in a knowledge-distillation pipeline for the Banking77
+  intent-classification task (77 fine-grained customer-banking intents).
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Performance
+  ```
+  {{ classification_report }}
+  ```
+
+  # Student Model Errors
+
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new customer-message / intent-label SFT
+  records that target the student's weakest and most-confused intents. Each
+  record must use a valid Banking77 intent as its gold answer and cover diverse
+  phrasings within each targeted intent.

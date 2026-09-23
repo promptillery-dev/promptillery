@@ -1,0 +1,28 @@
+{
+  "model": "google/gemma-3-270m-it",
+  "student_type": "slm",
+  "dataset": "json",
+  "hardware": {
+    "device": "cuda:0",
+    "gpu_name": "NVIDIA GeForce RTX 4090",
+    "cpu": "x86_64",
+    "torch_version": "2.7.1+cu126"
+  },
+  "measurement": {
+    "n_iterations": 50,
+    "warmup": 5,
+    "latency_batch_size": 1
+  },
+  "student": {
+    "p50_latency_ms": 100.46229604631662,
+    "p95_latency_ms": 149.02236894704401,
+    "mean_latency_ms": 105.34337854012847,
+    "throughput_calls_per_sec": 9.49276560006161
+  },
+  "teacher": {
+    "model": "openrouter/openai/gpt-4.1",
+    "estimated_cost": null,
+    "n_calls": null,
+    "cost_per_1k_calls": null
+  }
+}

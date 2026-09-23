@@ -1,0 +1,1677 @@
+{
+  "generated_at_utc": "2026-07-09T18:01:31.165058+00:00",
+  "hardware": {
+    "gpu_model": "NVIDIA GeForce RTX 4090",
+    "gpu_count": 2,
+    "driver_version": "595.71.05",
+    "cuda_from_nvidia_smi": "13.2",
+    "gpu_memory_mib_each": 24564,
+    "torch_version": "2.7.1+cu126"
+  },
+  "teacher_tokens": {
+    "materialization_input_tokens": 1624664,
+    "materialization_output_tokens": 15315,
+    "materialization_total_tokens": 1639979,
+    "completed_run_total_tokens": 472275,
+    "dropped_attempt_total_tokens": 0,
+    "campaign_total_tokens": 2112254,
+    "estimated_cost": null,
+    "cost_note": "Token trackers recorded estimated_cost as null; plan estimate for teacher-test pass was approximately $5."
+  },
+  "completed_runs": [
+    {
+      "student": "FastText",
+      "slug": "fasttext",
+      "run_dir": "out/g2/g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06",
+      "type": "Reference",
+      "params": "100d ngrams",
+      "selected_cycle_key": 9,
+      "heldout": {
+        "accuracy": 0.824025974025974,
+        "f1": 0.8232832787138632,
+        "teacher_fidelity": 0.7162337662337662,
+        "_heldout_split": "test",
+        "_selection_split": "validation",
+        "_selected_cycle": 9,
+        "_run_id": "g2_banking77_fasttext_20260709_170030_816726_s13_9523e33d_2a2f06"
+      },
+      "profile": {
+        "model": "fasttext",
+        "student_type": "fasttext",
+        "dataset": "PolyAI/banking77",
+        "hardware": {
+          "device": "cpu",
+          "gpu_name": null,
+          "cpu": "x86_64",
+          "torch_version": "2.7.1+cu126"
+        },
+        "measurement": {
+          "n_iterations": 50,
+          "warmup": 5,
+          "latency_batch_size": 1
+        },
+        "student": {
+          "p50_latency_ms": 0.008556526154279709,
+          "p95_latency_ms": 0.012275716289877888,
+          "mean_latency_ms": 0.009018722921609879,
+          "throughput_calls_per_sec": 110880.44379364257
+        },
+        "teacher": {
+          "model": "openrouter/openai/gpt-4.1",
+          "estimated_cost": null,
+          "n_calls": null,
+          "cost_per_1k_calls": null
+        }
+      },
+      "token_usage": {
+        "experiment_name": "g2_banking77_fasttext",
+        "teacher_model": "openrouter/openai/gpt-4.1",
+        "cycles_completed": 10,
+        "per_cycle": [
+          {
+            "cycle": 0,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6541,
+                "output_tokens": 920,
+                "total_tokens": 7461,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6541,
+              "output_tokens": 920,
+              "total_tokens": 7461,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 1,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6420,
+                "output_tokens": 790,
+                "total_tokens": 7210,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6420,
+              "output_tokens": 790,
+              "total_tokens": 7210,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 2,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6422,
+                "output_tokens": 1014,
+                "total_tokens": 7436,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6422,
+              "output_tokens": 1014,
+              "total_tokens": 7436,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 3,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6420,
+                "output_tokens": 807,
+                "total_tokens": 7227,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6420,
+              "output_tokens": 807,
+              "total_tokens": 7227,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 4,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6419,
+                "output_tokens": 817,
+                "total_tokens": 7236,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6419,
+              "output_tokens": 817,
+              "total_tokens": 7236,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 5,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6380,
+                "output_tokens": 934,
+                "total_tokens": 7314,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6380,
+              "output_tokens": 934,
+              "total_tokens": 7314,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 6,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6445,
+                "output_tokens": 817,
+                "total_tokens": 7262,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6445,
+              "output_tokens": 817,
+              "total_tokens": 7262,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 7,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6427,
+                "output_tokens": 1047,
+                "total_tokens": 7474,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6427,
+              "output_tokens": 1047,
+              "total_tokens": 7474,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 8,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6390,
+                "output_tokens": 994,
+                "total_tokens": 7384,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6390,
+              "output_tokens": 994,
+              "total_tokens": 7384,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 9,
+            "operations": {},
+            "cycle_total": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "total_tokens": 0,
+              "estimated_cost": null
+            }
+          }
+        ],
+        "totals": {
+          "augmentation": {
+            "input_tokens": 57864,
+            "output_tokens": 8140,
+            "total_tokens": 66004,
+            "estimated_cost": null
+          }
+        },
+        "grand_total": {
+          "input_tokens": 57864,
+          "output_tokens": 8140,
+          "total_tokens": 66004,
+          "estimated_cost": null
+        }
+      },
+      "quality_metric": "accuracy",
+      "table_quality": 0.824025974025974,
+      "cycle_readout": {
+        "1": {
+          "metric": 0.8040979510244878,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 7461
+        },
+        "5": {
+          "metric": 0.8075962018990505,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 36570
+        },
+        "10": {
+          "metric": 0.8065967016491754,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 66004
+        }
+      },
+      "per_cycle_tokens": {
+        "1": {
+          "cycle_index": 0,
+          "teacher_tokens": 7461,
+          "estimated_cost": null
+        },
+        "5": {
+          "cycle_index": 4,
+          "teacher_tokens": 7236,
+          "estimated_cost": null
+        },
+        "10": {
+          "cycle_index": 9,
+          "teacher_tokens": 0,
+          "estimated_cost": null
+        }
+      }
+    },
+    {
+      "student": "ModernBERT base",
+      "slug": "modernbert_base",
+      "run_dir": "out/g2/g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4",
+      "type": "Encoder",
+      "params": "149M",
+      "selected_cycle_key": 9,
+      "heldout": {
+        "accuracy": 0.9185064935064935,
+        "f1": 0.9187032592078742,
+        "teacher_fidelity": 0.7840909090909091,
+        "_heldout_split": "test",
+        "_selection_split": "validation",
+        "_selected_cycle": 9,
+        "_run_id": "g2_banking77_modernbert_base_transformers_20260709_170030_788423_s13_589b01cc_ee91a4"
+      },
+      "profile": {
+        "model": "answerdotai/ModernBERT-base",
+        "student_type": "transformers",
+        "dataset": "PolyAI/banking77",
+        "hardware": {
+          "device": "cuda:0",
+          "gpu_name": "NVIDIA GeForce RTX 4090",
+          "cpu": "x86_64",
+          "torch_version": "2.7.1+cu126"
+        },
+        "measurement": {
+          "n_iterations": 50,
+          "warmup": 5,
+          "latency_batch_size": 1
+        },
+        "student": {
+          "p50_latency_ms": 12.155324220657349,
+          "p95_latency_ms": 12.272274633869529,
+          "mean_latency_ms": 12.14223988354206,
+          "throughput_calls_per_sec": 82.35712764622849
+        },
+        "teacher": {
+          "model": "openrouter/openai/gpt-4.1",
+          "estimated_cost": null,
+          "n_calls": null,
+          "cost_per_1k_calls": null
+        }
+      },
+      "token_usage": {
+        "experiment_name": "g2_banking77_modernbert_base_transformers",
+        "teacher_model": "openrouter/openai/gpt-4.1",
+        "cycles_completed": 10,
+        "per_cycle": [
+          {
+            "cycle": 0,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6255,
+                "output_tokens": 877,
+                "total_tokens": 7132,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6255,
+              "output_tokens": 877,
+              "total_tokens": 7132,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 1,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6240,
+                "output_tokens": 782,
+                "total_tokens": 7022,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6240,
+              "output_tokens": 782,
+              "total_tokens": 7022,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 2,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6075,
+                "output_tokens": 802,
+                "total_tokens": 6877,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6075,
+              "output_tokens": 802,
+              "total_tokens": 6877,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 3,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6121,
+                "output_tokens": 732,
+                "total_tokens": 6853,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6121,
+              "output_tokens": 732,
+              "total_tokens": 6853,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 4,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6112,
+                "output_tokens": 952,
+                "total_tokens": 7064,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6112,
+              "output_tokens": 952,
+              "total_tokens": 7064,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 5,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6133,
+                "output_tokens": 1014,
+                "total_tokens": 7147,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6133,
+              "output_tokens": 1014,
+              "total_tokens": 7147,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 6,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6022,
+                "output_tokens": 787,
+                "total_tokens": 6809,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6022,
+              "output_tokens": 787,
+              "total_tokens": 6809,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 7,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 5971,
+                "output_tokens": 849,
+                "total_tokens": 6820,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 5971,
+              "output_tokens": 849,
+              "total_tokens": 6820,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 8,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6106,
+                "output_tokens": 1036,
+                "total_tokens": 7142,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6106,
+              "output_tokens": 1036,
+              "total_tokens": 7142,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 9,
+            "operations": {},
+            "cycle_total": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "total_tokens": 0,
+              "estimated_cost": null
+            }
+          }
+        ],
+        "totals": {
+          "augmentation": {
+            "input_tokens": 55035,
+            "output_tokens": 7831,
+            "total_tokens": 62866,
+            "estimated_cost": null
+          }
+        },
+        "grand_total": {
+          "input_tokens": 55035,
+          "output_tokens": 7831,
+          "total_tokens": 62866,
+          "estimated_cost": null
+        }
+      },
+      "quality_metric": "accuracy",
+      "table_quality": 0.9185064935064935,
+      "cycle_readout": {
+        "1": {
+          "metric": 0.9190404797601199,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 7132
+        },
+        "5": {
+          "metric": 0.92103948025987,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 34948
+        },
+        "10": {
+          "metric": 0.9165417291354323,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 62866
+        }
+      },
+      "per_cycle_tokens": {
+        "1": {
+          "cycle_index": 0,
+          "teacher_tokens": 7132,
+          "estimated_cost": null
+        },
+        "5": {
+          "cycle_index": 4,
+          "teacher_tokens": 7064,
+          "estimated_cost": null
+        },
+        "10": {
+          "cycle_index": 9,
+          "teacher_tokens": 0,
+          "estimated_cost": null
+        }
+      }
+    },
+    {
+      "student": "Ettin encoder 150M",
+      "slug": "ettin_encoder",
+      "run_dir": "out/g2/g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+      "type": "Encoder",
+      "params": "150M",
+      "selected_cycle_key": 9,
+      "heldout": {
+        "accuracy": 0.9188311688311688,
+        "f1": 0.9189098918612102,
+        "teacher_fidelity": 0.7844155844155845,
+        "_heldout_split": "test",
+        "_selection_split": "validation",
+        "_selected_cycle": 9,
+        "_run_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf"
+      },
+      "profile": {
+        "model": "jhu-clsp/ettin-encoder-150m",
+        "student_type": "transformers",
+        "dataset": "PolyAI/banking77",
+        "hardware": {
+          "device": "cuda:0",
+          "gpu_name": "NVIDIA GeForce RTX 4090",
+          "cpu": "x86_64",
+          "torch_version": "2.7.1+cu126"
+        },
+        "measurement": {
+          "n_iterations": 50,
+          "warmup": 5,
+          "latency_batch_size": 1
+        },
+        "student": {
+          "p50_latency_ms": 11.992549989372492,
+          "p95_latency_ms": 12.227164069190621,
+          "mean_latency_ms": 12.055948097258806,
+          "throughput_calls_per_sec": 82.94660792603882
+        },
+        "teacher": {
+          "model": "openrouter/openai/gpt-4.1",
+          "estimated_cost": null,
+          "n_calls": null,
+          "cost_per_1k_calls": null
+        }
+      },
+      "token_usage": {
+        "experiment_name": "g2_banking77_ettin_encoder_transformers",
+        "teacher_model": "openrouter/openai/gpt-4.1",
+        "cycles_completed": 10,
+        "per_cycle": [
+          {
+            "cycle": 0,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6238,
+                "output_tokens": 835,
+                "total_tokens": 7073,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6238,
+              "output_tokens": 835,
+              "total_tokens": 7073,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 1,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6268,
+                "output_tokens": 791,
+                "total_tokens": 7059,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6268,
+              "output_tokens": 791,
+              "total_tokens": 7059,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 2,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6005,
+                "output_tokens": 935,
+                "total_tokens": 6940,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6005,
+              "output_tokens": 935,
+              "total_tokens": 6940,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 3,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6075,
+                "output_tokens": 724,
+                "total_tokens": 6799,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6075,
+              "output_tokens": 724,
+              "total_tokens": 6799,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 4,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6049,
+                "output_tokens": 1011,
+                "total_tokens": 7060,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6049,
+              "output_tokens": 1011,
+              "total_tokens": 7060,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 5,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6125,
+                "output_tokens": 961,
+                "total_tokens": 7086,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6125,
+              "output_tokens": 961,
+              "total_tokens": 7086,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 6,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6237,
+                "output_tokens": 840,
+                "total_tokens": 7077,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6237,
+              "output_tokens": 840,
+              "total_tokens": 7077,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 7,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6048,
+                "output_tokens": 856,
+                "total_tokens": 6904,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6048,
+              "output_tokens": 856,
+              "total_tokens": 6904,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 8,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6167,
+                "output_tokens": 1094,
+                "total_tokens": 7261,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6167,
+              "output_tokens": 1094,
+              "total_tokens": 7261,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 9,
+            "operations": {},
+            "cycle_total": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "total_tokens": 0,
+              "estimated_cost": null
+            }
+          }
+        ],
+        "totals": {
+          "augmentation": {
+            "input_tokens": 55212,
+            "output_tokens": 8047,
+            "total_tokens": 63259,
+            "estimated_cost": null
+          }
+        },
+        "grand_total": {
+          "input_tokens": 55212,
+          "output_tokens": 8047,
+          "total_tokens": 63259,
+          "estimated_cost": null
+        }
+      },
+      "quality_metric": "accuracy",
+      "table_quality": 0.9188311688311688,
+      "cycle_readout": {
+        "1": {
+          "metric": 0.9055472263868066,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 7073
+        },
+        "5": {
+          "metric": 0.9150424787606197,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 34931
+        },
+        "10": {
+          "metric": 0.9180409795102449,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 63259
+        }
+      },
+      "per_cycle_tokens": {
+        "1": {
+          "cycle_index": 0,
+          "teacher_tokens": 7073,
+          "estimated_cost": null
+        },
+        "5": {
+          "cycle_index": 4,
+          "teacher_tokens": 7060,
+          "estimated_cost": null
+        },
+        "10": {
+          "cycle_index": 9,
+          "teacher_tokens": 0,
+          "estimated_cost": null
+        }
+      }
+    },
+    {
+      "student": "Ettin decoder 150M",
+      "slug": "ettin_decoder",
+      "run_dir": "out/g2/g2_banking77_ettin_decoder_slm_20260709_170029_945418_s13_c3133fc7_1340c8",
+      "type": "Decoder SLM",
+      "params": "150M",
+      "selected_cycle_key": 9,
+      "heldout": {
+        "eval_loss": 0.43193042278289795,
+        "perplexity": 1.540227946658696,
+        "examples": 3080,
+        "exact_match": 0.9094155844155845,
+        "canonical_label_count": 77,
+        "observed_gold_label_count": 77,
+        "invalid_label_rate": 0.0,
+        "macro_f1": 0.9092307490519955,
+        "macro_f1_full_canonical": 0.9092307490519955,
+        "teacher_fidelity": 0.7769480519480519,
+        "_heldout_split": "test",
+        "_selection_split": "validation",
+        "_selected_cycle": 9,
+        "_run_id": "g2_banking77_ettin_decoder_slm_20260709_170029_945418_s13_c3133fc7_1340c8"
+      },
+      "profile": {
+        "model": "jhu-clsp/ettin-decoder-150m",
+        "student_type": "slm",
+        "dataset": "json",
+        "hardware": {
+          "device": "cuda:0",
+          "gpu_name": "NVIDIA GeForce RTX 4090",
+          "cpu": "x86_64",
+          "torch_version": "2.7.1+cu126"
+        },
+        "measurement": {
+          "n_iterations": 50,
+          "warmup": 5,
+          "latency_batch_size": 1
+        },
+        "student": {
+          "p50_latency_ms": 95.17017006874084,
+          "p95_latency_ms": 151.03720421902833,
+          "mean_latency_ms": 95.7638268917799,
+          "throughput_calls_per_sec": 10.442356288978226
+        },
+        "teacher": {
+          "model": "openrouter/openai/gpt-4.1",
+          "estimated_cost": null,
+          "n_calls": null,
+          "cost_per_1k_calls": null
+        }
+      },
+      "token_usage": {
+        "experiment_name": "g2_banking77_ettin_decoder_slm",
+        "teacher_model": "openrouter/openai/gpt-4.1",
+        "cycles_completed": 10,
+        "per_cycle": [
+          {
+            "cycle": 0,
+            "operations": {
+              "sft_data": {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "estimated_cost": null
+              },
+              "augmentation": {
+                "input_tokens": 9675,
+                "output_tokens": 2335,
+                "total_tokens": 12010,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9675,
+              "output_tokens": 2335,
+              "total_tokens": 12010,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 1,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9387,
+                "output_tokens": 2525,
+                "total_tokens": 11912,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9387,
+              "output_tokens": 2525,
+              "total_tokens": 11912,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 2,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9353,
+                "output_tokens": 2167,
+                "total_tokens": 11520,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9353,
+              "output_tokens": 2167,
+              "total_tokens": 11520,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 3,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9361,
+                "output_tokens": 2540,
+                "total_tokens": 11901,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9361,
+              "output_tokens": 2540,
+              "total_tokens": 11901,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 4,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9465,
+                "output_tokens": 2414,
+                "total_tokens": 11879,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9465,
+              "output_tokens": 2414,
+              "total_tokens": 11879,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 5,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9410,
+                "output_tokens": 2482,
+                "total_tokens": 11892,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9410,
+              "output_tokens": 2482,
+              "total_tokens": 11892,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 6,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9598,
+                "output_tokens": 2505,
+                "total_tokens": 12103,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9598,
+              "output_tokens": 2505,
+              "total_tokens": 12103,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 7,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9578,
+                "output_tokens": 2402,
+                "total_tokens": 11980,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9578,
+              "output_tokens": 2402,
+              "total_tokens": 11980,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 8,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9633,
+                "output_tokens": 2274,
+                "total_tokens": 11907,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9633,
+              "output_tokens": 2274,
+              "total_tokens": 11907,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 9,
+            "operations": {},
+            "cycle_total": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "total_tokens": 0,
+              "estimated_cost": null
+            }
+          }
+        ],
+        "totals": {
+          "sft_data": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "estimated_cost": null
+          },
+          "augmentation": {
+            "input_tokens": 85460,
+            "output_tokens": 21644,
+            "total_tokens": 107104,
+            "estimated_cost": null
+          }
+        },
+        "grand_total": {
+          "input_tokens": 85460,
+          "output_tokens": 21644,
+          "total_tokens": 107104,
+          "estimated_cost": null
+        }
+      },
+      "quality_metric": "macro_f1",
+      "table_quality": 0.9092307490519955,
+      "cycle_readout": {
+        "1": {
+          "metric": 0.9134613222275557,
+          "metric_name": "macro_f1",
+          "teacher_tokens_cumulative": 12010
+        },
+        "5": {
+          "metric": 0.894954567968319,
+          "metric_name": "macro_f1",
+          "teacher_tokens_cumulative": 59222
+        },
+        "10": {
+          "metric": 0.8784903496424945,
+          "metric_name": "macro_f1",
+          "teacher_tokens_cumulative": 107104
+        }
+      },
+      "per_cycle_tokens": {
+        "1": {
+          "cycle_index": 0,
+          "teacher_tokens": 12010,
+          "estimated_cost": null
+        },
+        "5": {
+          "cycle_index": 4,
+          "teacher_tokens": 11879,
+          "estimated_cost": null
+        },
+        "10": {
+          "cycle_index": 9,
+          "teacher_tokens": 0,
+          "estimated_cost": null
+        }
+      }
+    },
+    {
+      "student": "RoBERTa base",
+      "slug": "roberta_base",
+      "run_dir": "out/g2/g2_banking77_roberta_base_transformers_20260709_184207_875679_s13_b548b319_005eb4",
+      "type": "Encoder",
+      "params": "125M",
+      "selected_cycle_key": 9,
+      "heldout": {
+        "accuracy": 0.9324675324675324,
+        "f1": 0.9322342035408824,
+        "teacher_fidelity": 0.7931818181818182,
+        "_heldout_split": "test",
+        "_selection_split": "validation",
+        "_selected_cycle": 9,
+        "_run_id": "g2_banking77_roberta_base_transformers_20260709_184207_875679_s13_b548b319_005eb4"
+      },
+      "profile": {
+        "model": "FacebookAI/roberta-base",
+        "student_type": "transformers",
+        "dataset": "PolyAI/banking77",
+        "hardware": {
+          "device": "cuda:0",
+          "gpu_name": "NVIDIA GeForce RTX 4090",
+          "cpu": "x86_64",
+          "torch_version": "2.7.1+cu126"
+        },
+        "measurement": {
+          "n_iterations": 50,
+          "warmup": 5,
+          "latency_batch_size": 1
+        },
+        "student": {
+          "p50_latency_ms": 4.064303822815418,
+          "p95_latency_ms": 4.159815702587366,
+          "mean_latency_ms": 4.079966265708208,
+          "throughput_calls_per_sec": 245.1000657542001
+        },
+        "teacher": {
+          "model": "openrouter/openai/gpt-4.1",
+          "estimated_cost": null,
+          "n_calls": null,
+          "cost_per_1k_calls": null
+        }
+      },
+      "token_usage": {
+        "experiment_name": "g2_banking77_roberta_base_transformers",
+        "teacher_model": "openrouter/openai/gpt-4.1",
+        "cycles_completed": 10,
+        "per_cycle": [
+          {
+            "cycle": 0,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6241,
+                "output_tokens": 939,
+                "total_tokens": 7180,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6241,
+              "output_tokens": 939,
+              "total_tokens": 7180,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 1,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6245,
+                "output_tokens": 835,
+                "total_tokens": 7080,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6245,
+              "output_tokens": 835,
+              "total_tokens": 7080,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 2,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6142,
+                "output_tokens": 851,
+                "total_tokens": 6993,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6142,
+              "output_tokens": 851,
+              "total_tokens": 6993,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 3,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6099,
+                "output_tokens": 934,
+                "total_tokens": 7033,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6099,
+              "output_tokens": 934,
+              "total_tokens": 7033,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 4,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6111,
+                "output_tokens": 904,
+                "total_tokens": 7015,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6111,
+              "output_tokens": 904,
+              "total_tokens": 7015,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 5,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6066,
+                "output_tokens": 773,
+                "total_tokens": 6839,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6066,
+              "output_tokens": 773,
+              "total_tokens": 6839,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 6,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6075,
+                "output_tokens": 822,
+                "total_tokens": 6897,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6075,
+              "output_tokens": 822,
+              "total_tokens": 6897,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 7,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6187,
+                "output_tokens": 806,
+                "total_tokens": 6993,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6187,
+              "output_tokens": 806,
+              "total_tokens": 6993,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 8,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 6193,
+                "output_tokens": 776,
+                "total_tokens": 6969,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 6193,
+              "output_tokens": 776,
+              "total_tokens": 6969,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 9,
+            "operations": {},
+            "cycle_total": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "total_tokens": 0,
+              "estimated_cost": null
+            }
+          }
+        ],
+        "totals": {
+          "augmentation": {
+            "input_tokens": 55359,
+            "output_tokens": 7640,
+            "total_tokens": 62999,
+            "estimated_cost": null
+          }
+        },
+        "grand_total": {
+          "input_tokens": 55359,
+          "output_tokens": 7640,
+          "total_tokens": 62999,
+          "estimated_cost": null
+        }
+      },
+      "quality_metric": "accuracy",
+      "table_quality": 0.9324675324675324,
+      "cycle_readout": {
+        "1": {
+          "metric": 0.9205397301349325,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 7180
+        },
+        "5": {
+          "metric": 0.9325337331334332,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 35301
+        },
+        "10": {
+          "metric": 0.9330334832583708,
+          "metric_name": "accuracy",
+          "teacher_tokens_cumulative": 62999
+        }
+      },
+      "per_cycle_tokens": {
+        "1": {
+          "cycle_index": 0,
+          "teacher_tokens": 7180,
+          "estimated_cost": null
+        },
+        "5": {
+          "cycle_index": 4,
+          "teacher_tokens": 7015,
+          "estimated_cost": null
+        },
+        "10": {
+          "cycle_index": 9,
+          "teacher_tokens": 0,
+          "estimated_cost": null
+        }
+      }
+    },
+    {
+      "student": "Gemma3 270M",
+      "slug": "gemma3_270m",
+      "run_dir": "out/g2/g2_banking77_gemma3_270m_slm_20260709_173738_664498_s13_91b3eb40_556d42",
+      "type": "Decoder SLM",
+      "params": "270M",
+      "selected_cycle_key": 9,
+      "heldout": {
+        "eval_loss": 0.5481294989585876,
+        "perplexity": 1.7300139965332162,
+        "examples": 3080,
+        "exact_match": 0.912012987012987,
+        "canonical_label_count": 77,
+        "observed_gold_label_count": 77,
+        "invalid_label_rate": 0.0,
+        "macro_f1": 0.9118812001319926,
+        "macro_f1_full_canonical": 0.9118812001319926,
+        "teacher_fidelity": 0.7808441558441559,
+        "_heldout_split": "test",
+        "_selection_split": "validation",
+        "_selected_cycle": 9,
+        "_run_id": "g2_banking77_gemma3_270m_slm_20260709_173738_664498_s13_91b3eb40_556d42"
+      },
+      "profile": {
+        "model": "google/gemma-3-270m-it",
+        "student_type": "slm",
+        "dataset": "json",
+        "hardware": {
+          "device": "cuda:0",
+          "gpu_name": "NVIDIA GeForce RTX 4090",
+          "cpu": "x86_64",
+          "torch_version": "2.7.1+cu126"
+        },
+        "measurement": {
+          "n_iterations": 50,
+          "warmup": 5,
+          "latency_batch_size": 1
+        },
+        "student": {
+          "p50_latency_ms": 100.46229604631662,
+          "p95_latency_ms": 149.02236894704401,
+          "mean_latency_ms": 105.34337854012847,
+          "throughput_calls_per_sec": 9.49276560006161
+        },
+        "teacher": {
+          "model": "openrouter/openai/gpt-4.1",
+          "estimated_cost": null,
+          "n_calls": null,
+          "cost_per_1k_calls": null
+        }
+      },
+      "token_usage": {
+        "experiment_name": "g2_banking77_gemma3_270m_slm",
+        "teacher_model": "openrouter/openai/gpt-4.1",
+        "cycles_completed": 10,
+        "per_cycle": [
+          {
+            "cycle": 0,
+            "operations": {
+              "sft_data": {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "estimated_cost": null
+              },
+              "augmentation": {
+                "input_tokens": 9668,
+                "output_tokens": 2535,
+                "total_tokens": 12203,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9668,
+              "output_tokens": 2535,
+              "total_tokens": 12203,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 1,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9708,
+                "output_tokens": 2547,
+                "total_tokens": 12255,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9708,
+              "output_tokens": 2547,
+              "total_tokens": 12255,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 2,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9808,
+                "output_tokens": 2908,
+                "total_tokens": 12716,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9808,
+              "output_tokens": 2908,
+              "total_tokens": 12716,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 3,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9733,
+                "output_tokens": 2489,
+                "total_tokens": 12222,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9733,
+              "output_tokens": 2489,
+              "total_tokens": 12222,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 4,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9750,
+                "output_tokens": 2330,
+                "total_tokens": 12080,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9750,
+              "output_tokens": 2330,
+              "total_tokens": 12080,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 5,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9695,
+                "output_tokens": 2547,
+                "total_tokens": 12242,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9695,
+              "output_tokens": 2547,
+              "total_tokens": 12242,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 6,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9566,
+                "output_tokens": 2460,
+                "total_tokens": 12026,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9566,
+              "output_tokens": 2460,
+              "total_tokens": 12026,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 7,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9656,
+                "output_tokens": 2132,
+                "total_tokens": 11788,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9656,
+              "output_tokens": 2132,
+              "total_tokens": 11788,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 8,
+            "operations": {
+              "augmentation": {
+                "input_tokens": 9742,
+                "output_tokens": 2769,
+                "total_tokens": 12511,
+                "estimated_cost": null
+              }
+            },
+            "cycle_total": {
+              "input_tokens": 9742,
+              "output_tokens": 2769,
+              "total_tokens": 12511,
+              "estimated_cost": null
+            }
+          },
+          {
+            "cycle": 9,
+            "operations": {},
+            "cycle_total": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "total_tokens": 0,
+              "estimated_cost": null
+            }
+          }
+        ],
+        "totals": {
+          "sft_data": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "estimated_cost": null
+          },
+          "augmentation": {
+            "input_tokens": 87326,
+            "output_tokens": 22717,
+            "total_tokens": 110043,
+            "estimated_cost": null
+          }
+        },
+        "grand_total": {
+          "input_tokens": 87326,
+          "output_tokens": 22717,
+          "total_tokens": 110043,
+          "estimated_cost": null
+        }
+      },
+      "quality_metric": "macro_f1",
+      "table_quality": 0.9118812001319926,
+      "cycle_readout": {
+        "1": {
+          "metric": 0.8995644348012568,
+          "metric_name": "macro_f1",
+          "teacher_tokens_cumulative": 12203
+        },
+        "5": {
+          "metric": 0.9064043502546175,
+          "metric_name": "macro_f1",
+          "teacher_tokens_cumulative": 61476
+        },
+        "10": {
+          "metric": 0.8987735929294369,
+          "metric_name": "macro_f1",
+          "teacher_tokens_cumulative": 110043
+        }
+      },
+      "per_cycle_tokens": {
+        "1": {
+          "cycle_index": 0,
+          "teacher_tokens": 12203,
+          "estimated_cost": null
+        },
+        "5": {
+          "cycle_index": 4,
+          "teacher_tokens": 12080,
+          "estimated_cost": null
+        },
+        "10": {
+          "cycle_index": 9,
+          "teacher_tokens": 0,
+          "estimated_cost": null
+        }
+      }
+    }
+  ],
+  "dropped_runs": [
+    {
+      "student": "SmolLM3",
+      "tier": "P1",
+      "reason": "CUDA OOM after original launch, expandable-segments retry, generation_batch_size 4 retry, and generation_batch_size 2 retry; dropped per P1 rule.",
+      "teacher_tokens": 0
+    },
+    {
+      "student": "Qwen3 4B LoRA",
+      "tier": "P2",
+      "reason": "CUDA OOM with PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True; dropped per P2 rule with no config edit.",
+      "teacher_tokens": 0
+    }
+  ],
+  "deviations": [
+    "Used uv-managed Python 3.13 because uv selected Python 3.14 initially and the lock supports up to cp313.",
+    "Installed the fasttext optional dependency via uv sync --extra fasttext after the first FastText config validation failed.",
+    "Teacher test materialization first attempt stalled before writing rows; killed and relaunched once, then completed with 3,080 rows.",
+    "Two bounded foreground diagnostic probes for ModernBERT/Ettin decoder were moved under logs/aborted_probes and excluded from completed-run analysis.",
+    "SmolLM3 used the plan-allowed OOM fallback edits only: generation_batch_size 8 -> 4 -> 2, then was dropped after retry3 OOM.",
+    "RoBERTa and Gemma logged aiohttp ClientSession cleanup exceptions during Python shutdown after final metrics and token_usage.json had been saved.",
+    "Qwen3 was dropped after OOM with expandable CUDA segments, per P2 rule; no Qwen config edit was made.",
+    "promptillery analyze out/g2 --metric accuracy and --metric macro_f1 failed on the mixed encoder/decoder parent directory because each metric is absent for the other architecture family; report values were extracted directly from metrics.json.",
+    "FastText profiling required --model-path pointing at the run directory. Passing the .bin file measured latency but hit a profile save-path bug.",
+    "Gemma profiling required an explicit PEFT load with tokenizer-length embedding resize before adapter load; the profile CLI auto-load path failed with a one-token embedding size mismatch."
+  ]
+}

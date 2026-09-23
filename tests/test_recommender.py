@@ -170,8 +170,11 @@ def test_equal_intercept_candidates_yield_a_volume_independent_pick():
               throughput_calls_per_sec=1000.0, selection_accuracy=0.93)
     template = Target(accuracy_floor=0.90, latency_budget_ms=None, volume=0)
 
+    # All swept volumes stay above both students' ~1000-call break-even, so
+    # the teacher-below-break-even rule (A.2) never intervenes here -- this
+    # test is about intercept-tie noise suppression, not the teacher trade-off.
     report = detect_crossover([a, b], template, PRICES, TEACHER,
-                              volumes=[10, 1000, 10_000_000])
+                              volumes=[10_000, 100_000, 10_000_000])
 
     assert report.volume_independent
     assert not report.crossover_suppressed  # genuinely equal, not a noise suppression
@@ -210,3 +213,26 @@ def test_genuine_crossover_is_reported_when_intercepts_differ_beyond_noise():
 
     assert not report.volume_independent
     assert not report.crossover_suppressed
+
+
+def test_recommend_returns_teacher_when_cheaper_than_the_feasible_student():
+    # $10 sunk, ~$0 serving; at 100 calls the teacher costs $0.20.
+    student = _cell(distillation_usd=10.0)
+    target = Target(accuracy_floor=0.90, latency_budget_ms=None, volume=100)
+
+    sel = recommend([student], target, PRICES, TEACHER, search_budget=True)
+
+    assert sel.cell is None
+    assert sel.reason == "teacher_cheaper_at_volume"
+    assert sel.cells_evaluated == (student,)          # it still had to train it
+    assert sel.receipt.total_usd == pytest.approx(0.2)
+
+
+def test_recommend_returns_the_student_once_volume_passes_break_even():
+    student = _cell(distillation_usd=10.0)
+    target = Target(accuracy_floor=0.90, latency_budget_ms=None, volume=100_000)
+
+    sel = recommend([student], target, PRICES, TEACHER, search_budget=True)
+
+    assert sel.cell == student
+    assert sel.reason == "cheapest_feasible"

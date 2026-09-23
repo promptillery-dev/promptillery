@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609316-Kq7YfhEJAqauk147BGmO",
+  "created": 1783609316,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  { \"text\": \"A payment just appeared on my account that I don't recall making. What should I do about this charge?\", \"label\": 28 },\n  { \"text\": \"My statement lists a debit I don't recognize at all, can you help explain it?\", \"label\": 28 },\n  { \"text\": \"How do I dispute a transaction on my account that I don't remember authorizing?\", \"label\": 28 },\n  { \"text\": \"There\u2019s an unknown charge showing up as a direct debit, please advise.\", \"label\": 28 },\n  { \"text\": \"I just saw two transactions for the same thing on my recent statement. Was I double charged?\", \"label\": 63 },\n  { \"text\": \"Why has the same payment gone through more than once?\", \"label\": 63 },\n  { \"text\": \"I think I've been billed twice for a single purchase.\", \"label\": 63 },\n  { \"text\": \"Can you check why I was debited for the same transaction twice?\", \"label\": 63 },\n  { \"text\": \"I can't add more money to my balance, it keeps failing. What\u2019s going on?\", \"label\": 59 },\n  { \"text\": \"No matter how many times I try, my top-up won't process. Is there an account limit?\", \"label\": 59 },\n  { \"text\": \"Why am I unable to complete a top up even though funds are available in my linked bank?\", \"label\": 59 },\n  { \"text\": \"The app says I can\u2019t top up right now even though my card hasn\u2019t expired. Why?\", \"label\": 59 },\n  { \"text\": \"Every time I try to enter the PIN, the app blocks me. How do I unblock my PIN to get access?\", \"label\": 49 },\n  { \"text\": \"My card PIN got locked after several wrong entries, how can I reset it?\", \"label\": 49 },\n  { \"text\": \"How do I regain access if my PIN has been blocked by the system?\", \"label\": 49 },\n  { \"text\": \"Who do I contact to unlock my PIN and what information will I need to provide?\", \"label\": 49 },\n  { \"text\": \"My card isn\u2019t being accepted at any stores I try. What's the reason for this?\", \"label\": 25 },\n  { \"text\": \"Each time I try to make a transaction, the payment is declined. Is there a fix?\", \"label\": 25 },\n  { \"text\": \"My card was rejected when I used it in a shop, but it\u2019s active. How do I fix it?\", \"label\": 25 },\n  { \"text\": \"The terminal won\u2019t accept my card for payment. What steps should I take?\", \"label\": 25 },\n  { \"text\": \"The app reversed the top-up I just made. How do I get my funds back?\", \"label\": 61 },\n  { \"text\": \"My recent top up was declined by the app for no clear reason. What should I do now?\", \"label\": 61 },\n  { \"text\": \"After topping up, the money was deducted and then sent back. Why did this happen?\", \"label\": 61 },\n  { \"text\": \"Every time I try to add money with my card, it gets reversed. Can you help me resolve this?\", \"label\": 61 },\n  { \"text\": \"Is there a way for me to find out my card's PIN if I don't remember setting one?\", \"label\": 38 },\n  { \"text\": \"I forgot my card's PIN\u2014where can I look it up?\", \"label\": 38 },\n  { \"text\": \"Is my PIN stored anywhere I can access through the app?\", \"label\": 38 },\n  { \"text\": \"Can you send me my PIN again for my new card?\", \"label\": 38 },\n  { \"text\": \"Are there other options besides a plastic card for accessing my bank account?\", \"label\": 40 },\n  { \"text\": \"Do you offer anything other than a physical card, maybe something digital?\", \"label\": 40 },\n  { \"text\": \"How does getting a virtual card work instead of a regular card?\", \"label\": 40 },\n  { \"text\": \"If I don\u2019t want the physical card, which alternatives can I use for payments?\", \"label\": 40 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 934,
+    "prompt_tokens": 6380,
+    "total_tokens": 7314,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 1152,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.018504,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.018504,
+      "upstream_inference_prompt_cost": 0.011032,
+      "upstream_inference_completions_cost": 0.007472
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

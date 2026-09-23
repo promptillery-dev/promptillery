@@ -23,4 +23,4 @@ __all__ = [
     "extract_high_entropy_samples",
     "extract_hard_negatives",
 ]
-__version__ = "0.1.0"
+__version__ = "0.2.0"

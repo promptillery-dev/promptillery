@@ -1,0 +1,17 @@
+{
+  "answer_extraction": "canonical_label",
+  "canonical_label_count": 4,
+  "exact_match": 0.29342105263157897,
+  "examples": 7600,
+  "invalid_label_rate": 0.0,
+  "macro_f1": 0.18248956288033935,
+  "macro_f1_full_canonical": 0.18248956288033935,
+  "normalized_canonical_labels": [
+    "business",
+    "sci_tech",
+    "sports",
+    "world"
+  ],
+  "observed_gold_label_count": 4,
+  "split": "test"
+}

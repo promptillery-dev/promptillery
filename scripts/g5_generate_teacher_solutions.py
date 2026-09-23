@@ -5,7 +5,8 @@ written by scripts/prep_gsm8k.py); rejection-filter the TRAIN records against
 the dataset gold final answers so the SFT and KD arms train on the identical
 surviving set; optionally score teacher zero-shot EM on the full test split
 (the KD block's ceiling row). GPU work — not CI-verified; the pure pieces are
-unit-tested in tests/test_g5_teacher_solutions.py.
+unit-tested in tests/test_g5_teacher_solutions.py. Spec §9:
+docs/superpowers/specs/2026-07-10-g4-g5-gsm8k-generative-kd-design.md
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from pathlib import Path
 
 from promptillery.utils import extract_final_number
 
-# MUST stay in sync with examples/paper/G4_gsm8k_materialize.yaml student_prompt_template.
+# MUST stay in sync with examples/G4_gsm8k_materialize.yaml student_prompt_template.
 SOLVE_PROMPT = (
     "Solve the grade-school math problem. Think step by step, then give the\n"
     'final answer on its own line in the form "#### <answer>".\n'

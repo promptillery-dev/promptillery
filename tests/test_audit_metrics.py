@@ -1,4 +1,4 @@
-"""Unit tests for the pure audit metric functions."""
+"""Unit tests for the pure audit metric functions (issue #7)."""
 
 import json
 

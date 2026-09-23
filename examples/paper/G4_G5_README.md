@@ -1,27 +1,28 @@
 # G4/G5 — GSM8K Generative Table + Logit-KD Probe
 
-**Requires GPUs.** These campaigns are not exercised in CI; the GSM8K prep and
-all gold materialization steps are free and CPU-only, but training the students
-(and the KD arm in particular) needs an 80GB-class card.
+**Status:** NOT CI-verified — H100 work, run after this plan lands.
 
 Two campaigns share the GSM8K prep pipeline and the same 1K-subset/seed-13
-protocol as the main-results table:
+protocol as `tab:main-results`:
 
-- **G4** (the generative table): the cross-architecture generative-KD
+- **G4** (issue #9, `tab:generative`): the cross-architecture generative-KD
   table on GSM8K. Roster: GPT-4.1 teacher (`openrouter/openai/gpt-4.1`), four
   decoder students — Qwen3-4B-Instruct, SmolLM3-3B, Ettin-decoder-150m,
   Gemma-3-270M — each run as a `cycles: [1, 5, 10]` ablation, plus a same-N
   gold-FT control per student (below).
-- **G5** (KD probe): a single-shot SFT-vs-logit-KD comparison —
+- **G5** (issue #13, KD probe): a single-shot SFT-vs-logit-KD comparison —
   Qwen3-4B fine-tuned on identical Qwen3-32B-generated solutions, once with
   plain SFT and once with an added token-level forward-KL loss against the
   Qwen3-32B teacher (pinned to its own GPU via `kd.teacher_device_map`, since
   its ~66GB bf16 footprint cannot co-locate with the student on one 80GB
   card). No cycles, no teacher API calls.
 
+See `docs/superpowers/specs/2026-07-10-g4-g5-gsm8k-generative-kd-design.md`
+for the full design (roster, protocol rationale, screening/KD internals).
+
 ---
 
-## Run order
+## Run order (spec §14)
 
 ```bash
 export OPENROUTER_API_KEY=...              # G4 augmentation + teacher rows only
@@ -30,29 +31,29 @@ export OPENROUTER_API_KEY=...              # G4 augmentation + teacher rows only
 uv run python scripts/prep_gsm8k.py --seed 13
 
 # 1) gold SFT (free)
-uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+uv run promptillery materialize-sft examples/G4_gsm8k_materialize.yaml \
   --mode gold --split train      --output out/g4/gsm8k/train_sft.jsonl      --overwrite
-uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+uv run promptillery materialize-sft examples/G4_gsm8k_materialize.yaml \
   --mode gold --split validation --output out/g4/gsm8k/validation_sft.jsonl --overwrite
-uv run promptillery materialize-sft examples/paper/G4_gsm8k_materialize.yaml \
+uv run promptillery materialize-sft examples/G4_gsm8k_materialize.yaml \
   --mode gold --split test       --output out/g4/gsm8k/test_sft.jsonl       --overwrite
 
 # 2) teacher ceiling rows (API)
 uv run python -m promptillery.baseline_eval --task generative ...   # zero- and 5-shot
 
 # 3) students as cycles:[1,5,10] ablations (API for augmentation)
-uv run promptillery ablation examples/paper/G4_gsm8k_qwen3_4b.yaml     --no-cleanup
-uv run promptillery ablation examples/paper/G4_gsm8k_smollm3.yaml      --no-cleanup
-uv run promptillery ablation examples/paper/G4_gsm8k_ettin_decoder.yaml --no-cleanup
-uv run promptillery ablation examples/paper/G4_gsm8k_gemma3_270m.yaml  --no-cleanup
+uv run promptillery ablation examples/G4_gsm8k_qwen3_4b.yaml     --no-cleanup
+uv run promptillery ablation examples/G4_gsm8k_smollm3.yaml      --no-cleanup
+uv run promptillery ablation examples/G4_gsm8k_ettin_decoder.yaml --no-cleanup
+uv run promptillery ablation examples/G4_gsm8k_gemma3_270m.yaml  --no-cleanup
 
 # 4) same-N gold FT per student (free of teacher calls): read N -> --topup-to N
 #    -> materialize gold -> run G4_gsm8k_goldft_<student>.yaml
 
 # 5) G5 (no API key): generate teacher solutions + ceiling, then both arms
 uv run python scripts/g5_generate_teacher_solutions.py
-uv run promptillery train examples/paper/G5_gsm8k_kd_sft.yaml
-uv run promptillery train examples/paper/G5_gsm8k_kd_logit.yaml
+uv run promptillery train examples/G5_gsm8k_kd_sft.yaml
+uv run promptillery train examples/G5_gsm8k_kd_logit.yaml
 ```
 
 Both G5 configs read `out/g4/gsm8k/test_sft.jsonl` as their held-out test split, so
@@ -67,7 +68,7 @@ the full 1,319-row GSM8K test split — that pass fills the table cell.
 
 ---
 
-## Smoke gates before the full campaign
+## Smoke gates before the full campaign (spec §11)
 
 Run these cheap/short checks before committing GPU time to the full 1K/5/10
 sweep — a silent failure here degrades every downstream cycle row to noise:
@@ -90,7 +91,7 @@ sweep — a silent failure here degrades every downstream cycle row to noise:
 
 ---
 
-## Same-N gold-FT control
+## Same-N gold-FT control (spec §8)
 
 Each G4 student's 10-cycle ablation run accumulates augmented training data
 gated by the self-consistency screen, so the final train-split size is
@@ -131,7 +132,7 @@ from AL-selected content.
 - **Full-test evaluation:** the G4 training configs omit
   `max_eval_generation_samples`, so the final `report_held_out_test` pass
   scores the entire 1,319-row test split, matching the uncapped
-  the main-results table decoder columns.
+  `tab:main-results` decoder columns.
 - **G5 never mixes teachers:** the SFT and KD arms train on the identical
   Qwen3-32B-generated, gold-rejection-filtered solutions
   (`scripts/g5_generate_teacher_solutions.py`); only the loss function

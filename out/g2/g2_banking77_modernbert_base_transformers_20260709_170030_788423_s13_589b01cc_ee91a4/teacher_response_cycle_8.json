@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783610142-GIqCyqPrvys0e17dHYVx",
+  "created": 1783610142,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"There's a double charge from the same store in my transactions. How do I dispute this?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"My account is showing the same payment has been taken twice, but I only bought something once.\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"I spotted two identical withdrawals. What's the process to correct this error?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"Help me remove a redundant transaction from my bank statement.\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"Who handles billing issues when there are repeat charges for the same transaction?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"How do I report seeing two of the same charges on my credit card bill?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"I received a notification for a payment I didn't make right after a top up. Can you clarify?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"What's the random debit that followed my recent reload on my account?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"Can you specify why my balance dropped further than the money I just topped up?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"What does the extra deduction mean post-top up?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"After adding funds, why do I see a mysterious outgoing charge?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"Could you explain the debit that appeared just after I funded my account?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"I've topped up but now there's an unexplained withdrawal listed. What caused this?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"Why am I seeing a fee or unknown debit every time I add money with an international card?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"Is it normal to have a deduction immediately after a top up?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"My disposable card is not being accepted for online shopping. What could be preventing it from working?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Why can't I make purchases with my disposable virtual card? Is there a restriction?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"I keep getting errors when trying to pay with a disposable card. Any advice?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"I set up a disposable card, but it doesn't let me buy anything. What should I check?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Are there possible blocks or reasons why a disposable virtual card won't process payments?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Does my disposable card have location or transaction restrictions that could stop it from working?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"None of my online payments are working with my disposable card. Can you troubleshoot?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Are there merchant limitations on the disposable virtual card? Mine keeps being declined.\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"I tried to check out using the disposable card, but it failed. Could this be due to card type?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Who is responsible for resolving double billing for a transaction I only made once?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"If a duplicate debit shows right after I add money, should I worry?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"Each time I top up, there's an additional charge that is not explained. Why?\",\n      \"label\": 57\n    },\n    {\n      \"text\": \"What steps do I take if my disposable card can't be used for any transactions?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"Why won't my disposable card work even though it is active in the app?\",\n      \"label\": 72\n    },\n    {\n      \"text\": \"If my statement shows two charges for a one-time payment, how do I get a refund?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"I've been charged twice for a single transaction after adding funds. Who do I contact?\",\n      \"label\": 63\n    },\n    {\n      \"text\": \"Why did an extra debit post to my account right after I used my card to top up?\",\n      \"label\": 57\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 1036,
+    "prompt_tokens": 6106,
+    "total_tokens": 7142,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.0205,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.0205,
+      "upstream_inference_prompt_cost": 0.012212,
+      "upstream_inference_completions_cost": 0.008288
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

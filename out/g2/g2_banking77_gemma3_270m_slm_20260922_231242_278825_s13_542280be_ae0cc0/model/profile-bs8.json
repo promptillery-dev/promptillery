@@ -1,0 +1,28 @@
+{
+  "model": "google/gemma-3-270m-it",
+  "student_type": "slm",
+  "dataset": "json",
+  "hardware": {
+    "device": "cuda",
+    "gpu_name": "NVIDIA H100 PCIe",
+    "cpu": "x86_64",
+    "torch_version": "2.7.1+cu126"
+  },
+  "measurement": {
+    "n_iterations": 50,
+    "warmup": 5,
+    "latency_batch_size": 8
+  },
+  "student": {
+    "p50_latency_ms": 125.50721998559311,
+    "p95_latency_ms": 217.77659894432873,
+    "mean_latency_ms": 134.2678581783548,
+    "throughput_calls_per_sec": 59.58239081592554
+  },
+  "teacher": {
+    "model": "openrouter/openai/gpt-4.1",
+    "estimated_cost": 0.350698,
+    "n_calls": null,
+    "cost_per_1k_calls": null
+  }
+}

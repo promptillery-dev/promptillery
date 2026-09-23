@@ -1,0 +1,168 @@
+{
+  "action_space": {
+    "action_space_id": "42aa62de56d4",
+    "batch_sizes": [
+      16,
+      32,
+      64
+    ],
+    "include_stop": true,
+    "prompt_operators": [
+      "coverage",
+      "boundary",
+      "repair"
+    ],
+    "teacher_tiers": [
+      "cheap",
+      "strong"
+    ]
+  },
+  "artifact_paths": {
+    "heldout_metrics": "metrics.json#heldout_test",
+    "metrics": "metrics.json",
+    "policy_decisions": "policy_decisions.jsonl",
+    "teacher_attempts": "teacher_attempts.jsonl",
+    "token_usage": "token_usage.json"
+  },
+  "artifact_schema_versions": {
+    "policy_decisions": 1,
+    "run_manifest": 3,
+    "teacher_attempts": 1
+  },
+  "config_hash": "f12d3dd781365dd75209f529695b74657feb74105dcb595d8a85bf4dac70ded6",
+  "control_name": null,
+  "cycles_completed": 1,
+  "dataset": "stanfordnlp/imdb",
+  "dataset_revision": null,
+  "dataset_subset": "plain_text",
+  "error": null,
+  "expected_cycles": 1,
+  "final_synthetic_count": 0,
+  "heldout_split": "test",
+  "method_name": "fixed_promptillery",
+  "paper_mode": false,
+  "policy_controller": {
+    "controller_type": "legacy_fixed_promptillery",
+    "policy_name": "fixed_promptillery"
+  },
+  "policy_family": "fixed_promptillery",
+  "policy_name": "fixed_promptillery",
+  "reproducibility": {
+    "artifact_dir": "out/m6/m6_imdb_ft1_roberta_base_bs16_20260922_145133_458172_s13_f12d3dd7_b9f672",
+    "config_provenance": {
+      "resolved_sha256": "f12d3dd781365dd75209f529695b74657feb74105dcb595d8a85bf4dac70ded6",
+      "run_copy_path": "out/m6/m6_imdb_ft1_roberta_base_bs16_20260922_145133_458172_s13_f12d3dd7_b9f672/experiment_config.yaml",
+      "run_copy_sha256": "407af2519e327fe18dab8e18782c09899f3c7f73da6374af4877e16cacfba522",
+      "source_path": "examples/M6_imdb_ft1_roberta_base_bs16.yaml",
+      "source_sha256": "43c120a5e606e15a449347425cf1d36346686d8966cf352bd1dac0a6d95a0b1f"
+    },
+    "created_at": "2026-09-22T13:05:21.876347+00:00",
+    "dataset_source": {
+      "dataset": "stanfordnlp/imdb",
+      "load_kwargs": {},
+      "revision": null,
+      "subset": "plain_text"
+    },
+    "environment": {},
+    "hardware": {
+      "cpu_count": 22,
+      "torch": {
+        "available": true,
+        "cuda_available": true,
+        "cuda_device_count": 1,
+        "cuda_devices": [
+          "NVIDIA GeForce RTX 4060 Laptop GPU"
+        ],
+        "cuda_version": "12.6",
+        "cudnn_version": 90501,
+        "mps_available": false,
+        "version": "2.7.1+cu126"
+      }
+    },
+    "models": {
+      "student": {
+        "name": "FacebookAI/roberta-base",
+        "revision": null,
+        "tokenizer_revision": null
+      },
+      "teacher": {
+        "name": "openrouter/openai/gpt-4.1",
+        "policy_teacher_tiers": {},
+        "revision": null
+      }
+    },
+    "runtime": {
+      "lockfiles": {
+        "pyproject.toml": "ecd6a49a3db6d90f0f1fd4e12e3aaf62b0a9e89319ff720b26d6aaa8d6464afe",
+        "uv.lock": "89ee24ef4705f191322295f8618f33388035b4b061f7ce1d7be3ed2daf374a2e"
+      },
+      "packages": {
+        "PyYAML": "6.0.2",
+        "accelerate": "1.8.1",
+        "datasets": "3.6.0",
+        "evaluate": "0.4.4",
+        "litellm": "1.73.6",
+        "numpy": "2.3.1",
+        "pandas": "2.3.0",
+        "peft": "0.19.1",
+        "promptillery": "0.1.0",
+        "pydantic": "2.11.7",
+        "scikit-learn": "1.7.0",
+        "torch": "2.7.1",
+        "transformers": "4.57.6",
+        "typer": "0.16.0"
+      },
+      "platform": {
+        "machine": "x86_64",
+        "platform": "Linux-7.2.3-arch1-3-x86_64-with-glibc2.44",
+        "processor": "",
+        "system": "Linux"
+      },
+      "python": {
+        "executable": "/home/rajo/Work/promptillery/friction/.venv/bin/python",
+        "implementation": "CPython",
+        "version": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]"
+      }
+    },
+    "schema_version": 1,
+    "source_control": {
+      "package": {
+        "available": true,
+        "branch": "resubmit/eacl2027-demo",
+        "head_sha": "6a85b422653978fa0381512ec9f793a0b267b95c",
+        "is_dirty": true,
+        "path": "/home/rajo/Work/promptillery/friction",
+        "repo_root": "/home/rajo/Work/promptillery/friction",
+        "status_entries": [
+          "?? examples/M6_agnews_ft1_roberta_base_bs16.yaml",
+          "?? examples/M6_agnews_same_n_roberta_base_bs16.yaml",
+          "?? examples/M6_imdb_ft1_roberta_base_bs16.yaml",
+          "?? run_m6_e1.log"
+        ]
+      },
+      "workspace": {
+        "available": false,
+        "error": "CalledProcessError: Command '['git', 'rev-parse', '--show-toplevel']' returned non-zero exit status 128.",
+        "path": "/home/rajo/Work/promptillery"
+      }
+    }
+  },
+  "run_id": "m6_imdb_ft1_roberta_base_bs16_20260922_145133_458172_s13_f12d3dd7_b9f672",
+  "schema_version": 3,
+  "seed": 13,
+  "selection_split": "validation",
+  "status": "completed",
+  "student_model": "FacebookAI/roberta-base",
+  "student_revision": null,
+  "student_type": "transformers",
+  "synthetic_record_budget": null,
+  "task_name": "m6_imdb_ft1_roberta_base_bs16",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "teacher_revision": null,
+  "token_budget": 20000000,
+  "tokenizer_revision": null,
+  "training_seconds": 202.811,
+  "training_seconds_by_cycle": [
+    202.811
+  ]
+}

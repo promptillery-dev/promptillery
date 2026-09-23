@@ -1,0 +1,23 @@
+{
+  "dataset": "imdb",
+  "final_synthetic_count": 288,
+  "matched_n": 1088,
+  "matched_n_source": "nominal",
+  "materialize_source_config": null,
+  "sample_size": 1000,
+  "seed": 13,
+  "seed_train_rows": 800,
+  "source_run_dir": null,
+  "source_run_id": null,
+  "stratified_topup": true,
+  "student": "ettin_encoder",
+  "student_model": "jhu-clsp/ettin-encoder-150m",
+  "topup_label_histogram": {
+    "0": 144,
+    "1": 144
+  },
+  "topup_rows": 288,
+  "train_ratio": 0.8,
+  "train_sft_rows": null,
+  "validation_rows": 200
+}

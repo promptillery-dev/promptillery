@@ -1,0 +1,170 @@
+{
+  "action_space": {
+    "action_space_id": "42aa62de56d4",
+    "batch_sizes": [
+      16,
+      32,
+      64
+    ],
+    "include_stop": true,
+    "prompt_operators": [
+      "coverage",
+      "boundary",
+      "repair"
+    ],
+    "teacher_tiers": [
+      "cheap",
+      "strong"
+    ]
+  },
+  "artifact_paths": {
+    "heldout_metrics": "metrics.json#heldout_test",
+    "metrics": "metrics.json",
+    "policy_decisions": "policy_decisions.jsonl",
+    "teacher_attempts": "teacher_attempts.jsonl",
+    "token_usage": "token_usage.json"
+  },
+  "artifact_schema_versions": {
+    "policy_decisions": 1,
+    "run_manifest": 3,
+    "teacher_attempts": 1
+  },
+  "config_hash": "d28b4b330a50d16381b815612d83bbd38c54f6c1129e229c90293568e7785cf8",
+  "control_name": null,
+  "cycles_completed": 1,
+  "dataset": "json",
+  "dataset_revision": null,
+  "dataset_subset": "default",
+  "error": null,
+  "expected_cycles": 1,
+  "final_synthetic_count": 0,
+  "heldout_split": "test",
+  "method_name": "fixed_promptillery",
+  "paper_mode": false,
+  "policy_controller": {
+    "controller_type": "legacy_fixed_promptillery",
+    "policy_name": "fixed_promptillery"
+  },
+  "policy_family": "fixed_promptillery",
+  "policy_name": "fixed_promptillery",
+  "reproducibility": {
+    "artifact_dir": "out/m5/m5_sst2_same_n_gemma3_270m_slm_20260710_215311_074610_s13_d28b4b33_992562",
+    "config_provenance": {
+      "resolved_sha256": "d28b4b330a50d16381b815612d83bbd38c54f6c1129e229c90293568e7785cf8",
+      "run_copy_path": "out/m5/m5_sst2_same_n_gemma3_270m_slm_20260710_215311_074610_s13_d28b4b33_992562/experiment_config.yaml",
+      "run_copy_sha256": "981c75d912d1d8d4e3ae4ea86a72918801d5215e1adbab5a314f541cb7b23337",
+      "source_path": "examples/M5_sst2_same_n_gemma3_270m.yaml",
+      "source_sha256": "c672ce20426fd31971931c22288f9c8b53671100aa63ad181cbaebde87714eb3"
+    },
+    "created_at": "2026-07-10T19:56:44.847860+00:00",
+    "dataset_source": {
+      "dataset": "json",
+      "load_kwargs": {
+        "data_files": {
+          "test": "out/g3/sst2/test_sft.jsonl",
+          "train": "out/m5/sst2/gemma3_270m/train_sft.jsonl",
+          "validation": "out/g3/sst2/validation_sft.jsonl"
+        }
+      },
+      "revision": null,
+      "subset": "default"
+    },
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "1"
+    },
+    "hardware": {
+      "cpu_count": 48,
+      "torch": {
+        "available": true,
+        "cuda_available": true,
+        "cuda_device_count": 1,
+        "cuda_devices": [
+          "NVIDIA GeForce RTX 4090"
+        ],
+        "cuda_version": "12.6",
+        "cudnn_version": 90501,
+        "mps_available": false,
+        "version": "2.7.1+cu126"
+      }
+    },
+    "models": {
+      "student": {
+        "name": "google/gemma-3-270m-it",
+        "revision": null,
+        "tokenizer_revision": null
+      },
+      "teacher": {
+        "name": "openrouter/openai/gpt-4.1",
+        "policy_teacher_tiers": {},
+        "revision": null
+      }
+    },
+    "runtime": {
+      "lockfiles": {
+        "pyproject.toml": "d47f4d8c679c7287577021f011513356475edbbd14d10e3137d2abf84a712f21",
+        "uv.lock": "43ed619f835f71e5158f909b1b525b2058d5942cf1e079ca14ff5631654def52"
+      },
+      "packages": {
+        "PyYAML": "6.0.2",
+        "accelerate": "1.8.1",
+        "datasets": "3.6.0",
+        "evaluate": "0.4.4",
+        "litellm": "1.73.6",
+        "numpy": "2.3.1",
+        "pandas": "2.3.0",
+        "peft": "0.19.1",
+        "promptillery": "0.1.0",
+        "pydantic": "2.11.7",
+        "scikit-learn": "1.7.0",
+        "torch": "2.7.1",
+        "transformers": "4.57.6",
+        "typer": "0.16.0"
+      },
+      "platform": {
+        "machine": "x86_64",
+        "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.35",
+        "processor": "x86_64",
+        "system": "Linux"
+      },
+      "python": {
+        "executable": "/home/mrshu/work/promptillery/promptillery-dev/.venv/bin/python",
+        "implementation": "CPython",
+        "version": "3.13.13 (main, Apr 14 2026, 14:28:56) [Clang 22.1.3 ]"
+      }
+    },
+    "schema_version": 1,
+    "source_control": {
+      "package": {
+        "available": true,
+        "branch": "m5-same-n-gold-ft",
+        "head_sha": "cb302e8be26347922432766170d9b0fd108e99a1",
+        "is_dirty": true,
+        "path": "/home/mrshu/work/promptillery/promptillery-dev",
+        "repo_root": "/home/mrshu/work/promptillery/promptillery-dev",
+        "status_entries": [
+          "?? g2_artifacts.tar.gz",
+          "?? logs/"
+        ]
+      },
+      "workspace": {
+        "available": false,
+        "error": "CalledProcessError: Command '['git', 'rev-parse', '--show-toplevel']' returned non-zero exit status 128.",
+        "path": "/home/mrshu/work/promptillery"
+      }
+    }
+  },
+  "run_id": "m5_sst2_same_n_gemma3_270m_slm_20260710_215311_074610_s13_d28b4b33_992562",
+  "schema_version": 3,
+  "seed": 13,
+  "selection_split": "validation",
+  "status": "completed",
+  "student_model": "google/gemma-3-270m-it",
+  "student_revision": null,
+  "student_type": "slm",
+  "synthetic_record_budget": null,
+  "task_name": "m5_sst2_same_n_gemma3_270m_slm",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "teacher_revision": null,
+  "token_budget": null,
+  "tokenizer_revision": null
+}

@@ -1,0 +1,110 @@
+{
+  "0": {
+    "accuracy": 0.91,
+    "f1": 0.9134615384615384,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.895,
+    "f1": 0.9032258064516129,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "2": {
+    "accuracy": 0.905,
+    "f1": 0.9107981220657277,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "3": {
+    "accuracy": 0.915,
+    "f1": 0.9186602870813397,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "4": {
+    "accuracy": 0.89,
+    "f1": 0.8942307692307693,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "5": {
+    "accuracy": 0.895,
+    "f1": 0.8985507246376812,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "6": {
+    "accuracy": 0.905,
+    "f1": 0.9073170731707317,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "7": {
+    "accuracy": 0.93,
+    "f1": 0.9345794392523364,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "8": {
+    "accuracy": 0.915,
+    "f1": 0.92018779342723,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "9": {
+    "accuracy": 0.91,
+    "f1": 0.9134615384615384,
+    "_selection_split": "validation",
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.8967600219659527,
+    "f1": 0.8994652406417112,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "m6_sst2_same_n_cm_w10_ettin_encoder_20260923_000339_655396_s13_91e4ee2d_c1ba51"
+  }
+}

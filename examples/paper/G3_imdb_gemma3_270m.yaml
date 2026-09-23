@@ -1,5 +1,5 @@
 # =============================================================================
-# G3 — IMDB: Gemma-3-270M-it (decoder SLM student)
+# G3 — tab:main-results, IMDB: Gemma-3-270M-it (decoder SLM student)
 # =============================================================================
 # Identical protocol/data to G3_imdb_ettin_decoder.yaml -- same materialized
 # SFT splits, same 1K-subset scale, same cycles {1,5,10} read-off -- with a
@@ -15,14 +15,14 @@
 # 0) export OPENROUTER_API_KEY=sk-or-...
 #
 # 1) Materialize all SFT artifacts from the shared companion config
-#    examples/paper/G3_imdb_materialize.yaml (see its header for the full
+#    examples/G3_imdb_materialize.yaml (see its header for the full
 #    commands; shared with G3_imdb_ettin_decoder.yaml). It writes:
 #      out/g3/imdb/train_sft.jsonl
 #      out/g3/imdb/validation_sft.jsonl
 #      out/g3/imdb/test_sft.jsonl
 #      out/g3/imdb/canonical_labels.json
 #
-# 2) uv run promptillery train examples/paper/G3_imdb_gemma3_270m.yaml
+# 2) uv run promptillery train examples/G3_imdb_gemma3_270m.yaml
 # 3) uv run promptillery analyze out/g3 --metric macro_f1
 # =============================================================================
 

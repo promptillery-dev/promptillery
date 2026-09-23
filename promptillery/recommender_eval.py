@@ -1,4 +1,4 @@
-"""Evaluation metrics for the recommender comparison.
+"""Evaluation metrics for the recommender comparison (issue #6, M4).
 
 Scored over a grid of deployment targets, per dataset:
 

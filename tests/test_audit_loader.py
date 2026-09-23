@@ -1,4 +1,4 @@
-"""Tests for load_run_data: primary dataset_cycle_* path."""
+"""Tests for load_run_data: primary dataset_cycle_* path (issue #7)."""
 
 import json
 

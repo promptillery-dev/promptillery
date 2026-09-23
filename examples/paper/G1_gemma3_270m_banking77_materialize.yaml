@@ -1,0 +1,83 @@
+# =============================================================================
+# GATE G1 — materialization source config (step 1 of the G1 runbook)
+# =============================================================================
+# Companion to examples/G1_gemma3_270m_banking77.yaml, which cannot drive
+# materialize-sft itself: its `dataset: json` points at the JSONL files this
+# step CREATES (materialize-sft loads config.dataset directly and never reads
+# dataset_config.name). This config loads PolyAI/banking77 as the source.
+#
+# Budget note: token_budget here bounds ONLY the materialization pass — a
+# stratified 1,540-sample teacher pass over 77 intents predicts ~0.9-1.1M
+# tokens. The AL loop keeps its own separate 20M budget in the training config.
+#
+#   uv run promptillery materialize-sft \
+#     examples/G1_gemma3_270m_banking77_materialize.yaml \
+#     --mode teacher --max-samples 1540 \
+#     --output out/g1/banking77_sft_train.jsonl \
+#     --split train --overwrite
+#   uv run promptillery materialize-sft \
+#     examples/G1_gemma3_270m_banking77_materialize.yaml \
+#     --mode teacher --max-samples 385 \
+#     --output out/g1/banking77_sft_validation.jsonl \
+#     --split validation --overwrite
+
+name: "g1_gemma3_270m_banking77_materialize"
+
+# GPT-4.1 via OpenRouter (uses OPENROUTER_API_KEY), matching the G2 configs.
+teacher: "openrouter/openai/gpt-4.1"
+student: "google/gemma-3-270m-it"
+student_type: "slm"
+
+# Source dataset (77 banking intents; train + test splits upstream).
+# The PolyAI repo ships a loading script, hence trust_remote_code.
+dataset: "PolyAI/banking77"
+dataset_kwargs:
+  trust_remote_code: true
+text_field: "text"
+label_field: "label"
+
+seed: 13
+
+# Banking77 has no upstream validation split; carve one out of train
+# (sampling.train_ratio default 0.8) so --split validation works.
+require_validation_split: true
+
+# Materialization-only budget (see note above).
+token_budget: 2000000
+budget_stop: true
+
+# Teacher answers with a single intent label.
+teacher_max_output_tokens: 16
+
+base_output_dir: "out/g1"
+
+trainer_config:
+  materialize_sft:
+    # Per-label stratified selection so --max-samples 1540 = 20/label.
+    stratify_max_samples: true
+
+    # Per-row teacher prompt: label ONE message with ONE canonical intent.
+    # (The cycle-level augmentation prompt lives in the training config and
+    # must not be used here — it references AL-only variables.)
+    prompt_template: |
+      You label customer-banking messages for the Banking77 intent
+      classification task.
+
+      Valid intents (respond with exactly one, verbatim):
+      {% for label in canonical_labels %}- {{ label }}
+      {% endfor %}
+      Customer message:
+      {{ text }}
+
+      Respond with exactly one intent label from the list above and nothing
+      else.
+
+    # Student prompt stays short: max_seq_length is 256 in the training
+    # config, so the 77-label list must NOT be inlined here. Evaluation
+    # scores each canonical label (canonical_label_decoding: score), so the
+    # student never needs the list in-prompt.
+    student_prompt_template: |
+      Classify the banking customer message into one of the Banking77
+      intents.
+      Message: {{ text }}
+      Intent:

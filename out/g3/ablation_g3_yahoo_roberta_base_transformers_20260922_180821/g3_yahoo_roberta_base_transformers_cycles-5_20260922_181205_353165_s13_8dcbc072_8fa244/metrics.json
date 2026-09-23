@@ -1,0 +1,70 @@
+{
+  "0": {
+    "accuracy": 0.56,
+    "f1": 0.5246244300418832,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_roberta_base_transformers_cycles-5_20260922_181205_353165_s13_8dcbc072_8fa244",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.64,
+    "f1": 0.6326212605398629,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_roberta_base_transformers_cycles-5_20260922_181205_353165_s13_8dcbc072_8fa244",
+    "_teacher_input_tokens_at_eval": 2127,
+    "_teacher_output_tokens_at_eval": 898,
+    "_teacher_tokens_at_eval": 3025,
+    "_teacher_cost_at_eval": 0.011438
+  },
+  "2": {
+    "accuracy": 0.65,
+    "f1": 0.6469523672847827,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_roberta_base_transformers_cycles-5_20260922_181205_353165_s13_8dcbc072_8fa244",
+    "_teacher_input_tokens_at_eval": 4174,
+    "_teacher_output_tokens_at_eval": 1647,
+    "_teacher_tokens_at_eval": 5821,
+    "_teacher_cost_at_eval": 0.021524
+  },
+  "3": {
+    "accuracy": 0.645,
+    "f1": 0.637155845754166,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_roberta_base_transformers_cycles-5_20260922_181205_353165_s13_8dcbc072_8fa244",
+    "_teacher_input_tokens_at_eval": 6245,
+    "_teacher_output_tokens_at_eval": 2386,
+    "_teacher_tokens_at_eval": 8631,
+    "_teacher_cost_at_eval": 0.031578
+  },
+  "4": {
+    "accuracy": 0.665,
+    "f1": 0.6661036046172988,
+    "_selection_split": "validation",
+    "_run_id": "g3_yahoo_roberta_base_transformers_cycles-5_20260922_181205_353165_s13_8dcbc072_8fa244",
+    "_teacher_input_tokens_at_eval": 8266,
+    "_teacher_output_tokens_at_eval": 3129,
+    "_teacher_tokens_at_eval": 11395,
+    "_teacher_cost_at_eval": 0.041564000000000004
+  },
+  "heldout_test": {
+    "accuracy": 0.6572333333333333,
+    "f1": 0.657186265464899,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 4,
+    "_run_id": "g3_yahoo_roberta_base_transformers_cycles-5_20260922_181205_353165_s13_8dcbc072_8fa244"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.041564000000000004,
+    "total_tokens": 11395,
+    "total_cycles": 5
+  }
+}

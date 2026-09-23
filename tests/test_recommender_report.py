@@ -1,4 +1,4 @@
-"""Tests for the recommender report orchestration (comparison table + figure).
+"""Tests for the recommender report orchestration (fills tab:recommender + figure).
 
 Runs the oracle and every selector across a target grid, per dataset, and shapes
 the rows the CLI writes: one recommender-table row per (dataset, selector), and

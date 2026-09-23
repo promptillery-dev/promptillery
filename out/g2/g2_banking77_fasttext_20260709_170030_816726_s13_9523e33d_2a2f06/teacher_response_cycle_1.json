@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609251-bNRd1XZzt7uq2Jf3JvGG",
+  "created": 1783609251,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n    {\"text\": \"My payment didn't go through but it's still showing as pending. Why?\", \"label\": 53},\n    {\"text\": \"My card didn't work when I tried to use it at the ATM. What should I do?\", \"label\": 26},\n    {\"text\": \"What do I do if my PIN keeps getting blocked at checkout?\", \"label\": 49},\n    {\"text\": \"Why was my transfer declined even though I have enough balance?\", \"label\": 27},\n    {\"text\": \"Why do I have to provide all these identity details? Can I skip some of them?\", \"label\": 74},\n    {\"text\": \"I need an option for a card I can use from my phone, not a physical one.\", \"label\": 40},\n    {\"text\": \"I'm seeing duplicate charges for a single purchase in my transactions.\", \"label\": 63},\n    {\"text\": \"If my transfer hasn't arrived, does that mean it failed?\", \"label\": 66},\n    {\"text\": \"My PIN doesn't work at the ATM but is fine in stores. What is wrong?\", \"label\": 49},\n    {\"text\": \"Do you support both Visa and MasterCard or just one type?\", \"label\": 73},\n    {\"text\": \"What does it mean if my top-up fails multiple times?\", \"label\": 59},\n    {\"text\": \"Can you issue refunds for items purchased with my disposable card?\", \"label\": 52},\n    {\"text\": \"Why is there an extra fee on my international money transfer?\", \"label\": 64},\n    {\"text\": \"I want to set a daily top-up limit. How do I do that?\", \"label\": 60},\n    {\"text\": \"There's a transaction on my account that I can't identify. What now?\", \"label\": 28},\n    {\"text\": \"How do I apply for a virtual card instead of a plastic one?\", \"label\": 40},\n    {\"text\": \"Someone made a withdrawal from my account that wasn't me.\", \"label\": 20},\n    {\"text\": \"My top-up hasn't been credited, is there a reason?\", \"label\": 47},\n    {\"text\": \"How can I verify my card for online payments?\", \"label\": 71},\n    {\"text\": \"You asked for more information after my identity verification failed, what do I need to upload?\", \"label\": 69},\n    {\"text\": \"Is it normal for a payment to stay pending overnight?\", \"label\": 45},\n    {\"text\": \"Can I use the app before my ID is verified?\", \"label\": 74},\n    {\"text\": \"My direct debit is not recognized. Should I cancel it?\", \"label\": 28},\n    {\"text\": \"What is the process to appeal a declined bank transfer?\", \"label\": 27},\n    {\"text\": \"I'm confused about which cards can top up my account without fees.\", \"label\": 57},\n    {\"text\": \"My new card PIN hasn't arrived yet. How do I get it?\", \"label\": 38},\n    {\"text\": \"You charged me for a failed ATM withdrawal. Will it be refunded?\", \"label\": 46},\n    {\"text\": \"I don't want to provide all my documents for verifying my identity. What are my options?\", \"label\": 74},\n    {\"text\": \"Can I increase my daily top-up limit?\", \"label\": 60},\n    {\"text\": \"Why did my card payment get stuck in pending and not clear immediately?\", \"label\": 45},\n    {\"text\": \"I received the wrong amount from the ATM withdrawal.\", \"label\": 75},\n    {\"text\": \"The ATM didn't give me any cash but my balance went down.\", \"label\": 46}\n] }",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 790,
+    "prompt_tokens": 6420,
+    "total_tokens": 7210,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.01916,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.01916,
+      "upstream_inference_prompt_cost": 0.01284,
+      "upstream_inference_completions_cost": 0.00632
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

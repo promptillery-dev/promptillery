@@ -1,0 +1,34 @@
+{
+  "0": {
+    "eval_loss": 0.27951622009277344,
+    "perplexity": 1.3224898635292444,
+    "examples": 200,
+    "exact_match": 0.485,
+    "canonical_label_count": 10,
+    "observed_gold_label_count": 10,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.43832374965915333,
+    "macro_f1_full_canonical": 0.43832374965915333,
+    "_selection_split": "validation",
+    "_run_id": "m5_yahoo_same_n_gemma3_270m_slm_20260710_233902_224313_s13_14419253_89b28e",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "eval_loss": 0.3358355462551117,
+    "perplexity": 1.3991089171894806,
+    "examples": 60000,
+    "exact_match": 0.5002166666666666,
+    "canonical_label_count": 10,
+    "observed_gold_label_count": 10,
+    "invalid_label_rate": 0.0,
+    "macro_f1": 0.45821961771312447,
+    "macro_f1_full_canonical": 0.45821961771312447,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m5_yahoo_same_n_gemma3_270m_slm_20260710_233902_224313_s13_14419253_89b28e"
+  }
+}

@@ -1,5 +1,5 @@
 # =============================================================================
-# G5 — logit-KD probe, GSM8K: SFT arm
+# G5 — logit-KD probe, GSM8K: SFT arm (issue #13)
 # =============================================================================
 # Single fine-tune of Qwen3-4B on Qwen3-32B-generated solutions (rejection-
 # filtered against gold; scripts/g5_generate_teacher_solutions.py). No cycles,
@@ -7,7 +7,7 @@
 # except for its trainer_config.kd block — never compare across teachers.
 #
 # NOT CI-verified: needs the H100. Run:
-#   uv run promptillery train examples/paper/G5_gsm8k_kd_sft.yaml
+#   uv run promptillery train examples/G5_gsm8k_kd_sft.yaml
 # =============================================================================
 
 name: "g5_gsm8k_kd_sft"

@@ -1,0 +1,120 @@
+{
+  "0": {
+    "accuracy": 0.33,
+    "f1": 0.04356482783993767,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.455,
+    "f1": 0.144746608323966,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 5799,
+    "_teacher_output_tokens_at_eval": 752,
+    "_teacher_tokens_at_eval": 6551,
+    "_teacher_cost_at_eval": 0.017613999999999998
+  },
+  "2": {
+    "accuracy": 0.535,
+    "f1": 0.19386156190308673,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 11321,
+    "_teacher_output_tokens_at_eval": 1476,
+    "_teacher_tokens_at_eval": 12797,
+    "_teacher_cost_at_eval": 0.034449999999999995
+  },
+  "3": {
+    "accuracy": 0.58,
+    "f1": 0.2771580065252563,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 17036,
+    "_teacher_output_tokens_at_eval": 2419,
+    "_teacher_tokens_at_eval": 19455,
+    "_teacher_cost_at_eval": 0.05342399999999999
+  },
+  "4": {
+    "accuracy": 0.58,
+    "f1": 0.31782687829089706,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 22759,
+    "_teacher_output_tokens_at_eval": 3336,
+    "_teacher_tokens_at_eval": 26095,
+    "_teacher_cost_at_eval": 0.07220599999999999
+  },
+  "5": {
+    "accuracy": 0.605,
+    "f1": 0.3448936780621444,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 28031,
+    "_teacher_output_tokens_at_eval": 4585,
+    "_teacher_tokens_at_eval": 32616,
+    "_teacher_cost_at_eval": 0.09274199999999999
+  },
+  "6": {
+    "accuracy": 0.61,
+    "f1": 0.35602351937585647,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 33439,
+    "_teacher_output_tokens_at_eval": 5575,
+    "_teacher_tokens_at_eval": 39014,
+    "_teacher_cost_at_eval": 0.111478
+  },
+  "7": {
+    "accuracy": 0.62,
+    "f1": 0.4115921377153727,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 38527,
+    "_teacher_output_tokens_at_eval": 6375,
+    "_teacher_tokens_at_eval": 44902,
+    "_teacher_cost_at_eval": 0.128054
+  },
+  "8": {
+    "accuracy": 0.63,
+    "f1": 0.43482434681936305,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 43576,
+    "_teacher_output_tokens_at_eval": 7339,
+    "_teacher_tokens_at_eval": 50915,
+    "_teacher_cost_at_eval": 0.145864
+  },
+  "9": {
+    "accuracy": 0.61,
+    "f1": 0.4094010028163921,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8",
+    "_teacher_input_tokens_at_eval": 48756,
+    "_teacher_output_tokens_at_eval": 8193,
+    "_teacher_tokens_at_eval": 56949,
+    "_teacher_cost_at_eval": 0.16305599999999998
+  },
+  "heldout_test": {
+    "accuracy": 0.5549403341288783,
+    "f1": 0.4065479779289914,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 9,
+    "_run_id": "g3_huffpost_roberta_base_transformers_cycles-10_20260922_183120_377061_s13_25e5b910_6d38e8"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.16305599999999998,
+    "total_tokens": 56949,
+    "total_cycles": 10
+  }
+}

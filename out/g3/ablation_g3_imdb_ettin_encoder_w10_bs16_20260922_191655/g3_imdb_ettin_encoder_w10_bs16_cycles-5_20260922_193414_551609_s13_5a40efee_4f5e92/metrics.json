@@ -1,0 +1,70 @@
+{
+  "0": {
+    "accuracy": 0.865,
+    "f1": 0.8682926829268293,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-5_20260922_193414_551609_s13_5a40efee_4f5e92",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.875,
+    "f1": 0.8837209302325582,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-5_20260922_193414_551609_s13_5a40efee_4f5e92",
+    "_teacher_input_tokens_at_eval": 4636,
+    "_teacher_output_tokens_at_eval": 1308,
+    "_teacher_tokens_at_eval": 5944,
+    "_teacher_cost_at_eval": 0.019735999999999997
+  },
+  "2": {
+    "accuracy": 0.885,
+    "f1": 0.8888888888888888,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-5_20260922_193414_551609_s13_5a40efee_4f5e92",
+    "_teacher_input_tokens_at_eval": 9694,
+    "_teacher_output_tokens_at_eval": 3438,
+    "_teacher_tokens_at_eval": 13132,
+    "_teacher_cost_at_eval": 0.046891999999999996
+  },
+  "3": {
+    "accuracy": 0.87,
+    "f1": 0.8807339449541285,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-5_20260922_193414_551609_s13_5a40efee_4f5e92",
+    "_teacher_input_tokens_at_eval": 15753,
+    "_teacher_output_tokens_at_eval": 5306,
+    "_teacher_tokens_at_eval": 21059,
+    "_teacher_cost_at_eval": 0.07395399999999999
+  },
+  "4": {
+    "accuracy": 0.9,
+    "f1": 0.9019607843137255,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-5_20260922_193414_551609_s13_5a40efee_4f5e92",
+    "_teacher_input_tokens_at_eval": 20588,
+    "_teacher_output_tokens_at_eval": 6634,
+    "_teacher_tokens_at_eval": 27222,
+    "_teacher_cost_at_eval": 0.094248
+  },
+  "heldout_test": {
+    "accuracy": 0.917,
+    "f1": 0.9163272712609379,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 4,
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-5_20260922_193414_551609_s13_5a40efee_4f5e92"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.094248,
+    "total_tokens": 27222,
+    "total_cycles": 5
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783610715-Clw9K0ByQPqy8d1ZAhiS",
+  "created": 1783610715,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  {\"text\":\"My card has expired but can I still use it for online shopping?\",\"label\":14},\n  {\"text\":\"Will my card be declined for digital transactions if it\u2019s expired?\",\"label\":14},\n  {\"text\":\"What should I do next now that my card\u2019s expiration date has passed?\",\"label\":14},\n  {\"text\":\"Is there anything I need to take care of when a card expiration approaches?\",\"label\":14},\n  {\"text\":\"Can I request an extension for my card expiry to continue using it online?\",\"label\":14},\n  {\"text\":\"Is there a grace period after my card expires, and how does it affect my purchases?\",\"label\":14},\n  {\"text\":\"What steps should I take as soon as my card expires?\",\"label\":14},\n  {\"text\":\"Will my recurring payments still work if my card is expired?\",\"label\":14},\n  {\"text\":\"I want to transfer money into my account, but it always fails. Why?\",\"label\":65},\n  {\"text\":\"Can you tell me possible reasons my bank transfer won\u2019t work?\",\"label\":65},\n  {\"text\":\"Every time I try to move funds from my other bank, nothing happens. What\u2019s wrong?\",\"label\":65},\n  {\"text\":\"Why can't I deposit money into my account through a bank transfer?\",\"label\":65},\n  {\"text\":\"Are there any limits preventing me from transferring money to my card?\",\"label\":65},\n  {\"text\":\"Bank transfer to my card keeps being rejected\u2014what causes this?\",\"label\":65},\n  {\"text\":\"What blocks a transfer from my main account into this one?\",\"label\":65},\n  {\"text\":\"Funds won\u2019t appear when I initiate a transfer to my card. What gives?\",\"label\":65},\n  {\"text\":\"Why was my payment at the store declined?\",\"label\":27},\n  {\"text\":\"I tried to make an online payment but it didn\u2019t go through\u2014why?\",\"label\":27},\n  {\"text\":\"What makes all my payments show as declined recently?\",\"label\":27},\n  {\"text\":\"Why am I getting constant payment errors when trying to shop?\",\"label\":27},\n  {\"text\":\"Can you tell me what would cause a payment to fail?\",\"label\":27},\n  {\"text\":\"Is it normal to see payments declined even though I have enough balance?\",\"label\":27},\n  {\"text\":\"I keep getting payment declined messages but don\u2019t know the reason.\",\"label\":27},\n  {\"text\":\"I have trouble buying things with my card and always get a decline\u2014what to check?\",\"label\":27},\n  {\"text\":\"How many hours should I wait before my money transfer gets completed?\",\"label\":67},\n  {\"text\":\"How quickly will a transfer from a different country show up in my account?\",\"label\":67},\n  {\"text\":\"Is there a maximum duration for transfers to be finalized?\",\"label\":67},\n  {\"text\":\"When should I expect to see the funds after initiating a transfer?\",\"label\":67},\n  {\"text\":\"How long do international money transfers take to clear?\",\"label\":67},\n  {\"text\":\"When is my transfer likely to post to my balance?\",\"label\":67},\n  {\"text\":\"Can you provide the timeline for a completed transfer?\",\"label\":67},\n  {\"text\":\"Do money transfers always take several days, or can they arrive sooner?\",\"label\":67}\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 724,
+    "prompt_tokens": 6075,
+    "total_tokens": 6799,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 1280,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.016022,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.016022,
+      "upstream_inference_prompt_cost": 0.01023,
+      "upstream_inference_completions_cost": 0.005792
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

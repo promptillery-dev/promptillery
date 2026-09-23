@@ -1,0 +1,196 @@
+{
+  "experiment_name": "g2_banking77_ettin_decoder_slm",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "cycles_completed": 10,
+  "per_cycle": [
+    {
+      "cycle": 0,
+      "operations": {
+        "sft_data": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0,
+          "estimated_cost": null
+        },
+        "augmentation": {
+          "input_tokens": 9675,
+          "output_tokens": 2335,
+          "total_tokens": 12010,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9675,
+        "output_tokens": 2335,
+        "total_tokens": 12010,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 1,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 9387,
+          "output_tokens": 2525,
+          "total_tokens": 11912,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9387,
+        "output_tokens": 2525,
+        "total_tokens": 11912,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 2,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 9353,
+          "output_tokens": 2167,
+          "total_tokens": 11520,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9353,
+        "output_tokens": 2167,
+        "total_tokens": 11520,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 3,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 9361,
+          "output_tokens": 2540,
+          "total_tokens": 11901,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9361,
+        "output_tokens": 2540,
+        "total_tokens": 11901,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 4,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 9465,
+          "output_tokens": 2414,
+          "total_tokens": 11879,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9465,
+        "output_tokens": 2414,
+        "total_tokens": 11879,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 5,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 9410,
+          "output_tokens": 2482,
+          "total_tokens": 11892,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9410,
+        "output_tokens": 2482,
+        "total_tokens": 11892,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 6,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 9598,
+          "output_tokens": 2505,
+          "total_tokens": 12103,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9598,
+        "output_tokens": 2505,
+        "total_tokens": 12103,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 7,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 9578,
+          "output_tokens": 2402,
+          "total_tokens": 11980,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9578,
+        "output_tokens": 2402,
+        "total_tokens": 11980,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 8,
+      "operations": {
+        "augmentation": {
+          "input_tokens": 9633,
+          "output_tokens": 2274,
+          "total_tokens": 11907,
+          "estimated_cost": null
+        }
+      },
+      "cycle_total": {
+        "input_tokens": 9633,
+        "output_tokens": 2274,
+        "total_tokens": 11907,
+        "estimated_cost": null
+      }
+    },
+    {
+      "cycle": 9,
+      "operations": {},
+      "cycle_total": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost": null
+      }
+    }
+  ],
+  "totals": {
+    "sft_data": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "estimated_cost": null
+    },
+    "augmentation": {
+      "input_tokens": 85460,
+      "output_tokens": 21644,
+      "total_tokens": 107104,
+      "estimated_cost": null
+    }
+  },
+  "grand_total": {
+    "input_tokens": 85460,
+    "output_tokens": 21644,
+    "total_tokens": 107104,
+    "estimated_cost": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "0": {
+    "accuracy": 0.875,
+    "f1": 0.8739059316820604,
+    "_selection_split": "validation",
+    "_run_id": "m6_agnews_ft1_ettin_encoder_bs16_20260922_164807_871141_s13_8ae1cfe7_d24093",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.8688157894736842,
+    "f1": 0.8680233327371628,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "m6_agnews_ft1_ettin_encoder_bs16_20260922_164807_871141_s13_8ae1cfe7_d24093"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

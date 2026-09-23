@@ -1,4 +1,4 @@
-"""Student inference profiler: p50/p95 latency + throughput.
+"""Student inference profiler: p50/p95 latency + throughput (issue #2).
 
 Measures how fast a trained student runs on a fixed device and reuses the
 teacher-side cost model from ``token_tracker``. The student side reports
@@ -6,7 +6,7 @@ latency and throughput only (no derived dollars); teacher cost stays a
 per-1K-calls figure. Results serialise to a cacheable profile that is *stamped
 with* the (model, hardware) it was measured on; ``load_profile`` can assert
 that stamp, and ``save_profile(..., stamped_name=True)`` encodes it into the
-filename, so downstream experiments reuse the right numbers.
+filename, so downstream experiments (#5) reuse the right numbers.
 """
 
 from __future__ import annotations
@@ -21,13 +21,19 @@ from .analyze import _percentile
 from .trainers.factory import SFT_STUDENT_TYPES, TrainerFactory
 
 
-def latency_stats(per_call_seconds: List[float]) -> Dict[str, float]:
+def latency_stats(
+    per_call_seconds: List[float], *, calls_per_measurement: int = 1
+) -> Dict[str, float]:
     """Summarise a list of per-call latencies (seconds) into ms + throughput.
 
     Returns p50/p95/mean latency in milliseconds and the achieved throughput
     in calls per second (total calls / total wall time). Percentiles reuse the
     analysis module's linearly-interpolated ``_percentile`` for consistent
-    semantics with the rest of the pipeline.
+    semantics with the rest of the pipeline. ``calls_per_measurement`` is the
+    number of requests each timed measurement actually served (the profiling
+    batch size); it only scales throughput -- latency stays per-measurement,
+    since that is the wall-clock cost of one timed call regardless of how many
+    requests it served.
     """
     if not per_call_seconds:
         raise ValueError("per_call_seconds must be non-empty")
@@ -38,7 +44,9 @@ def latency_stats(per_call_seconds: List[float]) -> Dict[str, float]:
         "p50_latency_ms": _percentile(ordered, 0.5) * 1000.0,
         "p95_latency_ms": _percentile(ordered, 0.95) * 1000.0,
         "mean_latency_ms": (total_seconds / len(per_call_seconds)) * 1000.0,
-        "throughput_calls_per_sec": len(per_call_seconds) / total_seconds,
+        "throughput_calls_per_sec": (
+            len(per_call_seconds) * calls_per_measurement / total_seconds
+        ),
     }
 
 
@@ -165,19 +173,33 @@ def _inputs_for_split(
 
 def _decoder_inference_op(
     trainer: Any, device: str, model: Any, tokenizer: Any
-) -> Callable[[str], None]:
-    """A single-request generate() call mirroring the trainer's eval path."""
+) -> Callable[[Union[str, List[str]]], None]:
+    """A generate() call mirroring the trainer's eval path.
+
+    ``run_one`` accepts either a single prompt (single-request, batch size 1)
+    or a ``list[str]`` of prompts (batched). Batched decoder generation needs
+    left padding so every sequence's last real token lines up at the same
+    position for ``generate()``; that is set here, scoped to this op's own
+    tokenizer, not touched anywhere else.
+    """
     import torch
 
     max_new_tokens = int(trainer.trainer_config.get("generation_max_new_tokens", 32))
     max_length = getattr(trainer, "max_seq_length", None)
+    # Left padding is required for batched generation; this deliberately
+    # mutates the trainer's tokenizer for the rest of the profiling call.
+    tokenizer.padding_side = "left"
 
-    def run_one(prompt_text: str) -> None:
-        formatted = trainer._format_generation_prompt(str(prompt_text))
+    def run_one(prompt_text: Union[str, List[str]]) -> None:
+        texts = (
+            prompt_text if isinstance(prompt_text, (list, tuple)) else [prompt_text]
+        )
+        formatted = [trainer._format_generation_prompt(str(t)) for t in texts]
         encoded = tokenizer(
             formatted,
             return_tensors="pt",
             truncation=True,
+            padding=True,
             max_length=max_length,
         )
         encoded = {key: value.to(device) for key, value in encoded.items()}
@@ -190,57 +212,60 @@ def _decoder_inference_op(
                 return_dict_in_generate=True,
             )
         input_width = int(encoded["input_ids"].shape[1])
-        completion_ids = generated.sequences[0][input_width:]
+        completion_ids = generated.sequences[:, input_width:]
         # Decoding the completion is the real inference output; the timed region
         # is drained explicitly via _synchronize_device, not by this call.
-        tokenizer.decode(completion_ids, skip_special_tokens=True)
+        tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
 
     return run_one
 
 
 def _classifier_inference_op(
     trainer: Any, device: str, model: Any, tokenizer: Any
-) -> Callable[[str], None]:
-    """A single-request classifier forward pass (logits -> predicted label)."""
+) -> Callable[[Union[str, List[str]]], None]:
+    """A classifier forward pass (logits -> predicted labels), 1 or N requests."""
     import torch
 
     max_length = getattr(trainer, "max_seq_length", None)
 
-    def run_one(text: str) -> None:
+    def run_one(texts) -> None:
+        batch = [
+            str(t) for t in (texts if isinstance(texts, (list, tuple)) else [texts])
+        ]
         encoded = tokenizer(
-            str(text),
-            return_tensors="pt",
-            truncation=True,
+            batch, return_tensors="pt", truncation=True, padding=True,
             max_length=max_length,
         )
         encoded = {key: value.to(device) for key, value in encoded.items()}
         with torch.no_grad():
             logits = model(**encoded).logits
-        # argmax -> predicted label is the real inference output; the timed
+        # argmax -> predicted labels is the real inference output; the timed
         # region is drained explicitly via _synchronize_device, not by this call.
-        int(logits.argmax(dim=-1)[0])
+        logits.argmax(dim=-1).tolist()
 
     return run_one
 
 
-def _fasttext_inference_op(model: Any) -> Callable[[str], None]:
-    """A single-request fasttext prediction (non-torch, CPU-only).
+def _fasttext_inference_op(model: Any) -> Callable[[Union[str, List[str]]], None]:
+    """A fasttext prediction (non-torch, CPU-only), 1 or N requests.
 
     fasttext is latency-profiled but never cost-profiled -- student cost is
     latency/throughput only, and its speed is itself a useful deployment
     anchor. It has no device/tokenizer; inference is ``model.predict(text)``.
     """
 
-    def run_one(text: str) -> None:
-        model.predict(str(text))
+    def run_one(texts) -> None:
+        batch = texts if isinstance(texts, (list, tuple)) else [texts]
+        for t in batch:
+            model.predict(str(t))
 
     return run_one
 
 
 def _build_inference_op(
     trainer: Any, student_type: str, device: str, model: Any, tokenizer: Any
-) -> Callable[[str], None]:
-    """Dispatch on student_type to the matching single-request inference call."""
+) -> Callable[[Union[str, List[str]]], None]:
+    """Dispatch on student_type to the matching single/batched inference call."""
     if student_type in SFT_STUDENT_TYPES:
         return _decoder_inference_op(trainer, device, model, tokenizer)
     if student_type == "transformers":
@@ -253,27 +278,40 @@ def _build_inference_op(
 
 
 def _measure_latencies(
-    run_one: Callable[[str], None],
+    run_one: Callable[[Union[str, List[str]]], None],
     prompts: Sequence[str],
     *,
     iterations: int,
     warmup: int,
     device: str,
+    batch_size: int = 1,
 ) -> List[float]:
-    """Warm up (untimed), then time `iterations` single-request calls.
+    """Warm up (untimed), then time `iterations` calls of `batch_size` requests.
 
+    ``batch_size == 1`` (the default) times single-request calls, unchanged
+    from before. ``batch_size > 1`` instead passes each timed call a
+    ``list[str]`` of ``batch_size`` prompts, cycling through ``prompts``.
     Each call is followed by an explicit device sync so async GPU work is
     included in the timed region (see ``_synchronize_device``); the warmup
     syncs too so its kernels don't spill into the first measured call.
     """
+
+    def _arg(index: int):
+        if batch_size == 1:
+            return prompts[index % len(prompts)]
+        return [
+            prompts[(index * batch_size + j) % len(prompts)]
+            for j in range(batch_size)
+        ]
+
     for index in range(warmup):
-        run_one(prompts[index % len(prompts)])
+        run_one(_arg(index))
         _synchronize_device(device)
     per_call: List[float] = []
     for index in range(iterations):
-        prompt = prompts[index % len(prompts)]
+        arg = _arg(index)
         start = perf_counter()
-        run_one(prompt)
+        run_one(arg)
         _synchronize_device(device)
         per_call.append(perf_counter() - start)
     return per_call
@@ -288,8 +326,9 @@ def profile_student(
     warmup: int = 5,
     model: Any = None,
     tokenizer: Any = None,
+    batch_size: int = 1,
 ) -> Dict[str, Any]:
-    """Profile a trained student's single-request inference on a fixed device.
+    """Profile a trained student's inference on a fixed device.
 
     Moves the student to ``device`` (torch students only) and replays its own
     task inputs through the architecture-appropriate inference call: generate()
@@ -297,6 +336,12 @@ def profile_student(
     predict() for non-torch fasttext students. Reports p50/p95/mean latency plus
     throughput; the student side is latency/throughput only -- no derived
     dollars.
+
+    ``batch_size`` (default 1) is the number of requests served per timed
+    call -- single-stream by default, matching every existing profile.json.
+    Passing ``batch_size > 1`` times batched calls instead and stamps
+    ``measurement.latency_batch_size`` accordingly so downstream readers know
+    the numbers are batched throughput, not single-stream.
 
     ``model``/``tokenizer`` default to the trainer's own, but a loaded
     checkpoint can be passed explicitly (the trainer's ``load_model`` returns
@@ -321,7 +366,8 @@ def profile_student(
     )
     run_one = _build_inference_op(trainer, student_type, target, model, tokenizer)
     per_call = _measure_latencies(
-        run_one, inputs, iterations=iterations, warmup=warmup, device=target
+        run_one, inputs, iterations=iterations, warmup=warmup, device=target,
+        batch_size=batch_size,
     )
 
     return {
@@ -332,9 +378,9 @@ def profile_student(
         "measurement": {
             "n_iterations": iterations,
             "warmup": warmup,
-            "latency_batch_size": 1,
+            "latency_batch_size": batch_size,
         },
-        "student": latency_stats(per_call),
+        "student": latency_stats(per_call, calls_per_measurement=batch_size),
     }
 
 
@@ -348,12 +394,17 @@ def profile_filename(result: Mapping) -> str:
     """A ``(model, hardware)``-encoded filename so distinct profiles don't collide.
 
     Two models -- or the same model on two GPUs -- writing beside their
-    checkpoints would otherwise clobber a shared ``profile.json``.
+    checkpoints would otherwise clobber a shared ``profile.json``. A batched
+    measurement (``measurement.latency_batch_size > 1``) also gets a
+    ``-bsN`` suffix, so it can never collide with -- or be mistaken for -- the
+    single-stream profile the paper's tables read.
     """
     model_slug = _slug(str(result.get("model", "model")))
     hardware = result.get("hardware") or {}
     hw_slug = _slug(str(hardware.get("gpu_name") or hardware.get("device") or "cpu"))
-    return f"profile-{model_slug}-{hw_slug}.json"
+    batch_size = (result.get("measurement") or {}).get("latency_batch_size", 1)
+    bs_suffix = f"-bs{batch_size}" if batch_size and batch_size > 1 else ""
+    return f"profile-{model_slug}-{hw_slug}{bs_suffix}.json"
 
 
 def save_profile(
@@ -382,9 +433,9 @@ class ProfileStampError(ValueError):
     """A loaded profile doesn't match the (model, hardware) a consumer expects.
 
     A profile is *stamped with* the model/hardware it was measured on, not keyed
-    by it, so reuse must assert the stamp before trusting the numbers --
+    by it, so reuse (#5) must assert the stamp before trusting the numbers --
     otherwise a filename collision or a wrong-GPU cache silently pastes bad
-    latency into the deployment and recommender tables.
+    latency into ``tab:deployment``/``tab:recommender``.
     """
 
 
@@ -415,7 +466,7 @@ def load_profile(
     expect_model: Optional[str] = None,
     expect_hardware: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Load a previously-saved profile (e.g. to reuse a 4B profile).
+    """Load a previously-saved profile (e.g. to reuse a 4B profile, #5).
 
     Pass ``expect_model`` and/or ``expect_hardware`` (a subset of the stamped
     ``hardware`` block, e.g. ``{"gpu_name": ...}``) to assert the cached profile
@@ -470,6 +521,7 @@ def profile_model(
     iterations: int = 50,
     warmup: int = 5,
     n_teacher_calls: Optional[int] = None,
+    batch_size: int = 1,
 ) -> Dict[str, Any]:
     """Profile a trained student checkpoint and write a cacheable profile.json.
 
@@ -477,6 +529,11 @@ def profile_model(
     ``model_path``, measures student latency/throughput on ``split``, merges
     the teacher cost-per-1k from the run's token tracking, and persists the
     profile beside the checkpoint. Mirrors ``evaluate_model``'s assembly.
+
+    ``batch_size`` (default 1, single-stream) writes ``profile.json`` as
+    before. ``batch_size > 1`` writes to a separate ``profile-bs{N}.json``
+    instead, so the batch-1 profile the paper reads is never overwritten by a
+    batched measurement.
     """
     from datasets import load_dataset
 
@@ -505,7 +562,11 @@ def profile_model(
         warmup=warmup,
         model=model,
         tokenizer=tokenizer,
+        batch_size=batch_size,
     )
     profile["teacher"] = _teacher_block(config, model_path, n_teacher_calls)
-    save_profile(profile, model_path)
+    save_profile(
+        profile,
+        model_path if batch_size == 1 else model_path / f"profile-bs{batch_size}.json",
+    )
     return profile

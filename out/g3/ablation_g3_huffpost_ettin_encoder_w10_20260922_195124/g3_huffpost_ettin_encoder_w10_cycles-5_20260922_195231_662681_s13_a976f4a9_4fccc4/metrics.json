@@ -1,0 +1,70 @@
+{
+  "0": {
+    "accuracy": 0.345,
+    "f1": 0.07493548867775296,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-5_20260922_195231_662681_s13_a976f4a9_4fccc4",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.365,
+    "f1": 0.10070219716731083,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-5_20260922_195231_662681_s13_a976f4a9_4fccc4",
+    "_teacher_input_tokens_at_eval": 5768,
+    "_teacher_output_tokens_at_eval": 714,
+    "_teacher_tokens_at_eval": 6482,
+    "_teacher_cost_at_eval": 0.017248
+  },
+  "2": {
+    "accuracy": 0.415,
+    "f1": 0.14954058386773939,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-5_20260922_195231_662681_s13_a976f4a9_4fccc4",
+    "_teacher_input_tokens_at_eval": 11542,
+    "_teacher_output_tokens_at_eval": 1742,
+    "_teacher_tokens_at_eval": 13284,
+    "_teacher_cost_at_eval": 0.03702
+  },
+  "3": {
+    "accuracy": 0.405,
+    "f1": 0.14016779910802585,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-5_20260922_195231_662681_s13_a976f4a9_4fccc4",
+    "_teacher_input_tokens_at_eval": 17279,
+    "_teacher_output_tokens_at_eval": 2823,
+    "_teacher_tokens_at_eval": 20102,
+    "_teacher_cost_at_eval": 0.057142
+  },
+  "4": {
+    "accuracy": 0.41,
+    "f1": 0.17531380897633175,
+    "_selection_split": "validation",
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-5_20260922_195231_662681_s13_a976f4a9_4fccc4",
+    "_teacher_input_tokens_at_eval": 22707,
+    "_teacher_output_tokens_at_eval": 3846,
+    "_teacher_tokens_at_eval": 26553,
+    "_teacher_cost_at_eval": 0.076182
+  },
+  "heldout_test": {
+    "accuracy": 0.39575178997613364,
+    "f1": 0.17889528902975446,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 4,
+    "_run_id": "g3_huffpost_ettin_encoder_w10_cycles-5_20260922_195231_662681_s13_a976f4a9_4fccc4"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.076182,
+    "total_tokens": 26553,
+    "total_cycles": 5
+  }
+}

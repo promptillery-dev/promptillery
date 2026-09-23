@@ -42,7 +42,10 @@ def test_oracle_chooses_cheapest_feasible_on_heldout_and_trains_all():
                    heldout_accuracy=0.80, distillation_usd=0.5)
     real = _cell(student_model="real", selection_accuracy=0.92,
                  heldout_accuracy=0.93, distillation_usd=2.0)
-    target = Target(accuracy_floor=0.90, latency_budget_ms=None, volume=1000)
+    # volume well above real's ~1000-call break-even, so the teacher-below-
+    # break-even rule (A.2) doesn't intervene here -- this test is about the
+    # selection-vs-heldout accuracy gap, not the teacher trade-off.
+    target = Target(accuracy_floor=0.90, latency_budget_ms=None, volume=10_000)
 
     sel = oracle([mirage, real], target, PRICES, TEACHER)
 
@@ -108,7 +111,10 @@ def test_budget_search_escalates_cycles_where_rules_falls_back():
                  selection_accuracy=0.85)
     escalated = _cell(student_model="s", expected_cycles=10, distillation_usd=5.0,
                       selection_accuracy=0.93)
-    target = Target(accuracy_floor=0.90, latency_budget_ms=None, volume=1000)
+    # volume well above escalated's ~2500-call break-even, so the teacher-
+    # below-break-even rule (A.2) doesn't intervene here -- this test is about
+    # budget escalation, not the teacher trade-off.
+    target = Target(accuracy_floor=0.90, latency_budget_ms=None, volume=10_000)
 
     rules_sel = recommender_rules([base, escalated], target, PRICES, TEACHER)
     search_sel = recommender_budget_search([base, escalated], target, PRICES, TEACHER)
@@ -125,3 +131,14 @@ def test_standard_selectors_names_are_stable_and_exclude_the_oracle():
         "expert_default", "random", "volume_threshold",
         "recommender_rules", "recommender_budget_search",
     }
+
+
+def test_oracle_prefers_the_teacher_below_break_even():
+    from promptillery.selectors import oracle
+    student = _cell(distillation_usd=10.0, heldout_accuracy=0.95)
+    target = Target(accuracy_floor=0.90, latency_budget_ms=None, volume=100)
+
+    sel = oracle([student], target, PRICES, TEACHER)
+
+    assert sel.cell is None
+    assert sel.reason == "teacher_cheaper_at_volume"

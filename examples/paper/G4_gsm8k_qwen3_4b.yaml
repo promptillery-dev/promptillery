@@ -1,13 +1,13 @@
 # =============================================================================
-# G4 — GSM8K: Qwen3-4B-Instruct LoRA (decoder SLM)
+# G4 — tab:generative, GSM8K: Qwen3-4B-Instruct LoRA (decoder SLM)
 # =============================================================================
-# Headline decoder for the generative table. Free-generation eval
+# Headline decoder for the generative table (issue #9). Free-generation eval
 # (answer_extraction: number, no canonical labels), 512-token CoT decoding,
 # self-consistency screening on synthetic problems, cycles:[1,5,10] ablation.
 #
 # NOT CI-verified: needs the H100, HF hub access, and a real teacher key.
-# Run (after prep + materialize, see examples/paper/G4_G5_README.md):
-#   uv run promptillery ablation examples/paper/G4_gsm8k_qwen3_4b.yaml --no-cleanup
+# Run (after prep + materialize, see examples/G4_G5_README.md):
+#   uv run promptillery ablation examples/G4_gsm8k_qwen3_4b.yaml --no-cleanup
 # =============================================================================
 
 name: "g4_gsm8k_qwen3_4b"

@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609286-gnxInCXL4yMPoTkCky22",
+  "created": 1783609286,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n    { \"text\": \"I tried to buy something today, but my card payment wouldn't go through. Why?\", \"label\": 25 },\n    { \"text\": \"All my card transactions at shops have failed recently. What could be causing this?\", \"label\": 25 },\n    { \"text\": \"My debit card was declined at checkout. What should I check?\", \"label\": 25 },\n    { \"text\": \"None of my purchases are working with this card. Is there a restriction I missed?\", \"label\": 25 },\n    { \"text\": \"My bank isn't letting me pay with my card, is there a daily limit?\", \"label\": 25 },\n    { \"text\": \"Why am I not able to make payments in stores using my card?\", \"label\": 25 },\n    { \"text\": \"The shop said my card wasn\u2019t accepted for the purchase.\", \"label\": 25 },\n\n    { \"text\": \"Why has the payment at the store been stuck as pending?\", \"label\": 45 },\n    { \"text\": \"I made a payment two hours ago and it still says pending. Will it go through?\", \"label\": 45 },\n    { \"text\": \"What could cause my recent payment to remain in pending status for so long?\", \"label\": 45 },\n    { \"text\": \"I can see my payment to the hotel as pending. Do I need to do anything?\", \"label\": 45 },\n    { \"text\": \"How long does a payment stay in pending mode before it is processed?\", \"label\": 45 },\n    { \"text\": \"Why does my online shopping payment say pending approval?\", \"label\": 45 },\n\n    { \"text\": \"I see two identical transactions on my statement. Why was I charged twice?\", \"label\": 63 },\n    { \"text\": \"My account shows multiple charges for the same purchase. What should I do?\", \"label\": 63 },\n    { \"text\": \"My card was billed more than once for a transaction. How do I fix this?\", \"label\": 63 },\n    { \"text\": \"Why did the same order deduct money from my account two times?\", \"label\": 63 },\n    { \"text\": \"How can I dispute a duplicated transaction on my statement?\", \"label\": 63 },\n\n    { \"text\": \"My payment didn\u2019t go through but I was still charged a transfer fee. Why?\", \"label\": 64 },\n    { \"text\": \"The app applied an extra fee to my money transfer. What was this for?\", \"label\": 64 },\n    { \"text\": \"Why do I see additional charges when transferring money?\", \"label\": 64 },\n    { \"text\": \"Please explain the fees that appeared on my last transfer.\", \"label\": 64 },\n    { \"text\": \"I want a breakdown of charges for fund transfers.\", \"label\": 64 },\n\n    { \"text\": \"I'm struggling to verify my identity on your app. What steps should I follow?\", \"label\": 68 },\n    { \"text\": \"How can I resolve failed identity verification?\", \"label\": 68 },\n    { \"text\": \"I keep getting errors when verifying my ID. Any instructions?\", \"label\": 68 },\n    { \"text\": \"I uploaded my documents but the identity check failed. Why?\", \"label\": 68 },\n\n    { \"text\": \"What happens if I submit blurry documents for my identity check?\", \"label\": 69 },\n    { \"text\": \"Why do I need to submit my address for verification if my ID is accepted?\", \"label\": 69 },\n    { \"text\": \"Could you tell me which documents are needed for confirming my identity?\", \"label\": 69 },\n    { \"text\": \"Is a utility bill required for identity verification with your bank?\", \"label\": 69 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 807,
+    "prompt_tokens": 6420,
+    "total_tokens": 7227,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3712,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.013728,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.013728,
+      "upstream_inference_prompt_cost": 0.007272,
+      "upstream_inference_completions_cost": 0.006456
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

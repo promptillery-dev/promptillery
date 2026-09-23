@@ -214,8 +214,8 @@ def test_engine_reports_heldout_teacher_fidelity_end_to_end(tmp_path):
     # The gap the config-parse tests miss: a decoder config shaped like the real
     # ones (json dataset, train+validation+test) must actually flow fidelity into
     # metrics.json["heldout_test"] when report_held_out_test is set. This drives
-    # the whole engine offline and asserts the metric lands where the deployment
-    # table reads it -- not merely that the knobs parse.
+    # the whole engine offline and asserts the metric lands where tab:deployment
+    # reads it -- not merely that the knobs parse.
     cfg = ExperimentConfig.from_yaml("examples/causal_lm_sft_tiny.yaml")
     cfg.base_output_dir = str(tmp_path)
 

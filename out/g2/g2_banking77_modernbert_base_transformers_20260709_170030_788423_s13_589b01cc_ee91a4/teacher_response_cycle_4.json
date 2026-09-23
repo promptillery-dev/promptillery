@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609730-7nJ1z9BmnhRAitnagiPZ",
+  "created": 1783609730,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"Could you tell me all the currencies I can use with your service?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Is it possible to make deposits in yen or only in dollars and euros?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Am I able to use Swiss francs to top up my account?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Which kinds of currency are accepted for transfers into my account?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"If I want to add funds with Canadian dollars, is that allowed?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"What foreign currencies can be held in my balance?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Please confirm if you take Singapore dollars as a top-up method.\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Is it allowed to have a multi-currency balance, and if so, which currencies are included?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"What currencies are compatible with both transfers and top-ups?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"List all supported deposit currencies for your platform.\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Which top-up methods support foreign currency?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"Can I transfer funds from a Malaysian ringgit account?\",\n      \"label\": 54\n    },\n    {\n      \"text\": \"I haven't received my top-up, and it's been over an hour. What's wrong?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"My top-up status says processing but hasn't finished. What should I do?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Why does my card keep getting declined when I top up?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"I added money to my account but the balance has not updated.\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"The money I added didn't show up. Can you investigate my top-up?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"I just used my debit card to top up, but it failed\u2014why?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"The funds from my top-up are missing, what steps should I take?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"Why did my top-up not process even though I got a confirmation?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"The app says my top-up failed, how can I resolve this?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"After topping up, nothing has appeared in my account. Is there an issue on your end?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"How long should I wait for my top-up to complete before contacting support?\",\n      \"label\": 59\n    },\n    {\n      \"text\": \"What methods can I use to add funds to my account?\",\n      \"label\": 65\n    },\n    {\n      \"text\": \"Is there a way to fund my account directly from another UK bank?\",\n      \"label\": 65\n    },\n    {\n      \"text\": \"Do you support same-day bank transfers into my account?\",\n      \"label\": 65\n    },\n    {\n      \"text\": \"Can I link an external bank and move money into my account?\",\n      \"label\": 65\n    },\n    {\n      \"text\": \"What's the process to deposit money from a different financial institution?\",\n      \"label\": 65\n    },\n    {\n      \"text\": \"If my account is empty, how can I add money to it?\",\n      \"label\": 65\n    },\n    {\n      \"text\": \"Is ATM deposit an option for adding funds to my account?\",\n      \"label\": 65\n    },\n    {\n      \"text\": \"What details do I need for a friend to transfer money into my bank account?\",\n      \"label\": 65\n    },\n    {\n      \"text\": \"Can I receive direct credits from payroll into this account?\",\n      \"label\": 65\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 952,
+    "prompt_tokens": 6112,
+    "total_tokens": 7064,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.01984,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.01984,
+      "upstream_inference_prompt_cost": 0.012224,
+      "upstream_inference_completions_cost": 0.007616
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

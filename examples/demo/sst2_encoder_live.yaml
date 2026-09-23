@@ -1,0 +1,50 @@
+name: "demo_sst2_encoder_live"
+teacher: "openrouter/openai/gpt-4.1"
+student: "FacebookAI/roberta-base"
+student_type: "transformers"
+dataset: "SetFit/sst2"
+dataset_kwargs: {}
+dataset_config:
+  name: "default"
+  num_classes: 2
+  text_field: "text"
+  label_field: "label"
+metrics: [accuracy, f1]
+sampling:
+  enabled: true
+  sample_size: 300
+  train_ratio: 0.8
+  stratify_column: "label"
+  seed: 13
+cycles: 2
+seed: 13
+learning_rate: 2e-5
+num_train_epochs: 2
+batch_size: 16
+warmup_steps: 10
+augmentation_batch_size: 8
+teacher_max_output_tokens: 2048
+token_budget: 200000
+budget_stop: true
+require_validation_split: true
+base_output_dir: "out/demo"
+early_stopping:
+  enabled: false
+trainer_config:
+  report_held_out_test: true
+prompt: |
+  You are a teacher model in a knowledge-distillation pipeline for SST-2
+  (negative vs positive movie-review sentences).
+
+  # Reference Examples
+  {{ format_samples_for_prompt(few_shot_samples, include_prediction=False) }}
+
+  # Student Model Errors
+  ## High Uncertainty Samples
+  {{ format_samples_for_prompt(high_entropy_samples, include_prediction=True) }}
+  ## Confident Misclassifications
+  {{ format_samples_for_prompt(hard_negative_samples, include_prediction=True) }}
+
+  # Task
+  Generate {{ augmentation_batch_size }} new movie-review sentences that target
+  the student's weakest cases, each with a valid label (negative/positive).

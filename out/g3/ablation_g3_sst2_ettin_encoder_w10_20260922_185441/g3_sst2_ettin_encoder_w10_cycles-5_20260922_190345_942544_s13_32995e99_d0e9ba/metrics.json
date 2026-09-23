@@ -1,0 +1,70 @@
+{
+  "0": {
+    "accuracy": 0.82,
+    "f1": 0.8363636363636363,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-5_20260922_190345_942544_s13_32995e99_d0e9ba",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "1": {
+    "accuracy": 0.915,
+    "f1": 0.9178743961352657,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-5_20260922_190345_942544_s13_32995e99_d0e9ba",
+    "_teacher_input_tokens_at_eval": 959,
+    "_teacher_output_tokens_at_eval": 766,
+    "_teacher_tokens_at_eval": 1725,
+    "_teacher_cost_at_eval": 0.008046
+  },
+  "2": {
+    "accuracy": 0.885,
+    "f1": 0.8909952606635071,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-5_20260922_190345_942544_s13_32995e99_d0e9ba",
+    "_teacher_input_tokens_at_eval": 1742,
+    "_teacher_output_tokens_at_eval": 1775,
+    "_teacher_tokens_at_eval": 3517,
+    "_teacher_cost_at_eval": 0.017684
+  },
+  "3": {
+    "accuracy": 0.895,
+    "f1": 0.8985507246376812,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-5_20260922_190345_942544_s13_32995e99_d0e9ba",
+    "_teacher_input_tokens_at_eval": 2478,
+    "_teacher_output_tokens_at_eval": 2704,
+    "_teacher_tokens_at_eval": 5182,
+    "_teacher_cost_at_eval": 0.026587999999999997
+  },
+  "4": {
+    "accuracy": 0.905,
+    "f1": 0.909952606635071,
+    "_selection_split": "validation",
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-5_20260922_190345_942544_s13_32995e99_d0e9ba",
+    "_teacher_input_tokens_at_eval": 3189,
+    "_teacher_output_tokens_at_eval": 3508,
+    "_teacher_tokens_at_eval": 6697,
+    "_teacher_cost_at_eval": 0.034442
+  },
+  "heldout_test": {
+    "accuracy": 0.8907193849533224,
+    "f1": 0.8910782703886152,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 4,
+    "_run_id": "g3_sst2_ettin_encoder_w10_cycles-5_20260922_190345_942544_s13_32995e99_d0e9ba"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": 0.034442,
+    "total_tokens": 6697,
+    "total_cycles": 5
+  }
+}

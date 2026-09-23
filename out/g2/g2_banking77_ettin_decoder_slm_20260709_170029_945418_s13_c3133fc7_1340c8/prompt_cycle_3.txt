@@ -1,0 +1,1231 @@
+You are a teacher model in a knowledge-distillation pipeline for the Banking77
+intent-classification task (77 fine-grained customer-banking intents).
+
+# Reference Examples
+Example 1:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why haven't I received a refund yet?
+Intent:
+Label: Refund_not_showing_up
+
+
+Example 2:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I can't see all the refunds in my statement
+Intent:
+Label: Refund_not_showing_up
+
+
+Example 3:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I am having trouble activating my card.
+Intent:
+Label: activate_my_card
+
+
+Example 4:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: My new card needs activating.
+Intent:
+Label: activate_my_card
+
+
+Example 5:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What would the age limit be?
+Intent:
+Label: age_limit
+
+
+Example 6:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How old do my kids need to be to open an account?
+Intent:
+Label: age_limit
+
+
+Example 7:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: My American express works with my apple pay, why is top up not working?
+Intent:
+Label: apple_pay_or_google_pay
+
+
+Example 8:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What should I do to top up using my Apple Watch?
+Intent:
+Label: apple_pay_or_google_pay
+
+
+Example 9:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: what are the locations i can withdraw money
+Intent:
+Label: atm_support
+
+
+Example 10:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What's the closest place to withdraw money?
+Intent:
+Label: atm_support
+
+
+Example 11:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What is the maximum for auto top-up?
+Intent:
+Label: automatic_top_up
+
+
+Example 12:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What is the auto top-up limit?
+Intent:
+Label: automatic_top_up
+
+
+Example 13:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What is the time frame that transfers normally take from a UK account? I just completed a transfer and nothing shows up. I need to know if everything is alright.
+Intent:
+Label: balance_not_updated_after_bank_transfer
+
+
+Example 14:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I made a bank transfer earlier from my UK account.  I don't see it yet, can you check the status?
+Intent:
+Label: balance_not_updated_after_bank_transfer
+
+
+Example 15:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why isn't my deposit in my account?
+Intent:
+Label: balance_not_updated_after_cheque_or_cash_deposit
+
+
+Example 16:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I put money into my account in the form of a cheque, but my balance did not change.
+Intent:
+Label: balance_not_updated_after_cheque_or_cash_deposit
+
+
+Example 17:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: why didnt my account allow a transfer
+Intent:
+Label: beneficiary_not_allowed
+
+
+Example 18:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why has my beneficiary been denied?
+Intent:
+Label: beneficiary_not_allowed
+
+
+Example 19:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I needed to make a payment on my account, but I typed in the incorrect number.  The app won't allow me to cancel this transaction.  I need it cancelled ASAP!!
+Intent:
+Label: cancel_transfer
+
+
+Example 20:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I need to cancel my recent transfer quickly since I made a mistake. Please help before it goes through.
+Intent:
+Label: cancel_transfer
+
+
+Example 21:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What is the process when my card is due to expire?
+Intent:
+Label: card_about_to_expire
+
+
+Example 22:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: My card's expiration date is close.
+Intent:
+Label: card_about_to_expire
+
+
+Example 23:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Can I use my card while on vacation overseas?
+Intent:
+Label: card_acceptance
+
+
+Example 24:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Do you know which businesses will accept my card?
+Intent:
+Label: card_acceptance
+
+
+Example 25:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Can I get an update on my replacement card?
+Intent:
+Label: card_arrival
+
+
+Example 26:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I still haven't received my card after two weeks, is it lost?
+Intent:
+Label: card_arrival
+
+
+Example 27:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: When can I expect my new card to get here?
+Intent:
+Label: card_delivery_estimate
+
+
+Example 28:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: When will I receive the card?
+Intent:
+Label: card_delivery_estimate
+
+
+Example 29:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Okay, I found my card, can I put it back in the app?
+Intent:
+Label: card_linking
+
+
+Example 30:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Where in the app do I go to make my new card show up?
+Intent:
+Label: card_linking
+
+
+Example 31:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What do I do now that I can't use this card?
+Intent:
+Label: card_not_working
+
+
+Example 32:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: For a week now, I have tried to use my card and it is still not working.
+Intent:
+Label: card_not_working
+
+
+Example 33:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Was I charged extra for using my card?
+Intent:
+Label: card_payment_fee_charged
+
+
+Example 34:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why do I have to pay extra for using my card?
+Intent:
+Label: card_payment_fee_charged
+
+
+Example 35:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I have a payment that I didn't make.
+Intent:
+Label: card_payment_not_recognised
+
+
+Example 36:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: There's a payment that isn't mine on my app
+Intent:
+Label: card_payment_not_recognised
+
+
+Example 37:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: The exchange rate on my payment doesn't look right
+Intent:
+Label: card_payment_wrong_exchange_rate
+
+
+Example 38:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: something is wrong with my exchange rate charge
+Intent:
+Label: card_payment_wrong_exchange_rate
+
+
+Example 39:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why did the ATM eat my card?
+Intent:
+Label: card_swallowed
+
+
+Example 40:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: My card is stuck inside the ATM, what am I supposed to do?
+Intent:
+Label: card_swallowed
+
+
+Example 41:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why am i being charged for withdrawing cash funds?
+Intent:
+Label: cash_withdrawal_charge
+
+
+Example 42:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why was I charged a fee for my withdrawal?
+Intent:
+Label: cash_withdrawal_charge
+
+
+Example 43:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I need your help immediately.  There is a 500£ cash withdrawal that I know nothing about.  I think my account has become compromised.
+Intent:
+Label: cash_withdrawal_not_recognised
+
+
+Example 44:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Someone stole my account, there's a withdrawal but it wasn't me, can we put a stop to it please?
+Intent:
+Label: cash_withdrawal_not_recognised
+
+
+Example 45:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Are their certain cash machines where I can change my pin?
+Intent:
+Label: change_pin
+
+
+Example 46:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I'm in Austria right now, but I really need to change my PIN right now. Can I do this even though I'm in another country?
+Intent:
+Label: change_pin
+
+
+Example 47:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What do I do if someone used my card without my permission?
+Intent:
+Label: compromised_card
+
+
+Example 48:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I think someone is using my card without my permission!
+Intent:
+Label: compromised_card
+
+
+Example 49:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What is the reason when I tried to pay contactless at the bus, it didnt work?
+Intent:
+Label: contactless_not_working
+
+
+Example 50:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What do I have to do to get the contactless to work?
+Intent:
+Label: contactless_not_working
+
+
+Example 51:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: As far as courtries go which ones are supported?
+Intent:
+Label: country_support
+
+
+Example 52:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What countries have access to this service.
+Intent:
+Label: country_support
+
+
+Example 53:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why does is payment not going through? Did my account get frozen or some other issue I don't know about. What can I do to fix this problem?
+Intent:
+Label: declined_card_payment
+
+
+Example 54:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I just got my new card and tried using it and it was declined?
+Intent:
+Label: declined_card_payment
+
+
+Example 55:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: This morning I wanted to make a withdrawal before work, but my card was declined! Please double check it for me as this is the first time it was declined.
+Intent:
+Label: declined_cash_withdrawal
+
+
+Example 56:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Hello, is there any way to double check my card? I have never had issues with withdraws in the past, but this morning on the way to work it was unexpectedly declined.
+Intent:
+Label: declined_cash_withdrawal
+
+
+Example 57:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I tried to buy something and it was declined and my transfers keep getting declined, Why?
+Intent:
+Label: declined_transfer
+
+
+Example 58:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why did you decline my transfer?
+Intent:
+Label: declined_transfer
+
+
+Example 59:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I might have been charged on my debit statement by fraud.
+Intent:
+Label: direct_debit_payment_not_recognised
+
+
+Example 60:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Could I raise a dispute for a large payment that i found out was not done by me in my couple of last statements? I am aware its delayed now. Please help me out.
+Intent:
+Label: direct_debit_payment_not_recognised
+
+
+Example 61:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How many times can I use my disposable card?
+Intent:
+Label: disposable_card_limits
+
+
+Example 62:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Is there a transaction limit for a disposable card?
+Intent:
+Label: disposable_card_limits
+
+
+Example 63:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why can't I edit my personal details?
+Intent:
+Label: edit_personal_details
+
+
+Example 64:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I need to change details about my personal account.
+Intent:
+Label: edit_personal_details
+
+
+Example 65:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Is there a fee for exchanging currency?
+Intent:
+Label: exchange_charge
+
+
+Example 66:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Do I have to pay more for exchanges?
+Intent:
+Label: exchange_charge
+
+
+Example 67:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I need to know what foreign exchange rate I can get.
+Intent:
+Label: exchange_rate
+
+
+Example 68:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How's the exchange rate looking right now?
+Intent:
+Label: exchange_rate
+
+
+Example 69:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What currencies can be exchanged in the app?
+Intent:
+Label: exchange_via_app
+
+
+Example 70:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Do you support changing the currency I use?
+Intent:
+Label: exchange_via_app
+
+
+Example 71:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: There is a  €1 fee on my account I didn't authorize
+Intent:
+Label: extra_charge_on_statement
+
+
+Example 72:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why did they charge me an extra $1?
+Intent:
+Label: extra_charge_on_statement
+
+
+Example 73:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I tried to make a transfer, but it didn't work.
+Intent:
+Label: failed_transfer
+
+
+Example 74:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Transfer isn't working?
+Intent:
+Label: failed_transfer
+
+
+Example 75:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Please list what fiat currencies are supported for both holding and exchanging.
+Intent:
+Label: fiat_currency_support
+
+
+Example 76:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How many different currencies can I hold money in?
+Intent:
+Label: fiat_currency_support
+
+
+Example 77:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Please send me a disposable virtual card.
+Intent:
+Label: get_disposable_virtual_card
+
+
+Example 78:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Will you tell me how I am supposed to use the disposable cards?
+Intent:
+Label: get_disposable_virtual_card
+
+
+Example 79:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I need my PIN, where is it?
+Intent:
+Label: get_physical_card
+
+
+Example 80:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I do not have my pin yet
+Intent:
+Label: get_physical_card
+
+
+Example 81:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I would like to get a few more physical cards.
+Intent:
+Label: getting_spare_card
+
+
+Example 82:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How many physical cards am I allowed to have?
+Intent:
+Label: getting_spare_card
+
+
+Example 83:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: what is a virtual and how do i get one
+Intent:
+Label: getting_virtual_card
+
+
+Example 84:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What is the way to go about getting a virtual card?
+Intent:
+Label: getting_virtual_card
+
+
+Example 85:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: My card is lost!  Please help me!
+Intent:
+Label: lost_or_stolen_card
+
+
+Example 86:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I misplaced my card and I dont know where the last place is where I used the card last. Can you look at my account and tell me the last place I used the card?
+Intent:
+Label: lost_or_stolen_card
+
+
+Example 87:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: lost my phone, what is account security?
+Intent:
+Label: lost_or_stolen_phone
+
+
+Example 88:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Everything I have was stolen yesterday making it so I don't have access to the app, what should I do?
+Intent:
+Label: lost_or_stolen_phone
+
+
+Example 89:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What do I need to do in order to get a new card?
+Intent:
+Label: order_physical_card
+
+
+Example 90:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I want a real card
+Intent:
+Label: order_physical_card
+
+
+Example 91:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I can't recall my password.
+Intent:
+Label: passcode_forgotten
+
+
+Example 92:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I've completely forgot the code to get into the app.
+Intent:
+Label: passcode_forgotten
+
+
+Example 93:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: When will my pending payment finish?
+Intent:
+Label: pending_card_payment
+
+
+Example 94:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why is my card payment still a pending transaction?
+Intent:
+Label: pending_card_payment
+
+
+Example 95:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How long until I see a cash withdrawal?
+Intent:
+Label: pending_cash_withdrawal
+
+
+Example 96:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I noticed on my online statement that an ATM withdrawal I made early is still pending.  Is this accurate?
+Intent:
+Label: pending_cash_withdrawal
+
+
+Example 97:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: There is a top up that has been pending for an hour and I don't know why.  I was expecting it immediately and need it now!
+Intent:
+Label: pending_top_up
+
+
+Example 98:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Should my top-up be completed by now?
+Intent:
+Label: pending_top_up
+
+
+Example 99:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What does it mean when a transfer is "pending"?
+Intent:
+Label: pending_transfer
+
+
+Example 100:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: The transfer was accepted but now it's stuck on pending. When will it go through?
+Intent:
+Label: pending_transfer
+
+
+Example 101:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I tried the wrong PIN too many times.
+Intent:
+Label: pin_blocked
+
+
+Example 102:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I have used all of my PIN tries. What should I do now?
+Intent:
+Label: pin_blocked
+
+
+Example 103:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I received a transfer in GBP how do I change it to a different currency?
+Intent:
+Label: receiving_money
+
+
+Example 104:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What methods are available for my friend to send me money?
+Intent:
+Label: receiving_money
+
+
+Example 105:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Is it possible to refund an item?
+Intent:
+Label: request_refund
+
+
+Example 106:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I want a refund on the things i bought
+Intent:
+Label: request_refund
+
+
+Example 107:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: My card payment reverted back, I think.
+Intent:
+Label: reverted_card_payment?
+
+
+Example 108:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Is it possible that my card payment was reverted?
+Intent:
+Label: reverted_card_payment?
+
+
+Example 109:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How can I top up my account and which currency can I use?
+Intent:
+Label: supported_cards_and_currencies
+
+
+Example 110:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I have an American Express that I'd like to add money to my account with.
+Intent:
+Label: supported_cards_and_currencies
+
+
+Example 111:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I am not satisfied with your company and wish to delete all accounts immediately.
+Intent:
+Label: terminate_account
+
+
+Example 112:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I want to stop my account
+Intent:
+Label: terminate_account
+
+
+Example 113:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What does it cost to receive a SEPA transfer?
+Intent:
+Label: top_up_by_bank_transfer_charge
+
+
+Example 114:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Will I be fined for topping up by transfer?
+Intent:
+Label: top_up_by_bank_transfer_charge
+
+
+Example 115:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How much are you going to charge me if I top up my US card?
+Intent:
+Label: top_up_by_card_charge
+
+
+Example 116:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How much does top up fees cost?
+Intent:
+Label: top_up_by_card_charge
+
+
+Example 117:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What's the best way to use a cheque to top up?
+Intent:
+Label: top_up_by_cash_or_cheque
+
+
+Example 118:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How can I put more money into my account?
+Intent:
+Label: top_up_by_cash_or_cheque
+
+
+Example 119:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I could not get the top-up to go through
+Intent:
+Label: top_up_failed
+
+
+Example 120:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I believe my top up did not work.
+Intent:
+Label: top_up_failed
+
+
+Example 121:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Is there a limit to how much I can top up?
+Intent:
+Label: top_up_limits
+
+
+Example 122:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What's the maximum amount I can top up my card with please?
+Intent:
+Label: top_up_limits
+
+
+Example 123:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why did you revert my top-up?
+Intent:
+Label: top_up_reverted
+
+
+Example 124:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why won't my top up go through?
+Intent:
+Label: top_up_reverted
+
+
+Example 125:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How do I to up by card?
+Intent:
+Label: topping_up_by_card
+
+
+Example 126:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I want to know how to transfer money with my credit card
+Intent:
+Label: topping_up_by_card
+
+
+Example 127:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Transaction showing up many times.
+Intent:
+Label: transaction_charged_twice
+
+
+Example 128:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I was double-charged for a transaction
+Intent:
+Label: transaction_charged_twice
+
+
+Example 129:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Is it normal to see a fee for transferring money?
+Intent:
+Label: transfer_fee_charged
+
+
+Example 130:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I transferred money from one account to another account and I charged a fee for it. Why is that?
+Intent:
+Label: transfer_fee_charged
+
+
+Example 131:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How can I transfer money into my account?
+Intent:
+Label: transfer_into_account
+
+
+Example 132:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What is the procedure to transfer money to my account?
+Intent:
+Label: transfer_into_account
+
+
+Example 133:
+Text: Text: Classify the banking customer message into one of the Banking77 intents.
+Message: My friend didn't receive the transfer I made yesterday, is there a delay?
+Intent:
+Label: transfer_not_received_by_recipient
+
+
+Example 134:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I do not know where the transaction is.
+Intent:
+Label: transfer_not_received_by_recipient
+
+
+Example 135:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How long will an urgent transfer from China take?
+Intent:
+Label: transfer_timing
+
+
+Example 136:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What is the wait time until money reaches my account?
+Intent:
+Label: transfer_timing
+
+
+Example 137:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why is my identity not verified?
+Intent:
+Label: unable_to_verify_identity
+
+
+Example 138:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I'm still waiting on my identity verification.
+Intent:
+Label: unable_to_verify_identity
+
+
+Example 139:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What do you require for identity verification?
+Intent:
+Label: verify_my_identity
+
+
+Example 140:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Can you tell me what I need to do for the identity check process?
+Intent:
+Label: verify_my_identity
+
+
+Example 141:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Who is giving me my money?
+Intent:
+Label: verify_source_of_funds
+
+
+Example 142:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: How can I find out the source of my available cash?
+Intent:
+Label: verify_source_of_funds
+
+
+Example 143:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why do I need top-up to be verified?
+Intent:
+Label: verify_top_up
+
+
+Example 144:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Where's my top up code?
+Intent:
+Label: verify_top_up
+
+
+Example 145:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I can't seem to get my virtual card to work.
+Intent:
+Label: virtual_card_not_working
+
+
+Example 146:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: My disposable virtual card got rejected
+Intent:
+Label: virtual_card_not_working
+
+
+Example 147:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I have a Visa and Mastercard, can I use these?
+Intent:
+Label: visa_or_mastercard
+
+
+Example 148:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Which one are you?  Visa or Mastercard?
+Intent:
+Label: visa_or_mastercard
+
+
+Example 149:
+Text: Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Is there a reason why my app asked me to confirm my identity?
+Intent:
+Label: why_verify_identity
+
+
+Example 150:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why do I need to have my identity verified?
+Intent:
+Label: why_verify_identity
+
+
+Example 151:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I got some cash at an ATM earlier, but now app is showing that I withdrew more than I did.  Help!
+Intent:
+Label: wrong_amount_of_cash_received
+
+
+Example 152:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What happens if the ATM doesn't give the right amount of money?
+Intent:
+Label: wrong_amount_of_cash_received
+
+
+Example 153:
+Text: Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Why am I seeing a different exchange rate on my cash withdrawal?
+Intent:
+Label: wrong_exchange_rate_for_cash_withdrawal
+
+
+Example 154:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Is there extra fees for making a withdraw in a different country at a cash machine.
+Intent:
+Label: wrong_exchange_rate_for_cash_withdrawal
+
+# Student Model Performance
+```
+macro_f1: 0.8973
+macro_f1_full_canonical: 0.8973
+invalid_label_rate: 0.0000
+exact_match: 0.9000
+canonical_label_count: 77
+observed_gold_label_count: 77
+
+                                                  precision    recall  f1-score   support
+
+                                activate_my_card       0.88      1.00      0.93         7
+                                       age_limit       0.88      1.00      0.93         7
+                         apple_pay_or_google_pay       0.88      1.00      0.93         7
+                                     atm_support       1.00      0.86      0.92         7
+                                automatic_top_up       1.00      1.00      1.00         7
+         balance_not_updated_after_bank_transfer       0.67      0.86      0.75         7
+balance_not_updated_after_cheque_or_cash_deposit       1.00      1.00      1.00         7
+                         beneficiary_not_allowed       1.00      0.86      0.92         7
+                                 cancel_transfer       0.78      1.00      0.88         7
+                            card_about_to_expire       1.00      1.00      1.00         7
+                                 card_acceptance       1.00      1.00      1.00         7
+                                    card_arrival       0.88      1.00      0.93         7
+                          card_delivery_estimate       1.00      0.86      0.92         7
+                                    card_linking       1.00      1.00      1.00         7
+                                card_not_working       0.75      0.86      0.80         7
+                        card_payment_fee_charged       1.00      1.00      1.00         7
+                     card_payment_not_recognised       0.70      1.00      0.82         7
+                card_payment_wrong_exchange_rate       1.00      0.86      0.92         7
+                                  card_swallowed       1.00      0.86      0.92         7
+                          cash_withdrawal_charge       1.00      1.00      1.00         7
+                  cash_withdrawal_not_recognised       0.78      1.00      0.88         7
+                                      change_pin       1.00      0.86      0.92         7
+                                compromised_card       1.00      0.71      0.83         7
+                         contactless_not_working       1.00      1.00      1.00         7
+                                 country_support       0.86      0.86      0.86         7
+                           declined_card_payment       0.83      0.71      0.77         7
+                        declined_cash_withdrawal       1.00      1.00      1.00         7
+                               declined_transfer       1.00      0.29      0.44         7
+             direct_debit_payment_not_recognised       0.83      0.71      0.77         7
+                          disposable_card_limits       1.00      0.86      0.92         7
+                           edit_personal_details       1.00      1.00      1.00         7
+                                 exchange_charge       1.00      1.00      1.00         7
+                                   exchange_rate       1.00      1.00      1.00         7
+                                exchange_via_app       0.88      1.00      0.93         7
+                       extra_charge_on_statement       1.00      0.86      0.92         7
+                                 failed_transfer       0.60      0.86      0.71         7
+                           fiat_currency_support       1.00      0.86      0.92         7
+                     get_disposable_virtual_card       1.00      0.86      0.92         7
+                               get_physical_card       1.00      1.00      1.00         6
+                              getting_spare_card       0.86      1.00      0.92         6
+                            getting_virtual_card       0.86      1.00      0.92         6
+                             lost_or_stolen_card       0.75      1.00      0.86         6
+                            lost_or_stolen_phone       1.00      0.83      0.91         6
+                             order_physical_card       1.00      1.00      1.00         6
+                              passcode_forgotten       0.86      1.00      0.92         6
+                            pending_card_payment       0.71      0.83      0.77         6
+                         pending_cash_withdrawal       1.00      1.00      1.00         6
+                                  pending_top_up       0.83      0.83      0.83         6
+                                pending_transfer       0.80      0.67      0.73         6
+                                     pin_blocked       0.80      0.67      0.73         6
+                                 receiving_money       1.00      0.83      0.91         6
+                           refund_not_showing_up       1.00      0.83      0.91         6
+                                  request_refund       0.83      0.83      0.83         6
+                           reverted_card_payment       0.86      1.00      0.92         6
+                  supported_cards_and_currencies       0.75      0.50      0.60         6
+                               terminate_account       1.00      1.00      1.00         6
+                  top_up_by_bank_transfer_charge       0.86      1.00      0.92         6
+                           top_up_by_card_charge       0.83      0.83      0.83         6
+                        top_up_by_cash_or_cheque       0.75      1.00      0.86         6
+                                   top_up_failed       0.67      0.67      0.67         6
+                                   top_up_limits       1.00      0.83      0.91         6
+                                 top_up_reverted       1.00      0.83      0.91         6
+                              topping_up_by_card       0.80      0.67      0.73         6
+                       transaction_charged_twice       1.00      0.83      0.91         6
+                            transfer_fee_charged       1.00      1.00      1.00         6
+                           transfer_into_account       0.86      1.00      0.92         6
+              transfer_not_received_by_recipient       0.75      1.00      0.86         6
+                                 transfer_timing       0.83      0.83      0.83         6
+                       unable_to_verify_identity       1.00      1.00      1.00         6
+                              verify_my_identity       1.00      0.83      0.91         6
+                          verify_source_of_funds       1.00      1.00      1.00         6
+                                   verify_top_up       1.00      1.00      1.00         6
+                        virtual_card_not_working       1.00      1.00      1.00         6
+                              visa_or_mastercard       1.00      1.00      1.00         6
+                             why_verify_identity       0.83      0.83      0.83         6
+                   wrong_amount_of_cash_received       1.00      0.83      0.91         6
+         wrong_exchange_rate_for_cash_withdrawal       0.86      1.00      0.92         6
+
+                                        accuracy                           0.90       500
+                                       macro avg       0.91      0.90      0.90       500
+                                    weighted avg       0.91      0.90      0.90       500
+
+```
+
+# Student Model Errors
+
+## High Uncertainty Samples
+Example 1:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: There is something wrong with my card. Tried to use it a few times today in different places and it just didn't work. The transactions I tried to make were really small so not sure what's going on
+Intent:
+Label: card_not_working
+
+Predicted: card_not_working (confidence: 0.11, entropy: 3.717)
+
+
+Example 2:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What systems do you have in place for my security when using my card for everyday purchases?
+Intent:
+Label: get_disposable_virtual_card
+
+Predicted: get_disposable_virtual_card (confidence: 0.12, entropy: 3.706)
+
+
+Example 3:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: Where do I go to update details?
+Intent:
+Label: edit_personal_details
+
+Predicted: edit_personal_details (confidence: 0.16, entropy: 3.644)
+
+
+Example 4:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: What are the limits to where my card will be accepted?
+Intent:
+Label: card_acceptance
+
+Predicted: card_acceptance (confidence: 0.16, entropy: 3.625)
+
+
+Example 5:
+Text: Classify the banking customer message into one of the Banking77 intents.
+Message: I didn't make this payment and it's on my app
+Intent:
+Label: card_payment_not_recognised
+
+Predicted: card_payment_not_recognised (confidence: 0.12, entropy: 3.610)
+
+## Confident Misclassifications
+
+
+# Task
+Generate 32 new customer-message / intent-label SFT
+records that target the student's weakest and most-confused intents. Each
+record must use a valid Banking77 intent as its gold answer and cover diverse
+phrasings within each targeted intent.

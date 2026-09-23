@@ -1,0 +1,30 @@
+{
+  "0": {
+    "accuracy": 0.86,
+    "f1": 0.8541666666666666,
+    "_selection_split": "validation",
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-1_20260922_191655_864365_s13_8c5c30f0_530dda",
+    "_teacher_input_tokens_at_eval": 0,
+    "_teacher_output_tokens_at_eval": 0,
+    "_teacher_tokens_at_eval": 0,
+    "_teacher_cost_at_eval": null
+  },
+  "heldout_test": {
+    "accuracy": 0.88908,
+    "f1": 0.8847129256225834,
+    "_heldout_split": "test",
+    "_selection_split": "validation",
+    "_selected_cycle": 0,
+    "_run_id": "g3_imdb_ettin_encoder_w10_bs16_cycles-1_20260922_191655_864365_s13_8c5c30f0_530dda"
+  },
+  "budget_control": {
+    "budget_limit": null,
+    "token_budget": 20000000,
+    "budget_stop_enabled": true,
+    "budget_exceeded": false,
+    "stopped_for_budget": false,
+    "total_cost": null,
+    "total_tokens": 0,
+    "total_cycles": 1
+  }
+}

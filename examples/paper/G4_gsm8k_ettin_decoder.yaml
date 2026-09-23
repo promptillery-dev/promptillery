@@ -1,14 +1,14 @@
 # =============================================================================
-# G4 — GSM8K: Ettin-decoder-150m full fine-tune (decoder SLM)
+# G4 — tab:generative, GSM8K: Ettin-decoder-150m full fine-tune (decoder SLM)
 # =============================================================================
-# Sub-300M decoder for the generative table — capacity-floor arm.
+# Sub-300M decoder for the generative table (issue #9) — capacity-floor arm.
 # Free-generation eval (answer_extraction: number, no canonical labels),
 # 512-token CoT decoding, self-consistency screening on synthetic problems,
 # cycles:[1,5,10] ablation. Full fine-tune (no LoRA) at this model size.
 #
 # NOT CI-verified: needs the H100, HF hub access, and a real teacher key.
-# Run (after prep + materialize, see examples/paper/G4_G5_README.md):
-#   uv run promptillery ablation examples/paper/G4_gsm8k_ettin_decoder.yaml --no-cleanup
+# Run (after prep + materialize, see examples/G4_G5_README.md):
+#   uv run promptillery ablation examples/G4_gsm8k_ettin_decoder.yaml --no-cleanup
 # =============================================================================
 
 name: "g4_gsm8k_ettin_decoder"

@@ -1,4 +1,4 @@
-"""Tests for scripts/prep_m5_same_n.py (same-N gold FT baseline)."""
+"""Tests for scripts/prep_m5_same_n.py (issue #8, same-N gold FT baseline)."""
 import importlib.util
 import json
 from collections import Counter
@@ -7,11 +7,17 @@ from pathlib import Path
 import pytest
 from datasets import ClassLabel, Dataset, DatasetDict
 
+from _paths import PAPER_EXAMPLES
+
 spec = importlib.util.spec_from_file_location(
     "prep_m5", Path(__file__).resolve().parents[1] / "scripts" / "prep_m5_same_n.py"
 )
 prep = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prep)
+# prep_m5_same_n.py only ever reads G3_*.yaml through EXAMPLES_DIR (never M5_*), and
+# G3 configs live under examples/paper/ in the public export; repoint it at the same
+# resolved directory the config tests use so this test file works in both layouts.
+prep.EXAMPLES_DIR = PAPER_EXAMPLES
 
 
 def _fixture_run_dir(tmp_path, **overrides):

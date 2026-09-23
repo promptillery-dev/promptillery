@@ -1,16 +1,16 @@
 # =============================================================================
 # G2 — Banking77 cross-architecture hub: FastText (lightweight reference)
 # =============================================================================
-# The lower bound of the cost/quality frontier: a CPU-friendly
+# The lower bound of the cost/quality frontier (issue #3): a CPU-friendly
 # linear classifier that anchors how far the transformer/decoder students pull
 # ahead. Same protocol otherwise: teacher GPT-4.1 via OpenRouter, one monotonic
 # 10-cycle run, single seed, Banking77.
 #
 # FIDELITY: like the encoders, FastText predicts an integer class id per row, so
-# it reports student-vs-teacher fidelity through the same seam (story
-# 28 — the reference rows of the deployment table get a fidelity cell too). Point it at
+# it reports student-vs-teacher fidelity through the same seam (issue #3 story
+# 28 — the reference rows of tab:deployment get a fidelity cell too). Point it at
 # the shared teacher test-label file (materialize once from
-# examples/paper/G2_banking77_materialize.yaml, --mode teacher --split test).
+# examples/G2_banking77_materialize.yaml, --mode teacher --split test).
 #
 # NOT CI-verified; run on the remote box (CPU is fine for FastText).
 # =============================================================================
@@ -47,12 +47,12 @@ num_train_epochs: 15
 augmentation_batch_size: 32
 
 # Carve validation from train (Banking77 has only train+test) so cycle
-# selection never touches the held-out test set.
+# selection never touches the held-out test set (major #4).
 require_validation_split: true
 
 # Active-learning-loop teacher output cap: must fit augmentation_batch_size
 # record generation, not just one label. Materialization no longer reads this
-# (that moved to examples/paper/G2_banking77_materialize.yaml, at 16 tokens), but the AL
+# (that moved to examples/G2_banking77_materialize.yaml, at 16 tokens), but the AL
 # loop still needs it: with token_budget set, an UNSET cap makes the
 # augmentation preflight mask every teacher call (engine.py:959-961), silently
 # disabling online augmentation.
@@ -66,11 +66,11 @@ early_stopping:
   enabled: false
 
 trainer_config:
-  # Select on validation, report finals on a clean held-out test pass.
+  # Select on validation, report finals on a clean held-out test pass (major #4).
   report_held_out_test: true
 
   # Student-vs-teacher fidelity on the held-out test split. Points at the shared
-  # teacher test-label file materialized from examples/paper/G2_banking77_materialize.yaml.
+  # teacher test-label file materialized from examples/G2_banking77_materialize.yaml.
   fidelity:
     teacher_labels_path: "out/g2/banking77_teacher_test.jsonl"
     split: "test"

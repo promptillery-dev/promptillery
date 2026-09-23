@@ -1,0 +1,24 @@
+{
+  "experiment_name": "m5_imdb_same_n_ettin_encoder_bs16_retry_transformers",
+  "teacher_model": "openrouter/openai/gpt-4.1",
+  "cycles_completed": 1,
+  "per_cycle": [
+    {
+      "cycle": 0,
+      "operations": {},
+      "cycle_total": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost": null
+      }
+    }
+  ],
+  "totals": {},
+  "grand_total": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "estimated_cost": null
+  }
+}

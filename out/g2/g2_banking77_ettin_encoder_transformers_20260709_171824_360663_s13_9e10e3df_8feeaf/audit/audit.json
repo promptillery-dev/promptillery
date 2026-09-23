@@ -1,0 +1,239 @@
+{
+  "run_dir": "out/g2/g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf",
+  "experiment": "g2_banking77_ettin_encoder_transformers",
+  "dataset": "PolyAI/banking77",
+  "reconstructed": true,
+  "cycles": [
+    {
+      "cycle": 0,
+      "n_rows": 32,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.03125,
+      "distinct_1": 0.5287958115183246,
+      "distinct_2": 0.8628571428571429,
+      "mean_token_len": 11.9375,
+      "label_drift": 0.9271432141964508,
+      "lblc_verifier": 0.4375,
+      "n_fail": 0,
+      "failures": {
+        "cycle": 0,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 32,
+        "n_failed_attempts": 0,
+        "n_fail": 0,
+        "exemplars": []
+      }
+    },
+    {
+      "cycle": 1,
+      "n_rows": 32,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.0,
+      "distinct_1": 0.49333333333333335,
+      "distinct_2": 0.8717201166180758,
+      "mean_token_len": 11.71875,
+      "label_drift": 0.9253936515871032,
+      "lblc_verifier": 0.46875,
+      "n_fail": 0,
+      "failures": {
+        "cycle": 1,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 32,
+        "n_failed_attempts": 0,
+        "n_fail": 0,
+        "exemplars": []
+      }
+    },
+    {
+      "cycle": 2,
+      "n_rows": 32,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.0,
+      "distinct_1": 0.46866485013623976,
+      "distinct_2": 0.7880597014925373,
+      "mean_token_len": 11.46875,
+      "label_drift": 0.9421394651337166,
+      "lblc_verifier": 0.375,
+      "n_fail": 0,
+      "failures": {
+        "cycle": 2,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 32,
+        "n_failed_attempts": 0,
+        "n_fail": 0,
+        "exemplars": []
+      }
+    },
+    {
+      "cycle": 3,
+      "n_rows": 32,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.0,
+      "distinct_1": 0.5105820105820106,
+      "distinct_2": 0.9017341040462428,
+      "mean_token_len": 11.8125,
+      "label_drift": 0.9520119970007498,
+      "lblc_verifier": 0.1875,
+      "n_fail": 0,
+      "failures": {
+        "cycle": 3,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 32,
+        "n_failed_attempts": 0,
+        "n_fail": 0,
+        "exemplars": []
+      }
+    },
+    {
+      "cycle": 4,
+      "n_rows": 32,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.0,
+      "distinct_1": 0.4864864864864865,
+      "distinct_2": 0.88,
+      "mean_token_len": 12.71875,
+      "label_drift": 0.7820544863784054,
+      "lblc_verifier": 0.6875,
+      "n_fail": 0,
+      "failures": {
+        "cycle": 4,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 32,
+        "n_failed_attempts": 0,
+        "n_fail": 0,
+        "exemplars": [
+          {
+            "attempt_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf:c4:a5",
+            "cycle": 4,
+            "kind": "rejected_record",
+            "failure_type": null,
+            "text": "What might prevent my disposable card from completing a transaction?",
+            "label": "72"
+          }
+        ]
+      }
+    },
+    {
+      "cycle": 5,
+      "n_rows": 32,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.0,
+      "distinct_1": 0.4781746031746032,
+      "distinct_2": 0.8622881355932204,
+      "mean_token_len": 15.75,
+      "label_drift": 0.9160209947513122,
+      "lblc_verifier": 0.65625,
+      "n_fail": 0,
+      "failures": {
+        "cycle": 5,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 32,
+        "n_failed_attempts": 0,
+        "n_fail": 0,
+        "exemplars": []
+      }
+    },
+    {
+      "cycle": 6,
+      "n_rows": 31,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.0,
+      "distinct_1": 0.4801864801864802,
+      "distinct_2": 0.8793969849246231,
+      "mean_token_len": 13.838709677419354,
+      "label_drift": 0.9126468382904274,
+      "lblc_verifier": 0.6774193548387096,
+      "n_fail": 1,
+      "failures": {
+        "cycle": 6,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 31,
+        "n_failed_attempts": 0,
+        "n_fail": 1,
+        "exemplars": []
+      }
+    },
+    {
+      "cycle": 7,
+      "n_rows": 32,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.0,
+      "distinct_1": 0.5103926096997691,
+      "distinct_2": 0.885286783042394,
+      "mean_token_len": 13.53125,
+      "label_drift": 0.9045238690327418,
+      "lblc_verifier": 0.5,
+      "n_fail": 0,
+      "failures": {
+        "cycle": 7,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 32,
+        "n_failed_attempts": 0,
+        "n_fail": 0,
+        "exemplars": []
+      }
+    },
+    {
+      "cycle": 8,
+      "n_rows": 32,
+      "dup_pct": 0.0,
+      "ndup_pct": 0.0,
+      "distinct_1": 0.4426877470355731,
+      "distinct_2": 0.7848101265822784,
+      "mean_token_len": 15.8125,
+      "label_drift": 0.9358910272431892,
+      "lblc_verifier": 0.4375,
+      "n_fail": 0,
+      "failures": {
+        "cycle": 8,
+        "n_attempts": 1,
+        "records_requested": 32,
+        "records_accepted": 32,
+        "n_failed_attempts": 0,
+        "n_fail": 0,
+        "exemplars": []
+      }
+    }
+  ],
+  "cumulative": {
+    "cycle": "all",
+    "n_rows": 287,
+    "dup_pct": 0.0,
+    "ndup_pct": 0.003484320557491289,
+    "distinct_1": 0.23274266067177996,
+    "distinct_2": 0.6465369204350315,
+    "mean_token_len": 13.174216027874564,
+    "label_drift": 0.6673052991107623,
+    "lblc_verifier": 0.4912891986062718,
+    "n_fail": 1,
+    "failures": {
+      "cycle": -1,
+      "n_attempts": 9,
+      "records_requested": 288,
+      "records_accepted": 287,
+      "n_failed_attempts": 0,
+      "n_fail": 1,
+      "exemplars": [
+        {
+          "attempt_id": "g2_banking77_ettin_encoder_transformers_20260709_171824_360663_s13_9e10e3df_8feeaf:c4:a5",
+          "cycle": 4,
+          "kind": "rejected_record",
+          "failure_type": null,
+          "text": "What might prevent my disposable card from completing a transaction?",
+          "label": "72"
+        }
+      ]
+    }
+  },
+  "verifier_model": "out/g2_verifier/g2_banking77_verifier_roberta_transformers_20260922_183907_844641_s13_c69cce74_62d88f/model",
+  "verifier_test_accuracy": 0.8555194805194806,
+  "probe": null
+}

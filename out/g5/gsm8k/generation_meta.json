@@ -1,0 +1,9 @@
+{
+  "teacher_model": "Qwen/Qwen3-32B",
+  "decode": {
+    "greedy": true,
+    "max_new_tokens": 512
+  },
+  "train_survival_rate": 0.1775,
+  "teacher_test_exact_match": 0.16982562547384383
+}

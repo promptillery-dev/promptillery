@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783609334-B9TNNgmf7CKExa60s48C",
+  "created": 1783609334,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{ \"articles\": [\n  { \"text\": \"My card isn't working when I try to pay at a shop.\", \"label\": 25 },\n  { \"text\": \"Why are my card payments getting declined at stores?\", \"label\": 25 },\n  { \"text\": \"I went to pay but my card was rejected, can you explain why?\", \"label\": 25 },\n  { \"text\": \"Payments from my card keep failing, what's going on?\", \"label\": 25 },\n  { \"text\": \"I tried using my card at the grocery store and it didn't work.\", \"label\": 25 },\n  { \"text\": \"Please help, none of my in-person card purchases are going through.\", \"label\": 25 },\n  { \"text\": \"I'm trying to check my PIN but don't know where to find it.\", \"label\": 49 },\n  { \"text\": \"How can I retrieve my PIN for the card I just got?\", \"label\": 49 },\n  { \"text\": \"I need instructions on recovering my card's PIN.\", \"label\": 49 },\n  { \"text\": \"Where would I see the code to unlock my card after entering the wrong PIN?\", \"label\": 49 },\n  { \"text\": \"My verification failed and now I'm stuck, what should I do?\", \"label\": 68 },\n  { \"text\": \"I can't get verified\u2014how can I fix this?\", \"label\": 68 },\n  { \"text\": \"After submitting my documents, my ID verification hasn't succeeded. What steps do I take next?\", \"label\": 68 },\n  { \"text\": \"My identity couldn't be confirmed by your system. What's needed from me?\", \"label\": 68 },\n  { \"text\": \"I'm seeing a payment that doesn't look familiar, could you clarify it?\", \"label\": 28 },\n  { \"text\": \"What is this mysterious transaction on my bank statement?\", \"label\": 28 },\n  { \"text\": \"There's a charge I do not recall authorizing.\", \"label\": 28 },\n  { \"text\": \"I came across a strange direct debit, can you explain what it's for?\", \"label\": 28 },\n  { \"text\": \"How do I know if I paid a top-up fee?\", \"label\": 56 },\n  { \"text\": \"Can you tell me if I\u2019m charged any extra fees when I add money?\", \"label\": 56 },\n  { \"text\": \"Are there fees for transferring money out of my account?\", \"label\": 56 },\n  { \"text\": \"Let me know if I\u2019m paying a fee for each bank transfer.\", \"label\": 56 },\n  { \"text\": \"I am having trouble sending a large payment for my new house. Why won\u2019t it go through?\", \"label\": 35 },\n  { \"text\": \"Trying to complete an important mortgage transfer but it keeps failing. Help!\", \"label\": 35 },\n  { \"text\": \"Why would a transfer for my property purchase not process correctly?\", \"label\": 35 },\n  { \"text\": \"Can you investigate why my house deposit can't be sent?\", \"label\": 35 },\n  { \"text\": \"My card didn't work, and it isn't damaged. What could be causing this?\", \"label\": 14 },\n  { \"text\": \"My functional card is suddenly not accepted anywhere.\", \"label\": 14 },\n  { \"text\": \"Attempting to shop failed; my card has issues not related to physical damage.\", \"label\": 14 },\n  { \"text\": \"All payments with my good condition card are declining.\", \"label\": 14 },\n  { \"text\": \"What should I do if my top up didn't go through and was instantly reversed?\", \"label\": 61 },\n  { \"text\": \"I tried loading funds to my account but it was rejected, reasons?\", \"label\": 61 }\n]}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 817,
+    "prompt_tokens": 6445,
+    "total_tokens": 7262,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 1920,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.016546,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.016546,
+      "upstream_inference_prompt_cost": 0.01001,
+      "upstream_inference_completions_cost": 0.006536
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}

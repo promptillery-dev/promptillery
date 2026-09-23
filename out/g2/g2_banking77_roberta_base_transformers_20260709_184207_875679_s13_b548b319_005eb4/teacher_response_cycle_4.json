@@ -1,0 +1,49 @@
+{
+  "id": "gen-1783615724-NyjOHwecfif7QSo9lVIe",
+  "created": 1783615724,
+  "model": "openai/gpt-4.1-2025-04-14",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"articles\": [\n    {\n      \"text\": \"Why was my payment not approved by the app?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Can you explain why my card transaction failed?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"The app would not process my card payment, any reason why?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"My purchase didn't go through, what's the issue with your app?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Why did my card payment get declined within the app?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Is there a reason the app would refuse my payment attempt?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"My card transaction wasn\u2019t allowed, do you know why?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Why can't I make a payment using your app?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Is there a block on my card due to a recent transfer I made?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Why has my card been blocked after I tried sending a transfer?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Did my failed transfer cause my card to be blocked?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Can a transfer attempt result in my card being swallowed by the ATM?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"My card was taken by the machine after a transfer error.\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"ATM wouldn't return my card after a transfer was declined \u2013 is this normal?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Are there rules that cause my card to be held due to transfer issues?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Could a transfer problem lead to my card being blocked?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Does your app show the reason for a failed card payment?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"I tried making a payment and now my card doesn't work. What happened?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Why are payments via the app not being processed?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"What's causing the app to reject my card payment?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Why is my card payment repeatedly not accepted?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"My card is being blocked when I attempt certain transfers \u2013 help?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Is there a way to see if my card is blocked after a transfer failed?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Why would a transfer attempt lead to my card issues?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"My card worked until I tried a transfer, is it blocked now?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Help \u2013 my card was blocked after a transfer didn't go through.\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Why do card payments get rejected in your app?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"App says payment not processed, what can I do?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Who can I contact about a failed card payment?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"What are the usual causes for a card payment being blocked?\",\n      \"label\": 53\n    },\n    {\n      \"text\": \"Does a declined transfer affect my card's status?\",\n      \"label\": 18\n    },\n    {\n      \"text\": \"Is my card blocked because too many transfers failed?\",\n      \"label\": 18\n    }\n  ]\n}",
+        "role": "assistant",
+        "tool_calls": null,
+        "function_call": null
+      },
+      "provider_specific_fields": {
+        "native_finish_reason": "completed"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 904,
+    "prompt_tokens": 6111,
+    "total_tokens": 7015,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": null,
+      "image_tokens": 0
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 3712,
+      "cache_write_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost": 0.013886,
+    "is_byok": false,
+    "cost_details": {
+      "upstream_inference_cost": 0.013886,
+      "upstream_inference_prompt_cost": 0.006654,
+      "upstream_inference_completions_cost": 0.007232
+    }
+  },
+  "provider": "Azure",
+  "service_tier": "default"
+}
