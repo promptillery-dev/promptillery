@@ -726,6 +726,7 @@ Outputs land in `<run_dir>/audit/` (`audit.json`, `audit.csv`, and
 Pick the cheapest student that clears a target, given a completed run's
 main results and a profiled deployment table:
 
+    uv sync --extra paper    # paper-figures needs matplotlib
     uv run promptillery recommend \
         --main-results examples/demo/banking77/paper_main_results.csv \
         --profile-dir examples/demo/banking77/profiles \

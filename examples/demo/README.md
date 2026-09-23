@@ -4,6 +4,7 @@ The six Banking77 students from the paper, frozen: `banking77/paper_main_results
 (accuracy, teacher spend, training time per student, built by `scripts/build_cells.py`
 from `out/g2`) and `banking77/profiles/` (latency and throughput on one RTX 4090).
 
+    uv sync --extra paper    # paper-figures needs matplotlib
     uv run promptillery recommend \
         --main-results examples/demo/banking77/paper_main_results.csv \
         --profile-dir examples/demo/banking77/profiles \
